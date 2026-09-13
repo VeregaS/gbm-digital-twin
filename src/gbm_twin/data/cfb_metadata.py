@@ -11,6 +11,10 @@ class CFBMetadata:
 
         self.mri = self._read_single("CFB-GBM_mri_availability_*.tsv")
         self.rano = self._read_single("CFB-GBM_rano_criteria_*.tsv")
+        
+        self.treatment_imaging = self._read_single(
+            "CFB-GBM_treatment_imaging_availability_*.tsv"
+        )
 
     def _read_single(self, pattern: str) -> pd.DataFrame:
         files = list(self.metadata_dir.glob(pattern))
@@ -41,6 +45,22 @@ class CFBMetadata:
             for patient_id in self.patient_ids()
             if required_timepoints.issubset(self.timepoints(patient_id))
         ]
+        
+    def gtv_type(self, patient_id: int, timepoint: str) -> str | None:
+        rows = self.treatment_imaging[
+            (self.treatment_imaging["id_patient"] == patient_id)
+            & (self.treatment_imaging["temporality"] == timepoint)
+        ]
+
+        if rows.empty:
+            return None
+
+        value = rows.iloc[0]["gtv_type"]
+
+        if pd.isna(value):
+            return None
+
+        return str(value)
         
     def prediction_cohort(self) -> list[int]:
         required_columns = [
@@ -126,3 +146,29 @@ class CFBMetadata:
                 eligible.append(patient_id)
 
         return eligible
+    
+    def cohort_table(self) -> pd.DataFrame:
+        rows: list[dict[str, object]] = []
+
+        for patient_id in self.imaging_cohort({"t1gd"}):
+            patient = self.patient(patient_id)
+
+            rano_row = self.rano[
+                self.rano["id_patient"] == patient_id
+            ].iloc[0]
+
+            rows.append(
+                {
+                    "patient_id": patient_id,
+                    "t0_days": 0,
+                    "t1_days": patient.get_timepoint("t1").days_from_baseline,
+                    "t2_days": patient.get_timepoint("t2").days_from_baseline,
+                    "dt_t0_t1_days": patient.interval_days("t0", "t1"),
+                    "dt_t1_t2_days": patient.interval_days("t1", "t2"),
+                    "volume_t0_cm3": rano_row["size_t0 (cm3)"],
+                    "volume_t1_cm3": rano_row["size_t1 (cm3)"],
+                    "volume_t2_cm3": rano_row["size_t2 (cm3)"],
+                }
+            )
+
+        return pd.DataFrame(rows)

@@ -69,6 +69,35 @@ def create_test_metadata(metadata_dir: Path) -> None:
         sep="\t",
         index=False,
     )
+    
+    treatment_imaging = pd.DataFrame(
+        [
+            {
+                "id_patient": 1,
+                "temporality": "t0",
+                "gtv": 1,
+                "gtv_type": "genSegmentation",
+            },
+            {
+                "id_patient": 1,
+                "temporality": "t1",
+                "gtv": 1,
+                "gtv_type": "genSegmentation",
+            },
+            {
+                "id_patient": 1,
+                "temporality": "t2",
+                "gtv": 1,
+                "gtv_type": "genSegmentation",
+            },
+        ]
+    )
+
+    treatment_imaging.to_csv(
+        metadata_dir / "CFB-GBM_treatment_imaging_availability_test.tsv",
+        sep="\t",
+        index=False,
+    )
 
 
 def test_patient_ids(tmp_path: Path) -> None:
@@ -127,3 +156,10 @@ def test_imaging_cohort_requires_t1gd_at_all_timepoints(
     metadata = CFBMetadata(tmp_path)
 
     assert metadata.imaging_cohort({"t1gd"}) == [1]
+    
+def test_gtv_type(tmp_path: Path) -> None:
+    create_test_metadata(tmp_path)
+
+    metadata = CFBMetadata(tmp_path)
+
+    assert metadata.gtv_type(1, "t0") == "genSegmentation"
