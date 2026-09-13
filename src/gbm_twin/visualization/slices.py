@@ -46,3 +46,45 @@ def plot_t1gd_gtv_overlay(
 
     plt.tight_layout()
     plt.show()
+    
+def plot_longitudinal_gtv(
+    studies: list[PatientTimepointStudy],
+) -> None:
+    if not studies:
+        raise ValueError("No studies provided")
+
+    fig, axes = plt.subplots(
+        1,
+        len(studies),
+        figsize=(6 * len(studies), 6),
+    )
+
+    if len(studies) == 1:
+        axes = [axes]
+
+    for ax, study in zip(axes, studies, strict=True):
+        slice_index = largest_gtv_slice(study.gtv.data)
+
+        image = study.t1gd.data[:, :, slice_index]
+        gtv = study.gtv.data[:, :, slice_index] > 0
+
+        ax.imshow(
+            np.rot90(image),
+            cmap="gray",
+        )
+
+        ax.contour(
+            np.rot90(gtv),
+            levels=[0.5],
+            linewidths=1.5,
+        )
+
+        ax.set_title(
+            f"{study.timepoint.name}\n"
+            f"day {study.timepoint.days_from_baseline}"
+        )
+
+        ax.axis("off")
+
+    plt.tight_layout()
+    plt.show()
