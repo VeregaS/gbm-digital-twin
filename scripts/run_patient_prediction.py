@@ -5,6 +5,10 @@ import numpy as np
 from gbm_twin.data.models import Timepoint
 from gbm_twin.data.nifti import same_geometry
 from gbm_twin.data.patient_loader import load_patient_timepoint
+from gbm_twin.evaluation.baselines import (
+    expand_mask_to_volume,
+    extrapolate_volume,
+)
 from gbm_twin.evaluation.metrics import (
     dice_score,
     mask_volume_cm3,
@@ -28,6 +32,18 @@ def main() -> None:
     params = ReactionDiffusionParameters(
         diffusion=0.0125,
         proliferation=0.0450,
+    )
+    
+    t0 = load_patient_timepoint(
+        root,
+        42,
+        Timepoint("t0", 0),
+    )
+
+    t0_gtv = resample_volume(
+        t0.gtv,
+        target_spacing,
+        is_mask=True,
     )
 
     # Prediction starts from observed t1.
@@ -130,6 +146,57 @@ def main() -> None:
     )
 
     observed_volume = mask_volume_cm3(t2_gtv)
+    
+    volume_growth_prediction = extrapolate_volume(
+        mask_volume_cm3(t0_gtv),
+        mask_volume_cm3(t1_gtv),
+        dt01_days=77.0,
+        dt12_days=112.0,
+    )
+
+    volume_growth_error = abs(
+        volume_growth_prediction - observed_volume
+    ) / observed_volume
+
+    print()
+    print("Volume-growth baseline")
+    print("----------------------")
+    print(
+        "Predicted volume:",
+        round(volume_growth_prediction, 2),
+        "cm3",
+    )
+    print(
+        "Volume error:",
+        round(volume_growth_error * 100, 2),
+        "%",
+    )
+    
+    morphological_prediction = expand_mask_to_volume(
+        t1_gtv.data > 0.5,
+        target_volume_cm3=volume_growth_prediction,
+        spacing=t1_gtv.spacing,
+    )
+
+    morphological_dice = dice_score(
+        morphological_prediction,
+        observed_gtv,
+    )
+
+    morphological_volume_error = relative_volume_error(
+        morphological_prediction,
+        observed_gtv,
+    )
+
+    print()
+    print("Morphological growth baseline")
+    print("-----------------------------")
+    print("Dice:", round(morphological_dice, 4))
+    print(
+        "Volume error:",
+        round(morphological_volume_error * 100, 2),
+        "%",
+    )
 
     print("Patient: 42")
     print("D:", params.diffusion)
