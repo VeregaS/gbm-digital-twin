@@ -1,0 +1,35 @@
+from dataclasses import dataclass, field
+from pathlib import Path
+
+
+@dataclass(frozen=True)
+class Timepoint:
+    name: str
+    days_from_baseline: int | None = None
+
+    t1gd_path: Path | None = None
+    flair_path: Path | None = None
+    gtv_path: Path | None = None
+
+
+@dataclass
+class Patient:
+    patient_id: str
+    timepoints: dict[str, Timepoint] = field(default_factory=dict)
+
+    def add_timepoint(self, timepoint: Timepoint) -> None:
+        if timepoint.name in self.timepoints:
+            raise ValueError(
+                f"Timepoint '{timepoint.name}' already exists "
+                f"for patient '{self.patient_id}'"
+            )
+
+        self.timepoints[timepoint.name] = timepoint
+
+    def get_timepoint(self, name: str) -> Timepoint:
+        try:
+            return self.timepoints[name]
+        except KeyError as exc:
+            raise KeyError(
+                f"Patient '{self.patient_id}' has no timepoint '{name}'"
+            ) from exc
