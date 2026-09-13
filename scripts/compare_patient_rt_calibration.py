@@ -81,6 +81,37 @@ def parse_args() -> argparse.Namespace:
     )
 
     parser.add_argument(
+        "--diffusion",
+        type=float,
+        nargs="+",
+        default=None,
+        help=(
+            "Override diffusion grid. "
+            "Defaults to experiment YAML."
+        ),
+    )
+
+    parser.add_argument(
+        "--rho",
+        type=float,
+        nargs="+",
+        default=None,
+        help=(
+            "Override proliferation grid. "
+            "Defaults to experiment YAML."
+        ),
+    )
+
+    parser.add_argument(
+        "--rt-only",
+        action="store_true",
+        help=(
+            "Skip untreated calibration. "
+            "Useful for local RT refinement."
+        ),
+    )
+
+    parser.add_argument(
         "--output",
         type=Path,
         default=None,
@@ -125,11 +156,62 @@ def main() -> None:
             "All alpha values must be non-negative"
         )
 
+    if args.alpha_beta <= 0:
+        raise ValueError(
+            "--alpha-beta must be positive"
+        )
+
     experiment = (
         load_cohort_experiment_config(
             args.config
         )
     )
+
+    diffusion_values = (
+        list(args.diffusion)
+        if args.diffusion is not None
+        else list(
+            experiment
+            .evaluation
+            .diffusion_values
+        )
+    )
+
+    proliferation_values = (
+        list(args.rho)
+        if args.rho is not None
+        else list(
+            experiment
+            .evaluation
+            .proliferation_values
+        )
+    )
+
+    if not diffusion_values:
+        raise ValueError(
+            "Diffusion grid must not be empty"
+        )
+
+    if not proliferation_values:
+        raise ValueError(
+            "Rho grid must not be empty"
+        )
+
+    if any(
+        value < 0
+        for value in diffusion_values
+    ):
+        raise ValueError(
+            "Diffusion values must be non-negative"
+        )
+
+    if any(
+        value < 0
+        for value in proliferation_values
+    ):
+        raise ValueError(
+            "Rho values must be non-negative"
+        )
 
     metadata = CFBMetadata(
         experiment.metadata_root
@@ -265,52 +347,71 @@ def main() -> None:
 
     print()
     print("=" * 60)
-    print(
-        f"PATIENT {args.patient}: UNTREATED"
-    )
+    print("CALIBRATION GRID")
     print("=" * 60)
 
-    untreated_results = grid_search(
-        initial,
-        observed_t1,
-        domain,
-        spacing=t0_gtv.spacing,
-        duration_days=float(dt01),
-        dt=experiment.evaluation.dt,
-        diffusion_values=list(
-            experiment
-            .evaluation
-            .diffusion_values
-        ),
-        proliferation_values=list(
-            experiment
-            .evaluation
-            .proliferation_values
-        ),
-        threshold=(
-            experiment.evaluation.threshold
-        ),
-        volume_weight=(
-            experiment
-            .evaluation
-            .volume_weight
-        ),
+    print(
+        "D:",
+        diffusion_values,
     )
 
-    untreated_best = (
-        untreated_results[0]
+    print(
+        "rho:",
+        proliferation_values,
     )
 
-    rows.append(
-        result_row(
-            patient_id=args.patient,
-            model="untreated",
-            alpha=None,
-            beta=None,
-            survival_per_fraction=None,
-            result=untreated_best,
+    print(
+        "alpha:",
+        args.alpha,
+    )
+
+    if not args.rt_only:
+        print()
+        print("=" * 60)
+        print(
+            f"PATIENT {args.patient}: UNTREATED"
         )
-    )
+        print("=" * 60)
+
+        untreated_results = grid_search(
+            initial,
+            observed_t1,
+            domain,
+            spacing=t0_gtv.spacing,
+            duration_days=float(dt01),
+            dt=experiment.evaluation.dt,
+            diffusion_values=(
+                diffusion_values
+            ),
+            proliferation_values=(
+                proliferation_values
+            ),
+            threshold=(
+                experiment
+                .evaluation
+                .threshold
+            ),
+            volume_weight=(
+                experiment
+                .evaluation
+                .volume_weight
+            ),
+        )
+
+        untreated_best = (
+            untreated_results[0]
+        )
+
+        rows.append(
+            result_row(
+                patient_id=args.patient,
+                model="untreated",
+                alpha=None,
+                beta=None,
+                survival_per_fraction=None,
+                result=untreated_best,
+            )
+        )
 
     for alpha in args.alpha:
         radiobiology = (
@@ -344,15 +445,11 @@ def main() -> None:
             spacing=t0_gtv.spacing,
             duration_days=float(dt01),
             dt=experiment.evaluation.dt,
-            diffusion_values=list(
-                experiment
-                .evaluation
-                .diffusion_values
+            diffusion_values=(
+                diffusion_values
             ),
-            proliferation_values=list(
-                experiment
-                .evaluation
-                .proliferation_values
+            proliferation_values=(
+                proliferation_values
             ),
             threshold=(
                 experiment
@@ -440,9 +537,7 @@ def main() -> None:
     output_path = (
         args.output
         if args.output is not None
-        else Path(
-            "results"
-        )
+        else Path("results")
         / (
             f"patient_{args.patient}"
             "_rt_calibration.csv"
