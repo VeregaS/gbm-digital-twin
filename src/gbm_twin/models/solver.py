@@ -1,5 +1,7 @@
 import numpy as np
 
+from gbm_twin.models.reaction_diffusion import ReactionDiffusionParameters
+
 
 def laplacian_3d(
     field: np.ndarray,
@@ -40,3 +42,59 @@ def laplacian_3d(
     ) / dz**2
 
     return d2x + d2y + d2z
+
+def explicit_stability_limit(
+    diffusion: float,
+    spacing: tuple[float, float, float],
+) -> float:
+    if diffusion <= 0:
+        return float("inf")
+
+    dx, dy, dz = spacing
+
+    return 1.0 / (
+        2.0
+        * diffusion
+        * (
+            1.0 / dx**2
+            + 1.0 / dy**2
+            + 1.0 / dz**2
+        )
+    )
+
+
+def reaction_diffusion_step(
+    field: np.ndarray,
+    params: ReactionDiffusionParameters,
+    *,
+    spacing: tuple[float, float, float],
+    dt: float,
+) -> np.ndarray:
+    if dt <= 0:
+        raise ValueError("dt must be positive")
+
+    stability_limit = explicit_stability_limit(
+        params.diffusion,
+        spacing,
+    )
+
+    if dt > stability_limit:
+        raise ValueError(
+            f"dt={dt} exceeds explicit diffusion stability limit "
+            f"{stability_limit:.6g}"
+        )
+
+    diffusion_term = params.diffusion * laplacian_3d(
+        field,
+        spacing,
+    )
+
+    reaction_term = (
+        params.proliferation
+        * field
+        * (1.0 - field)
+    )
+
+    return field + dt * (
+        diffusion_term + reaction_term
+    )
