@@ -1,6 +1,8 @@
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from gbm_twin.data.nifti import NiftiVolume
+
 
 @dataclass(frozen=True)
 class Timepoint:
@@ -55,3 +57,12 @@ class Patient:
             )
 
         return interval
+    
+
+@dataclass(frozen=True)
+class PatientTimepointStudy:
+    patient_id: str
+    timepoint: Timepoint
+    t1gd: NiftiVolume
+    gtv: NiftiVolume
+    brain_mask: NiftiVolume
