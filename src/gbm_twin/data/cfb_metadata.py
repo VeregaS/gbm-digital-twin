@@ -2,6 +2,8 @@ from pathlib import Path
 
 import pandas as pd
 
+from gbm_twin.data.models import Patient, Timepoint
+
 
 class CFBMetadata:
     def __init__(self, metadata_dir: Path) -> None:
@@ -53,3 +55,33 @@ class CFBMetadata:
         longitudinal_patient_ids = set(self.longitudinal_patients())
 
         return sorted(longitudinal_patient_ids & rano_patient_ids)
+    
+    def patient_timeline(self, patient_id: int) -> list[Timepoint]:
+        rows = self.mri[self.mri["id_patient"] == patient_id].copy()
+
+        if rows.empty:
+            raise KeyError(f"Unknown patient: {patient_id}")
+
+        rows = rows.sort_values("time_diff_t0 (weeks)")
+
+        timeline: list[Timepoint] = []
+
+        for _, row in rows.iterrows():
+            weeks_from_baseline = float(row["time_diff_t0 (weeks)"])
+
+            timeline.append(
+                Timepoint(
+                    name=str(row["temporality"]),
+                    days_from_baseline=round(weeks_from_baseline * 7),
+                )
+            )
+
+        return timeline
+    
+    def patient(self, patient_id: int) -> Patient:
+        patient = Patient(patient_id=str(patient_id))
+
+        for timepoint in self.patient_timeline(patient_id):
+            patient.add_timepoint(timepoint)
+
+        return patient

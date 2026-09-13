@@ -33,3 +33,25 @@ class Patient:
             raise KeyError(
                 f"Patient '{self.patient_id}' has no timepoint '{name}'"
             ) from exc
+            
+    def interval_days(self, start: str, end: str) -> int:
+        start_timepoint = self.get_timepoint(start)
+        end_timepoint = self.get_timepoint(end)
+
+        if (
+            start_timepoint.days_from_baseline is None
+            or end_timepoint.days_from_baseline is None
+        ):
+            raise ValueError("Both timepoints must have days_from_baseline")
+
+        interval = (
+            end_timepoint.days_from_baseline
+            - start_timepoint.days_from_baseline
+        )
+
+        if interval <= 0:
+            raise ValueError(
+                f"Invalid time interval: {start} -> {end} = {interval} days"
+            )
+
+        return interval

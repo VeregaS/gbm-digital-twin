@@ -8,11 +8,31 @@ from gbm_twin.data.cfb_metadata import CFBMetadata
 def create_test_metadata(metadata_dir: Path) -> None:
     mri = pd.DataFrame(
         [
-            {"id_patient": 1, "temporality": "t0"},
-            {"id_patient": 1, "temporality": "t1"},
-            {"id_patient": 1, "temporality": "t2"},
-            {"id_patient": 2, "temporality": "t0"},
-            {"id_patient": 2, "temporality": "t1"},
+            {
+                "id_patient": 1,
+                "temporality": "t0",
+                "time_diff_t0 (weeks)": 0,
+            },
+            {
+                "id_patient": 1,
+                "temporality": "t1",
+                "time_diff_t0 (weeks)": 12,
+            },
+            {
+                "id_patient": 1,
+                "temporality": "t2",
+                "time_diff_t0 (weeks)": 25,
+            },
+            {
+                "id_patient": 2,
+                "temporality": "t0",
+                "time_diff_t0 (weeks)": 0,
+            },
+            {
+                "id_patient": 2,
+                "temporality": "t1",
+                "time_diff_t0 (weeks)": 10,
+            },
         ]
     )
 
@@ -68,3 +88,28 @@ def test_prediction_cohort(tmp_path: Path) -> None:
     metadata = CFBMetadata(tmp_path)
 
     assert metadata.prediction_cohort() == [1]
+    
+def test_patient_timeline(tmp_path: Path) -> None:
+    create_test_metadata(tmp_path)
+
+    metadata = CFBMetadata(tmp_path)
+
+    timeline = metadata.patient_timeline(1)
+
+    assert [timepoint.name for timepoint in timeline] == ["t0", "t1", "t2"]
+
+    assert [timepoint.days_from_baseline for timepoint in timeline] == [
+        0,
+        84,
+        175,
+    ]
+    
+def test_metadata_builds_patient(tmp_path: Path) -> None:
+    create_test_metadata(tmp_path)
+
+    metadata = CFBMetadata(tmp_path)
+    patient = metadata.patient(1)
+
+    assert patient.patient_id == "1"
+    assert patient.interval_days("t0", "t1") == 84
+    assert patient.interval_days("t1", "t2") == 91
