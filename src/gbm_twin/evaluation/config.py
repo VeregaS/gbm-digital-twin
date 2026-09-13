@@ -1,10 +1,14 @@
+import hashlib
+import json
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
 import yaml
 
-from gbm_twin.evaluation.cohort import EvaluationConfig
+from gbm_twin.evaluation.cohort import (
+    EvaluationConfig,
+)
 
 
 @dataclass(frozen=True)
@@ -13,7 +17,9 @@ class CohortExperimentConfig:
     metadata_root: Path
     patients_root: Path
     evaluation: EvaluationConfig
-    output_csv: Path
+    trajectory_stable_threshold: float
+    raw_output_csv: Path
+    analyzed_output_csv: Path
 
 
 def _require_mapping(
@@ -38,6 +44,39 @@ def _require_list(
         )
 
     return value
+
+
+def evaluation_signature(
+    config: EvaluationConfig,
+) -> str:
+    payload = {
+        "target_spacing": (
+            config.target_spacing
+        ),
+        "threshold": config.threshold,
+        "dt": config.dt,
+        "diffusion_values": (
+            config.diffusion_values
+        ),
+        "proliferation_values": (
+            config.proliferation_values
+        ),
+        "volume_weight": (
+            config.volume_weight
+        ),
+    }
+
+    serialized = json.dumps(
+        payload,
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+
+    digest = hashlib.sha256(
+        serialized.encode("utf-8")
+    ).hexdigest()
+
+    return digest[:16]
 
 
 def load_cohort_experiment_config(
@@ -84,13 +123,20 @@ def load_cohort_experiment_config(
         "evaluation",
     )
 
+    analysis = _require_mapping(
+        root.get("analysis"),
+        "analysis",
+    )
+
     output = _require_mapping(
         root.get("output"),
         "output",
     )
 
     raw_spacing = _require_list(
-        evaluation.get("target_spacing"),
+        evaluation.get(
+            "target_spacing"
+        ),
         "evaluation.target_spacing",
     )
 
@@ -143,6 +189,19 @@ def load_cohort_experiment_config(
         ),
     )
 
+    trajectory_stable_threshold = float(
+        analysis[
+            "trajectory_stable_threshold"
+        ]
+    )
+
+    if trajectory_stable_threshold < 0:
+        raise ValueError(
+            "analysis."
+            "trajectory_stable_threshold "
+            "must be non-negative"
+        )
+
     return CohortExperimentConfig(
         patient_ids=patient_ids,
         metadata_root=Path(
@@ -152,7 +211,13 @@ def load_cohort_experiment_config(
             str(data["patients_root"])
         ),
         evaluation=evaluation_config,
-        output_csv=Path(
-            str(output["csv"])
+        trajectory_stable_threshold=(
+            trajectory_stable_threshold
+        ),
+        raw_output_csv=Path(
+            str(output["raw_csv"])
+        ),
+        analyzed_output_csv=Path(
+            str(output["analyzed_csv"])
         ),
     )

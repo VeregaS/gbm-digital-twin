@@ -24,16 +24,22 @@ evaluation:
   dt: 2.0
 
   diffusion_values:
+    - 0.0
     - 0.005
     - 0.015
     - 0.030
 
   proliferation_values:
+    - 0.0
     - 0.015
     - 0.035
     - 0.055
 
   volume_weight: 0.5
 
+analysis:
+  trajectory_stable_threshold: 0.10
+
 output:
-  csv: "results/mini_cohort.csv"
+  raw_csv: "results/mini_cohort.csv"
+  analyzed_csv: "results/mini_cohort_analyzed.csv"

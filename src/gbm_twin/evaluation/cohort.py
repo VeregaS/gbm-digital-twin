@@ -22,6 +22,27 @@ from gbm_twin.models.reaction_diffusion import (
 from gbm_twin.models.solver import simulate_reaction_diffusion
 from gbm_twin.preprocessing.resampling import resample_volume
 
+RAW_RESULT_COLUMNS = (
+    "patient_id",
+    "dt01",
+    "dt12",
+    "volume_t0_cm3",
+    "volume_t1_cm3",
+    "volume_t2_cm3",
+    "D",
+    "rho",
+    "calibration_dice",
+    "calibration_volume_error",
+    "calibration_loss",
+    "twin_dice",
+    "twin_volume_error",
+    "persistence_dice",
+    "persistence_volume_error",
+    "predicted_volume_t2_cm3",
+    "morphological_dice",
+    "morphological_volume_error",
+)
+
 
 @dataclass(frozen=True)
 class EvaluationConfig:
@@ -107,14 +128,12 @@ def evaluate_patient(
 
     if not same_geometry(t0_gtv, t1_gtv):
         raise ValueError(
-            f"Patient {patient_id}: "
-            "t0/t1 geometry mismatch"
+            f"Patient {patient_id}: t0/t1 geometry mismatch"
         )
 
     if not same_geometry(t1_gtv, t2_gtv):
         raise ValueError(
-            f"Patient {patient_id}: "
-            "t1/t2 geometry mismatch"
+            f"Patient {patient_id}: t1/t2 geometry mismatch"
         )
 
     dt01 = patient.interval_days(
@@ -125,6 +144,18 @@ def evaluate_patient(
     dt12 = patient.interval_days(
         "t1",
         "t2",
+    )
+
+    volume_t0 = mask_volume_cm3(
+        t0_gtv
+    )
+
+    volume_t1 = mask_volume_cm3(
+        t1_gtv
+    )
+
+    volume_t2 = mask_volume_cm3(
+        t2_gtv
     )
 
     # ---------------------------------------------------------
@@ -240,14 +271,6 @@ def evaluate_patient(
     # Volume-growth baseline
     # ---------------------------------------------------------
 
-    volume_t0 = mask_volume_cm3(
-        t0_gtv
-    )
-
-    volume_t1 = mask_volume_cm3(
-        t1_gtv
-    )
-
     predicted_volume_t2 = extrapolate_volume(
         volume_t0,
         volume_t1,
@@ -256,7 +279,7 @@ def evaluate_patient(
     )
 
     # ---------------------------------------------------------
-    # Morphological growth baseline
+    # Morphological baseline
     # ---------------------------------------------------------
 
     morphological_prediction = (
@@ -285,12 +308,16 @@ def evaluate_patient(
         "patient_id": patient_id,
         "dt01": dt01,
         "dt12": dt12,
+        "volume_t0_cm3": volume_t0,
+        "volume_t1_cm3": volume_t1,
+        "volume_t2_cm3": volume_t2,
         "D": best.diffusion,
         "rho": best.proliferation,
         "calibration_dice": best.dice,
         "calibration_volume_error": (
             best.volume_error
         ),
+        "calibration_loss": best.loss,
         "twin_dice": twin_dice,
         "twin_volume_error": (
             twin_volume_error
@@ -300,6 +327,9 @@ def evaluate_patient(
         ),
         "persistence_volume_error": (
             persistence_volume_error
+        ),
+        "predicted_volume_t2_cm3": (
+            predicted_volume_t2
         ),
         "morphological_dice": (
             morphological_dice
