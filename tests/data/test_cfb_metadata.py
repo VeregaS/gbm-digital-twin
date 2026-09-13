@@ -12,26 +12,31 @@ def create_test_metadata(metadata_dir: Path) -> None:
                 "id_patient": 1,
                 "temporality": "t0",
                 "time_diff_t0 (weeks)": 0,
+                "t1gd": 1,
             },
             {
                 "id_patient": 1,
                 "temporality": "t1",
                 "time_diff_t0 (weeks)": 12,
+                "t1gd": 1,
             },
             {
                 "id_patient": 1,
                 "temporality": "t2",
                 "time_diff_t0 (weeks)": 25,
+                "t1gd": 1,
             },
             {
                 "id_patient": 2,
                 "temporality": "t0",
                 "time_diff_t0 (weeks)": 0,
+                "t1gd": 1,
             },
             {
                 "id_patient": 2,
                 "temporality": "t1",
                 "time_diff_t0 (weeks)": 10,
+                "t1gd": 0,
             },
         ]
     )
@@ -113,3 +118,12 @@ def test_metadata_builds_patient(tmp_path: Path) -> None:
     assert patient.patient_id == "1"
     assert patient.interval_days("t0", "t1") == 84
     assert patient.interval_days("t1", "t2") == 91
+    
+def test_imaging_cohort_requires_t1gd_at_all_timepoints(
+    tmp_path: Path,
+) -> None:
+    create_test_metadata(tmp_path)
+
+    metadata = CFBMetadata(tmp_path)
+
+    assert metadata.imaging_cohort({"t1gd"}) == [1]

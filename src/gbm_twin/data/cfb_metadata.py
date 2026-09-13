@@ -85,3 +85,44 @@ class CFBMetadata:
             patient.add_timepoint(timepoint)
 
         return patient
+    
+    def has_modality(
+        self,
+        patient_id: int,
+        timepoint: str,
+        modality: str,
+    ) -> bool:
+        rows = self.mri[
+            (self.mri["id_patient"] == patient_id)
+            & (self.mri["temporality"] == timepoint)
+        ]
+
+        if rows.empty:
+            return False
+
+        if modality not in self.mri.columns:
+            raise KeyError(f"Unknown MRI modality: {modality}")
+
+        return bool(rows.iloc[0][modality] == 1)
+
+
+    def imaging_cohort(
+        self,
+        required_modalities: set[str] | None = None,
+    ) -> list[int]:
+        if required_modalities is None:
+            required_modalities = {"t1gd"}
+
+        required_timepoints = ("t0", "t1", "t2")
+
+        eligible: list[int] = []
+
+        for patient_id in self.prediction_cohort():
+            if all(
+                self.has_modality(patient_id, timepoint, modality)
+                for timepoint in required_timepoints
+                for modality in required_modalities
+            ):
+                eligible.append(patient_id)
+
+        return eligible
