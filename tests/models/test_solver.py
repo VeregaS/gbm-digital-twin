@@ -5,6 +5,7 @@ from gbm_twin.models.solver import (
     explicit_stability_limit,
     laplacian_3d,
     reaction_diffusion_step,
+    simulate_reaction_diffusion,
 )
 
 
@@ -81,7 +82,7 @@ def test_unstable_dt_is_rejected() -> None:
     )
 
     limit = explicit_stability_limit(
-        params.diffusion,
+        params,
         (1.0, 1.0, 1.0),
     )
 
@@ -98,3 +99,42 @@ def test_unstable_dt_is_rejected() -> None:
         pass
     else:
         raise AssertionError("Expected unstable dt to be rejected")
+    
+def test_zero_duration_returns_initial_field() -> None:
+    field = np.full((5, 5, 5), 0.25)
+
+    params = ReactionDiffusionParameters(
+        diffusion=0.1,
+        proliferation=0.1,
+    )
+
+    result = simulate_reaction_diffusion(
+        field,
+        params,
+        spacing=(1.0, 1.0, 1.0),
+        duration_days=0.0,
+        dt=0.1,
+    )
+
+    assert np.allclose(result, field)
+
+
+def test_simulation_with_proliferation_increases_total_mass() -> None:
+    field = np.full((5, 5, 5), 0.1)
+
+    params = ReactionDiffusionParameters(
+        diffusion=0.0,
+        proliferation=0.05,
+    )
+
+    result = simulate_reaction_diffusion(
+        field,
+        params,
+        spacing=(1.0, 1.0, 1.0),
+        duration_days=10.0,
+        dt=0.5,
+    )
+
+    assert result.sum() > field.sum()
+    assert np.all(result >= 0)
+    assert np.all(result <= 1)

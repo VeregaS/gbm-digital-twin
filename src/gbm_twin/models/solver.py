@@ -44,23 +44,27 @@ def laplacian_3d(
     return d2x + d2y + d2z
 
 def explicit_stability_limit(
-    diffusion: float,
+    params: ReactionDiffusionParameters,
     spacing: tuple[float, float, float],
 ) -> float:
-    if diffusion <= 0:
-        return float("inf")
-
     dx, dy, dz = spacing
 
-    return 1.0 / (
+    diffusion_rate = (
         2.0
-        * diffusion
+        * params.diffusion
         * (
             1.0 / dx**2
             + 1.0 / dy**2
             + 1.0 / dz**2
         )
     )
+
+    total_rate = diffusion_rate + params.proliferation
+
+    if total_rate == 0:
+        return float("inf")
+
+    return 1.0 / total_rate
 
 
 def reaction_diffusion_step(
@@ -74,7 +78,7 @@ def reaction_diffusion_step(
         raise ValueError("dt must be positive")
 
     stability_limit = explicit_stability_limit(
-        params.diffusion,
+        params,
         spacing,
     )
 
@@ -98,3 +102,45 @@ def reaction_diffusion_step(
     return field + dt * (
         diffusion_term + reaction_term
     )
+    
+def simulate_reaction_diffusion(
+    initial_field: np.ndarray,
+    params: ReactionDiffusionParameters,
+    *,
+    spacing: tuple[float, float, float],
+    duration_days: float,
+    dt: float,
+) -> np.ndarray:
+    if duration_days < 0:
+        raise ValueError("duration_days must be non-negative")
+
+    if dt <= 0:
+        raise ValueError("dt must be positive")
+
+    field = np.asarray(initial_field, dtype=float).copy()
+
+    if field.ndim != 3:
+        raise ValueError(
+            f"Expected 3D initial field, got shape {field.shape}"
+        )
+
+    if np.any(field < 0) or np.any(field > 1):
+        raise ValueError(
+            "Initial concentration must be within [0, 1]"
+        )
+
+    remaining_time = duration_days
+
+    while remaining_time > 0:
+        step_dt = min(dt, remaining_time)
+
+        field = reaction_diffusion_step(
+            field,
+            params,
+            spacing=spacing,
+            dt=step_dt,
+        )
+
+        remaining_time -= step_dt
+
+    return field
