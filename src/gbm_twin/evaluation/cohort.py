@@ -6,8 +6,8 @@ from gbm_twin.data.cfb_metadata import CFBMetadata
 from gbm_twin.data.nifti import same_geometry
 from gbm_twin.data.patient_loader import load_patient_timepoint
 from gbm_twin.evaluation.baselines import (
-    expand_mask_to_volume,
     extrapolate_volume,
+    resize_mask_to_volume,
 )
 from gbm_twin.evaluation.metrics import (
     dice_score,
@@ -260,7 +260,7 @@ def evaluate_patient(
     # ---------------------------------------------------------
 
     morphological_prediction = (
-        expand_mask_to_volume(
+        resize_mask_to_volume(
             persistence_prediction,
             target_volume_cm3=(
                 predicted_volume_t2

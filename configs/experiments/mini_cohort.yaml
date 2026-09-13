@@ -1,7 +1,14 @@
 patients:
   - 8
   - 18
+  - 25
   - 42
+  - 65
+  - 99
+  - 108
+  - 112
+  - 214
+  - 251
 
 data:
   metadata_root: "D:/Datasets/CFB-GBM/metadata"
