@@ -1,6 +1,9 @@
 import numpy as np
 
-from gbm_twin.models.reaction_diffusion import ReactionDiffusionParameters
+from gbm_twin.models.reaction_diffusion import (
+    ReactionDiffusionParameters,
+    gaussian_initial_condition,
+)
 from gbm_twin.models.solver import (
     explicit_stability_limit,
     laplacian_3d,
@@ -138,3 +141,27 @@ def test_simulation_with_proliferation_increases_total_mass() -> None:
     assert result.sum() > field.sum()
     assert np.all(result >= 0)
     assert np.all(result <= 1)
+    
+def test_symmetric_initial_condition_remains_symmetric() -> None:
+    initial = gaussian_initial_condition(
+        (31, 31, 31),
+        center=(15.0, 15.0, 15.0),
+        sigma=3.0,
+    )
+
+    params = ReactionDiffusionParameters(
+        diffusion=0.1,
+        proliferation=0.03,
+    )
+
+    result = simulate_reaction_diffusion(
+        initial,
+        params,
+        spacing=(1.0, 1.0, 1.0),
+        duration_days=10.0,
+        dt=0.5,
+    )
+
+    assert np.allclose(result, np.flip(result, axis=0))
+    assert np.allclose(result, np.flip(result, axis=1))
+    assert np.allclose(result, np.flip(result, axis=2))
