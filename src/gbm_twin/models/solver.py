@@ -1,11 +1,16 @@
+import math
+
 import numpy as np
 
 from gbm_twin.models.reaction_diffusion import (
     ReactionDiffusionParameters,
 )
 from gbm_twin.models.treatment import (
+    FractionatedRadiotherapy,
     TreatmentWindow,
 )
+
+_TOLERANCE = 1e-9
 
 
 def laplacian_3d(
@@ -386,40 +391,146 @@ def reaction_diffusion_step(
     return result
 
 
-def _step_duration_before_treatment_boundary(
+def _same_time(
+    first: float,
+    second: float,
+) -> bool:
+    return math.isclose(
+        first,
+        second,
+        rel_tol=0.0,
+        abs_tol=_TOLERANCE,
+    )
+
+
+def _continuous_treatment(
+    treatment: (
+        TreatmentWindow
+        | FractionatedRadiotherapy
+        | None
+    ),
+) -> TreatmentWindow | None:
+    if isinstance(
+        treatment,
+        TreatmentWindow,
+    ):
+        return treatment
+
+    return None
+
+
+def _fractionated_treatment(
+    treatment: (
+        TreatmentWindow
+        | FractionatedRadiotherapy
+        | None
+    ),
+) -> FractionatedRadiotherapy | None:
+    if isinstance(
+        treatment,
+        FractionatedRadiotherapy,
+    ):
+        return treatment
+
+    return None
+
+
+def _apply_fraction_if_due(
+    field: np.ndarray,
+    *,
+    treatment: FractionatedRadiotherapy | None,
+    time_day: float,
+) -> np.ndarray:
+    if treatment is None:
+        return field
+
+    if not treatment.has_fraction_at(
+        time_day,
+        tolerance=_TOLERANCE,
+    ):
+        return field
+
+    survival_fraction = (
+        treatment
+        .survival_fraction_per_fraction
+    )
+
+    return (
+        field
+        * survival_fraction
+    )
+
+
+def _next_treatment_boundary(
     *,
     current_time_day: float,
-    proposed_dt: float,
-    treatment: TreatmentWindow | None,
-) -> float:
-    if treatment is None:
-        return proposed_dt
+    proposed_end_day: float,
+    treatment: (
+        TreatmentWindow
+        | FractionatedRadiotherapy
+        | None
+    ),
+) -> float | None:
+    candidates: list[float] = []
 
-    proposed_end = (
-        current_time_day
-        + proposed_dt
-    )
-
-    boundaries = (
-        treatment.start_day,
-        treatment.end_day,
-    )
-
-    boundary_distances = [
-        boundary - current_time_day
-        for boundary in boundaries
-        if (
-            current_time_day
-            < boundary
-            < proposed_end
+    if isinstance(
+        treatment,
+        TreatmentWindow,
+    ):
+        boundaries = (
+            treatment.start_day,
+            treatment.end_day,
         )
-    ]
 
-    if not boundary_distances:
-        return proposed_dt
+        for boundary in boundaries:
+            if (
+                boundary > current_time_day
+                and not _same_time(
+                    boundary,
+                    current_time_day,
+                )
+                and (
+                    boundary < proposed_end_day
+                    or _same_time(
+                        boundary,
+                        proposed_end_day,
+                    )
+                )
+            ):
+                candidates.append(
+                    boundary
+                )
+
+    elif isinstance(
+        treatment,
+        FractionatedRadiotherapy,
+    ):
+        for fraction_day in (
+            treatment.fraction_days
+        ):
+            if (
+                fraction_day > current_time_day
+                and not _same_time(
+                    fraction_day,
+                    current_time_day,
+                )
+                and (
+                    fraction_day < proposed_end_day
+                    or _same_time(
+                        fraction_day,
+                        proposed_end_day,
+                    )
+                )
+            ):
+                candidates.append(
+                    fraction_day
+                )
+
+    if not candidates:
+        return None
 
     return min(
-        boundary_distances
+        candidates
     )
 
 
@@ -431,7 +542,11 @@ def simulate_reaction_diffusion(
     duration_days: float,
     dt: float,
     domain_mask: np.ndarray | None = None,
-    treatment: TreatmentWindow | None = None,
+    treatment: (
+        TreatmentWindow
+        | FractionatedRadiotherapy
+        | None
+    ) = None,
     start_time_day: float = 0.0,
 ) -> np.ndarray:
     if duration_days < 0:
@@ -480,7 +595,32 @@ def simulate_reaction_diffusion(
             f"{field.shape}"
         )
 
+    if duration_days == 0:
+        return field
+
+    continuous_treatment = (
+        _continuous_treatment(
+            treatment
+        )
+    )
+
+    fractionated_treatment = (
+        _fractionated_treatment(
+            treatment
+        )
+    )
+
     elapsed_time = 0.0
+
+    current_time_day = (
+        start_time_day
+    )
+
+    field = _apply_fraction_if_due(
+        field,
+        treatment=fractionated_treatment,
+        time_day=current_time_day,
+    )
 
     while elapsed_time < duration_days:
         remaining_time = (
@@ -498,15 +638,24 @@ def simulate_reaction_diffusion(
             + elapsed_time
         )
 
-        step_dt = (
-            _step_duration_before_treatment_boundary(
-                current_time_day=(
-                    current_time_day
-                ),
-                proposed_dt=proposed_dt,
-                treatment=treatment,
-            )
+        proposed_end_day = (
+            current_time_day
+            + proposed_dt
         )
+
+        boundary = _next_treatment_boundary(
+            current_time_day=current_time_day,
+            proposed_end_day=proposed_end_day,
+            treatment=treatment,
+        )
+
+        if boundary is None:
+            step_dt = proposed_dt
+        else:
+            step_dt = (
+                boundary
+                - current_time_day
+            )
 
         field = reaction_diffusion_step(
             field,
@@ -514,10 +663,23 @@ def simulate_reaction_diffusion(
             spacing=spacing,
             dt=step_dt,
             domain_mask=domain_mask,
-            treatment=treatment,
+            treatment=continuous_treatment,
             time_day=current_time_day,
         )
 
         elapsed_time += step_dt
+
+        new_time_day = (
+            start_time_day
+            + elapsed_time
+        )
+
+        field = _apply_fraction_if_due(
+            field,
+            treatment=(
+                fractionated_treatment
+            ),
+            time_day=new_time_day,
+        )
 
     return field

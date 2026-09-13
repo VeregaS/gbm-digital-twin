@@ -1,3 +1,4 @@
+import math
 from dataclasses import dataclass
 
 
@@ -41,3 +42,123 @@ class TreatmentWindow:
             return self.kill_rate
 
         return 0.0
+
+
+@dataclass(frozen=True)
+class FractionatedRadiotherapy:
+    fraction_days: tuple[float, ...]
+    dose_per_fraction_gy: float
+    alpha_per_gy: float
+    beta_per_gy2: float
+
+    def __post_init__(self) -> None:
+        if not self.fraction_days:
+            raise ValueError(
+                "At least one radiotherapy fraction is required"
+            )
+
+        if any(
+            day < 0
+            for day in self.fraction_days
+        ):
+            raise ValueError(
+                "Fraction days must be non-negative"
+            )
+
+        if any(
+            current <= previous
+            for previous, current
+            in zip(
+                self.fraction_days,
+                self.fraction_days[1:],
+                strict=False,
+            )
+        ):
+            raise ValueError(
+                "Fraction days must be strictly increasing"
+            )
+
+        if self.dose_per_fraction_gy <= 0:
+            raise ValueError(
+                "Dose per fraction must be positive"
+            )
+
+        if self.alpha_per_gy < 0:
+            raise ValueError(
+                "Alpha must be non-negative"
+            )
+
+        if self.beta_per_gy2 < 0:
+            raise ValueError(
+                "Beta must be non-negative"
+            )
+
+    @property
+    def fractions_number(self) -> int:
+        return len(
+            self.fraction_days
+        )
+
+    @property
+    def total_dose_gy(self) -> float:
+        return (
+            self.dose_per_fraction_gy
+            * self.fractions_number
+        )
+
+    @property
+    def survival_fraction_per_fraction(
+        self,
+    ) -> float:
+        dose = self.dose_per_fraction_gy
+
+        exponent = -(
+            self.alpha_per_gy
+            * dose
+            + self.beta_per_gy2
+            * dose**2
+        )
+
+        return math.exp(
+            exponent
+        )
+
+    def has_fraction_at(
+        self,
+        time_day: float,
+        *,
+        tolerance: float = 1e-9,
+    ) -> bool:
+        if time_day < 0:
+            raise ValueError(
+                "Simulation time must be non-negative"
+            )
+
+        if tolerance < 0:
+            raise ValueError(
+                "Tolerance must be non-negative"
+            )
+
+        return any(
+            math.isclose(
+                time_day,
+                fraction_day,
+                rel_tol=0.0,
+                abs_tol=tolerance,
+            )
+            for fraction_day
+            in self.fraction_days
+        )
+
+    def survival_fraction_at(
+        self,
+        time_day: float,
+    ) -> float:
+        if self.has_fraction_at(
+            time_day
+        ):
+            return (
+                self.survival_fraction_per_fraction
+            )
+
+        return 1.0
