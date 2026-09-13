@@ -73,6 +73,7 @@ def reaction_diffusion_step(
     *,
     spacing: tuple[float, float, float],
     dt: float,
+    domain_mask: np.ndarray | None = None,
 ) -> np.ndarray:
     if dt <= 0:
         raise ValueError("dt must be positive")
@@ -88,20 +89,43 @@ def reaction_diffusion_step(
             f"{stability_limit:.6g}"
         )
 
-    diffusion_term = params.diffusion * laplacian_3d(
-        field,
-        spacing,
-    )
+    if domain_mask is None:
+        laplacian = laplacian_3d(
+            field,
+            spacing,
+        )
+        active_field = field
+    else:
+        if domain_mask.shape != field.shape:
+            raise ValueError(
+                f"Domain mask shape {domain_mask.shape} "
+                f"does not match field shape {field.shape}"
+            )
+
+        active_field = np.where(domain_mask, field, 0.0)
+
+        laplacian = masked_laplacian_3d(
+            active_field,
+            domain_mask,
+            spacing,
+        )
+
+    diffusion_term = params.diffusion * laplacian
 
     reaction_term = (
         params.proliferation
-        * field
-        * (1.0 - field)
+        * active_field
+        * (1.0 - active_field)
     )
 
-    return field + dt * (
+    result = active_field + dt * (
         diffusion_term + reaction_term
     )
+
+    if domain_mask is not None:
+        result[~domain_mask.astype(bool)] = 0.0
+
+    return result
     
 def simulate_reaction_diffusion(
     initial_field: np.ndarray,
@@ -110,6 +134,7 @@ def simulate_reaction_diffusion(
     spacing: tuple[float, float, float],
     duration_days: float,
     dt: float,
+    domain_mask: np.ndarray | None = None,
 ) -> np.ndarray:
     if duration_days < 0:
         raise ValueError("duration_days must be non-negative")
@@ -139,8 +164,88 @@ def simulate_reaction_diffusion(
             params,
             spacing=spacing,
             dt=step_dt,
+            domain_mask=domain_mask,
         )
 
         remaining_time -= step_dt
 
     return field
+
+def masked_laplacian_3d(
+    field: np.ndarray,
+    mask: np.ndarray,
+    spacing: tuple[float, float, float],
+) -> np.ndarray:
+    if field.ndim != 3:
+        raise ValueError(f"Expected 3D field, got shape {field.shape}")
+
+    if mask.shape != field.shape:
+        raise ValueError(
+            f"Mask shape {mask.shape} does not match field shape {field.shape}"
+        )
+
+    if any(value <= 0 for value in spacing):
+        raise ValueError("Spacing values must be positive")
+
+    mask = mask.astype(bool)
+
+    dx, dy, dz = spacing
+
+    padded_field = np.pad(
+        field,
+        pad_width=1,
+        mode="constant",
+        constant_values=0,
+    )
+
+    padded_mask = np.pad(
+        mask,
+        pad_width=1,
+        mode="constant",
+        constant_values=False,
+    )
+
+    center = padded_field[1:-1, 1:-1, 1:-1]
+
+    x_plus = np.where(
+        padded_mask[2:, 1:-1, 1:-1],
+        padded_field[2:, 1:-1, 1:-1],
+        center,
+    )
+    x_minus = np.where(
+        padded_mask[:-2, 1:-1, 1:-1],
+        padded_field[:-2, 1:-1, 1:-1],
+        center,
+    )
+
+    y_plus = np.where(
+        padded_mask[1:-1, 2:, 1:-1],
+        padded_field[1:-1, 2:, 1:-1],
+        center,
+    )
+    y_minus = np.where(
+        padded_mask[1:-1, :-2, 1:-1],
+        padded_field[1:-1, :-2, 1:-1],
+        center,
+    )
+
+    z_plus = np.where(
+        padded_mask[1:-1, 1:-1, 2:],
+        padded_field[1:-1, 1:-1, 2:],
+        center,
+    )
+    z_minus = np.where(
+        padded_mask[1:-1, 1:-1, :-2],
+        padded_field[1:-1, 1:-1, :-2],
+        center,
+    )
+
+    result = (
+        (x_plus - 2.0 * center + x_minus) / dx**2
+        + (y_plus - 2.0 * center + y_minus) / dy**2
+        + (z_plus - 2.0 * center + z_minus) / dz**2
+    )
+
+    result[~mask] = 0.0
+
+    return result

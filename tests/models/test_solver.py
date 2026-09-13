@@ -165,3 +165,55 @@ def test_symmetric_initial_condition_remains_symmetric() -> None:
     assert np.allclose(result, np.flip(result, axis=0))
     assert np.allclose(result, np.flip(result, axis=1))
     assert np.allclose(result, np.flip(result, axis=2))
+
+def test_brain_mask_prevents_diffusion_outside_domain() -> None:
+    field = np.zeros((9, 9, 9), dtype=float)
+
+    mask = np.zeros_like(field, dtype=bool)
+    mask[2:7, 2:7, 2:7] = True
+
+    field[3, 4, 4] = 1.0
+
+    params = ReactionDiffusionParameters(
+        diffusion=0.1,
+        proliferation=0.0,
+    )
+
+    result = simulate_reaction_diffusion(
+        field,
+        params,
+        spacing=(1.0, 1.0, 1.0),
+        duration_days=5.0,
+        dt=0.5,
+        domain_mask=mask,
+    )
+
+    assert np.all(result[~mask] == 0.0)
+    
+def test_masked_diffusion_preserves_total_mass() -> None:
+    field = np.zeros((9, 9, 9), dtype=float)
+
+    mask = np.zeros_like(field, dtype=bool)
+    mask[2:7, 2:7, 2:7] = True
+
+    field[4, 4, 4] = 1.0
+
+    params = ReactionDiffusionParameters(
+        diffusion=0.1,
+        proliferation=0.0,
+    )
+
+    result = simulate_reaction_diffusion(
+        field,
+        params,
+        spacing=(1.0, 1.0, 1.0),
+        duration_days=5.0,
+        dt=0.5,
+        domain_mask=mask,
+    )
+
+    assert np.isclose(
+        result.sum(),
+        field.sum(),
+        atol=1e-10,
+    )
