@@ -83,6 +83,7 @@ def main() -> None:
             0.050,
             0.055,
         ],
+        volume_weight=0.5,
         threshold=0.5,
     )
 
@@ -92,9 +93,11 @@ def main() -> None:
 
     for item in results:
         print(
-            f"D={item.diffusion:.3f} "
-            f"rho={item.proliferation:.3f} "
-            f"Dice={item.dice:.4f}"
+            f"D={item.diffusion:.4f} "
+            f"rho={item.proliferation:.4f} "
+            f"Dice={item.dice:.4f} "
+            f"VolumeError={item.volume_error * 100:.2f}% "
+            f"Loss={item.loss:.4f}"
         )
 
     best = results[0]
@@ -102,9 +105,11 @@ def main() -> None:
     print()
     print("Best parameters:")
     print(
-        f"D={best.diffusion:.3f}, "
-        f"rho={best.proliferation:.3f}, "
-        f"Dice={best.dice:.4f}"
+        f"D={best.diffusion:.4f}, "
+        f"rho={best.proliferation:.4f}, "
+        f"Dice={best.dice:.4f}, "
+        f"VolumeError={best.volume_error * 100:.2f}%, "
+        f"Loss={best.loss:.4f}"
     )
 
 
