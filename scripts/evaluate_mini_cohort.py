@@ -4,35 +4,33 @@ import pandas as pd
 
 from gbm_twin.data.cfb_metadata import CFBMetadata
 from gbm_twin.evaluation.cohort import (
-    EvaluationConfig,
     evaluate_patient,
+)
+from gbm_twin.evaluation.config import (
+    load_cohort_experiment_config,
 )
 
 
 def main() -> None:
-    metadata = CFBMetadata(
-        Path(
-            r"D:\Datasets\CFB-GBM\metadata"
+    config_path = Path(
+        "configs/experiments/mini_cohort.yaml"
+    )
+
+    experiment = (
+        load_cohort_experiment_config(
+            config_path
         )
     )
 
-    patients_root = Path(
-        r"D:\Datasets\CFB-GBM\patients"
+    metadata = CFBMetadata(
+        experiment.metadata_root
     )
-
-    config = EvaluationConfig()
-
-    patient_ids = [
-        8,
-        18,
-        42,
-    ]
 
     results: list[
         dict[str, float | int]
     ] = []
 
-    for patient_id in patient_ids:
+    for patient_id in experiment.patient_ids:
         print()
         print("=" * 60)
         print(
@@ -43,8 +41,8 @@ def main() -> None:
         result = evaluate_patient(
             patient_id,
             metadata,
-            patients_root,
-            config,
+            experiment.patients_root,
+            experiment.evaluation,
         )
 
         results.append(
@@ -71,27 +69,19 @@ def main() -> None:
         )
     )
 
-    output_dir = Path(
-        "results"
-    )
-
-    output_dir.mkdir(
-        exist_ok=True
-    )
-
-    output_path = (
-        output_dir
-        / "mini_cohort.csv"
+    experiment.output_csv.parent.mkdir(
+        parents=True,
+        exist_ok=True,
     )
 
     dataframe.to_csv(
-        output_path,
+        experiment.output_csv,
         index=False,
     )
 
     print()
     print(
-        f"Saved: {output_path}"
+        f"Saved: {experiment.output_csv}"
     )
 
 

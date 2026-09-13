@@ -1,0 +1,32 @@
+patients:
+  - 8
+  - 18
+  - 42
+
+data:
+  metadata_root: "D:/Datasets/CFB-GBM/metadata"
+  patients_root: "D:/Datasets/CFB-GBM/patients"
+
+evaluation:
+  target_spacing:
+    - 2.0
+    - 2.0
+    - 2.0
+
+  threshold: 0.5
+  dt: 2.0
+
+  diffusion_values:
+    - 0.005
+    - 0.015
+    - 0.030
+
+  proliferation_values:
+    - 0.015
+    - 0.035
+    - 0.055
+
+  volume_weight: 0.5
+
+output:
+  csv: "results/mini_cohort.csv"
