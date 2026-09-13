@@ -6,7 +6,6 @@ from gbm_twin.data.cfb_metadata import CFBMetadata
 from gbm_twin.data.cfb_treatment import CFBTreatmentMetadata
 from gbm_twin.models.rt_schedule import reconstruct_weekday_like_schedule
 
-
 METADATA_ROOT = Path(
     r"D:\Datasets\CFB-GBM\metadata"
 )

@@ -45,6 +45,54 @@ class TreatmentWindow:
 
 
 @dataclass(frozen=True)
+class PostRadiotherapyEffect:
+    start_day: float
+    initial_kill_rate: float
+    decay_time_days: float
+
+    def __post_init__(self) -> None:
+        if self.start_day < 0:
+            raise ValueError(
+                "Post-RT start day must be non-negative"
+            )
+
+        if self.initial_kill_rate < 0:
+            raise ValueError(
+                "Initial kill rate must be non-negative"
+            )
+
+        if self.decay_time_days <= 0:
+            raise ValueError(
+                "Decay time must be positive"
+            )
+
+    def kill_rate_at(
+        self,
+        time_day: float,
+    ) -> float:
+        if time_day < 0:
+            raise ValueError(
+                "Simulation time must be non-negative"
+            )
+
+        if time_day < self.start_day:
+            return 0.0
+
+        elapsed = (
+            time_day
+            - self.start_day
+        )
+
+        return (
+            self.initial_kill_rate
+            * math.exp(
+                -elapsed
+                / self.decay_time_days
+            )
+        )
+
+
+@dataclass(frozen=True)
 class FractionatedRadiotherapy:
     fraction_days: tuple[float, ...]
     dose_per_fraction_gy: float
@@ -162,3 +210,26 @@ class FractionatedRadiotherapy:
             )
 
         return 1.0
+
+
+@dataclass(frozen=True)
+class RadiotherapyProtocol:
+    fractions: FractionatedRadiotherapy
+    post_effect: PostRadiotherapyEffect | None = None
+
+    def __post_init__(self) -> None:
+        if self.post_effect is None:
+            return
+
+        last_fraction_day = (
+            self.fractions.fraction_days[-1]
+        )
+
+        if (
+            self.post_effect.start_day
+            < last_fraction_day
+        ):
+            raise ValueError(
+                "Post-RT effect must not start "
+                "before the last RT fraction"
+            )

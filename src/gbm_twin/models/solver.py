@@ -7,10 +7,24 @@ from gbm_twin.models.reaction_diffusion import (
 )
 from gbm_twin.models.treatment import (
     FractionatedRadiotherapy,
+    PostRadiotherapyEffect,
+    RadiotherapyProtocol,
     TreatmentWindow,
 )
 
 _TOLERANCE = 1e-9
+
+ContinuousTreatment = (
+    TreatmentWindow
+    | PostRadiotherapyEffect
+)
+
+TreatmentModel = (
+    TreatmentWindow
+    | PostRadiotherapyEffect
+    | FractionatedRadiotherapy
+    | RadiotherapyProtocol
+)
 
 
 def laplacian_3d(
@@ -42,45 +56,21 @@ def laplacian_3d(
     ]
 
     d2x = (
-        padded[
-            2:,
-            1:-1,
-            1:-1,
-        ]
+        padded[2:, 1:-1, 1:-1]
         - 2.0 * center
-        + padded[
-            :-2,
-            1:-1,
-            1:-1,
-        ]
+        + padded[:-2, 1:-1, 1:-1]
     ) / dx**2
 
     d2y = (
-        padded[
-            1:-1,
-            2:,
-            1:-1,
-        ]
+        padded[1:-1, 2:, 1:-1]
         - 2.0 * center
-        + padded[
-            1:-1,
-            :-2,
-            1:-1,
-        ]
+        + padded[1:-1, :-2, 1:-1]
     ) / dy**2
 
     d2z = (
-        padded[
-            1:-1,
-            1:-1,
-            2:,
-        ]
+        padded[1:-1, 1:-1, 2:]
         - 2.0 * center
-        + padded[
-            1:-1,
-            1:-1,
-            :-2,
-        ]
+        + padded[1:-1, 1:-1, :-2]
     ) / dz**2
 
     return d2x + d2y + d2z
@@ -132,95 +122,43 @@ def masked_laplacian_3d(
     ]
 
     x_plus = np.where(
-        padded_mask[
-            2:,
-            1:-1,
-            1:-1,
-        ],
-        padded_field[
-            2:,
-            1:-1,
-            1:-1,
-        ],
+        padded_mask[2:, 1:-1, 1:-1],
+        padded_field[2:, 1:-1, 1:-1],
         center,
     )
 
     x_minus = np.where(
-        padded_mask[
-            :-2,
-            1:-1,
-            1:-1,
-        ],
-        padded_field[
-            :-2,
-            1:-1,
-            1:-1,
-        ],
+        padded_mask[:-2, 1:-1, 1:-1],
+        padded_field[:-2, 1:-1, 1:-1],
         center,
     )
 
     y_plus = np.where(
-        padded_mask[
-            1:-1,
-            2:,
-            1:-1,
-        ],
-        padded_field[
-            1:-1,
-            2:,
-            1:-1,
-        ],
+        padded_mask[1:-1, 2:, 1:-1],
+        padded_field[1:-1, 2:, 1:-1],
         center,
     )
 
     y_minus = np.where(
-        padded_mask[
-            1:-1,
-            :-2,
-            1:-1,
-        ],
-        padded_field[
-            1:-1,
-            :-2,
-            1:-1,
-        ],
+        padded_mask[1:-1, :-2, 1:-1],
+        padded_field[1:-1, :-2, 1:-1],
         center,
     )
 
     z_plus = np.where(
-        padded_mask[
-            1:-1,
-            1:-1,
-            2:,
-        ],
-        padded_field[
-            1:-1,
-            1:-1,
-            2:,
-        ],
+        padded_mask[1:-1, 1:-1, 2:],
+        padded_field[1:-1, 1:-1, 2:],
         center,
     )
 
     z_minus = np.where(
-        padded_mask[
-            1:-1,
-            1:-1,
-            :-2,
-        ],
-        padded_field[
-            1:-1,
-            1:-1,
-            :-2,
-        ],
+        padded_mask[1:-1, 1:-1, :-2],
+        padded_field[1:-1, 1:-1, :-2],
         center,
     )
 
     result = (
-        (
-            x_plus
-            - 2.0 * center
-            + x_minus
-        )
+        (x_plus - 2.0 * center + x_minus)
         / dx**2
         + (
             y_plus
@@ -288,7 +226,7 @@ def reaction_diffusion_step(
     spacing: tuple[float, float, float],
     dt: float,
     domain_mask: np.ndarray | None = None,
-    treatment: TreatmentWindow | None = None,
+    treatment: ContinuousTreatment | None = None,
     time_day: float = 0.0,
 ) -> np.ndarray:
     if dt <= 0:
@@ -404,33 +342,37 @@ def _same_time(
 
 
 def _continuous_treatment(
-    treatment: (
-        TreatmentWindow
-        | FractionatedRadiotherapy
-        | None
-    ),
-) -> TreatmentWindow | None:
+    treatment: TreatmentModel | None,
+) -> ContinuousTreatment | None:
     if isinstance(
         treatment,
-        TreatmentWindow,
+        (TreatmentWindow, PostRadiotherapyEffect),
     ):
         return treatment
+
+    if isinstance(
+        treatment,
+        RadiotherapyProtocol,
+    ):
+        return treatment.post_effect
 
     return None
 
 
 def _fractionated_treatment(
-    treatment: (
-        TreatmentWindow
-        | FractionatedRadiotherapy
-        | None
-    ),
+    treatment: TreatmentModel | None,
 ) -> FractionatedRadiotherapy | None:
     if isinstance(
         treatment,
         FractionatedRadiotherapy,
     ):
         return treatment
+
+    if isinstance(
+        treatment,
+        RadiotherapyProtocol,
+    ):
+        return treatment.fractions
 
     return None
 
@@ -450,14 +392,32 @@ def _apply_fraction_if_due(
     ):
         return field
 
-    survival_fraction = (
-        treatment
+    return (
+        field
+        * treatment
         .survival_fraction_per_fraction
     )
 
+
+def _candidate_boundary(
+    *,
+    boundary: float,
+    current_time_day: float,
+    proposed_end_day: float,
+) -> bool:
     return (
-        field
-        * survival_fraction
+        boundary > current_time_day
+        and not _same_time(
+            boundary,
+            current_time_day,
+        )
+        and (
+            boundary < proposed_end_day
+            or _same_time(
+                boundary,
+                proposed_end_day,
+            )
+        )
     )
 
 
@@ -465,62 +425,68 @@ def _next_treatment_boundary(
     *,
     current_time_day: float,
     proposed_end_day: float,
-    treatment: (
-        TreatmentWindow
-        | FractionatedRadiotherapy
-        | None
-    ),
+    treatment: TreatmentModel | None,
 ) -> float | None:
     candidates: list[float] = []
 
+    continuous = _continuous_treatment(
+        treatment
+    )
+
+    fractions = _fractionated_treatment(
+        treatment
+    )
+
     if isinstance(
-        treatment,
+        continuous,
         TreatmentWindow,
     ):
-        boundaries = (
-            treatment.start_day,
-            treatment.end_day,
-        )
-
-        for boundary in boundaries:
-            if (
-                boundary > current_time_day
-                and not _same_time(
-                    boundary,
-                    current_time_day,
-                )
-                and (
-                    boundary < proposed_end_day
-                    or _same_time(
-                        boundary,
-                        proposed_end_day,
-                    )
-                )
+        for boundary in (
+            continuous.start_day,
+            continuous.end_day,
+        ):
+            if _candidate_boundary(
+                boundary=boundary,
+                current_time_day=(
+                    current_time_day
+                ),
+                proposed_end_day=(
+                    proposed_end_day
+                ),
             ):
                 candidates.append(
                     boundary
                 )
 
     elif isinstance(
-        treatment,
-        FractionatedRadiotherapy,
+        continuous,
+        PostRadiotherapyEffect,
     ):
-        for fraction_day in (
-            treatment.fraction_days
+        if _candidate_boundary(
+            boundary=continuous.start_day,
+            current_time_day=(
+                current_time_day
+            ),
+            proposed_end_day=(
+                proposed_end_day
+            ),
         ):
-            if (
-                fraction_day > current_time_day
-                and not _same_time(
-                    fraction_day,
-                    current_time_day,
-                )
-                and (
-                    fraction_day < proposed_end_day
-                    or _same_time(
-                        fraction_day,
-                        proposed_end_day,
-                    )
-                )
+            candidates.append(
+                continuous.start_day
+            )
+
+    if fractions is not None:
+        for fraction_day in (
+            fractions.fraction_days
+        ):
+            if _candidate_boundary(
+                boundary=fraction_day,
+                current_time_day=(
+                    current_time_day
+                ),
+                proposed_end_day=(
+                    proposed_end_day
+                ),
             ):
                 candidates.append(
                     fraction_day
@@ -542,11 +508,7 @@ def simulate_reaction_diffusion(
     duration_days: float,
     dt: float,
     domain_mask: np.ndarray | None = None,
-    treatment: (
-        TreatmentWindow
-        | FractionatedRadiotherapy
-        | None
-    ) = None,
+    treatment: TreatmentModel | None = None,
     start_time_day: float = 0.0,
 ) -> np.ndarray:
     if duration_days < 0:
