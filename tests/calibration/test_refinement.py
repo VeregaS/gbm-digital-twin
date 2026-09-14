@@ -87,6 +87,7 @@ def test_adaptive_search_refines_around_coarse_best(
         treatment,
         start_time_day,
         cache_dir,
+        workers,
     ):
         calls.append(
             (

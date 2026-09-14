@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import numpy as np
+import pytest
 
 import gbm_twin.calibration.grid_search as grid_search_module
 from gbm_twin.calibration.grid_search import (
@@ -168,3 +169,35 @@ def test_cache_distinguishes_parameters(
     )
 
     assert calls == 2
+    
+def test_grid_search_rejects_invalid_workers() -> None:
+    initial = np.ones(
+        (3, 3, 3),
+        dtype=np.float32,
+    )
+
+    observed = np.ones(
+        initial.shape,
+        dtype=bool,
+    )
+
+    domain = np.ones(
+        initial.shape,
+        dtype=bool,
+    )
+
+    with pytest.raises(
+        ValueError,
+        match="workers",
+    ):
+        grid_search(
+            initial,
+            observed,
+            domain,
+            spacing=(2.0, 2.0, 2.0),
+            duration_days=1.0,
+            dt=1.0,
+            diffusion_values=[0.01],
+            proliferation_values=[0.03],
+            workers=0,
+        )

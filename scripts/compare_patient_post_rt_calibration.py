@@ -46,6 +46,10 @@ DEFAULT_CONFIG = Path(
     "configs/experiments/mini_cohort.yaml"
 )
 
+DEFAULT_CACHE_DIR = Path(
+    ".cache/gbm_twin/calibration"
+)
+
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
@@ -108,15 +112,25 @@ def parse_args() -> argparse.Namespace:
     )
 
     parser.add_argument(
-        "--output",
-        type=Path,
-        default=None,
-    )
-    
-    parser.add_argument(
         "--memory-only",
         action="store_true",
         help="Skip RT-only calibration.",
+    )
+
+    parser.add_argument(
+        "--workers",
+        type=int,
+        default=2,
+        help=(
+            "Number of parallel PDE workers. "
+            "Default: 2."
+        ),
+    )
+
+    parser.add_argument(
+        "--output",
+        type=Path,
+        default=None,
     )
 
     return parser.parse_args()
@@ -165,6 +179,7 @@ def run_calibration(
     threshold: float,
     volume_weight: float,
     treatment,
+    workers: int,
 ) -> CalibrationResult:
     print()
     print("=" * 60)
@@ -186,9 +201,8 @@ def run_calibration(
         volume_weight=volume_weight,
         treatment=treatment,
         start_time_day=0.0,
-        cache_dir=Path(
-            ".cache/gbm_twin/calibration"
-        ),
+        cache_dir=DEFAULT_CACHE_DIR,
+        workers=workers,
     )
 
     return results[0]
@@ -215,6 +229,11 @@ def main() -> None:
     if args.tau <= 0:
         raise ValueError(
             "--tau must be positive"
+        )
+
+    if args.workers < 1:
+        raise ValueError(
+            "--workers must be at least 1"
         )
 
     experiment = (
@@ -480,6 +499,10 @@ def main() -> None:
     )
 
     print(
+        f"workers: {args.workers}"
+    )
+
+    print(
         f"t0 -> t1: {dt01} days"
     )
 
@@ -498,7 +521,10 @@ def main() -> None:
         f"{cumulative_post_rt_kill:.4f}"
     )
 
-    rt_only_best: CalibrationResult | None = None
+    rt_only_best: (
+        CalibrationResult
+        | None
+    ) = None
 
     if not args.memory_only:
         rt_only_best = run_calibration(
@@ -513,10 +539,17 @@ def main() -> None:
             duration_days=float(dt01),
             dt=experiment.evaluation.dt,
             diffusion_values=diffusion_values,
-            proliferation_values=proliferation_values,
-            threshold=experiment.evaluation.threshold,
-            volume_weight=experiment.evaluation.volume_weight,
+            proliferation_values=(
+                proliferation_values
+            ),
+            threshold=(
+                experiment.evaluation.threshold
+            ),
+            volume_weight=(
+                experiment.evaluation.volume_weight
+            ),
             treatment=fractionated_rt,
+            workers=args.workers,
         )
 
     rt_memory_best = run_calibration(
@@ -541,17 +574,24 @@ def main() -> None:
             experiment.evaluation.volume_weight
         ),
         treatment=rt_with_memory,
+        workers=args.workers,
     )
 
-    rows: list[dict[str, object]] = []
+    rows: list[
+        dict[str, object]
+    ] = []
 
     if rt_only_best is not None:
         rows.append(
             result_row(
                 patient_id=args.patient,
                 model="fractionated_rt",
-                alpha=radiobiology.alpha_per_gy,
-                beta=radiobiology.beta_per_gy2,
+                alpha=(
+                    radiobiology.alpha_per_gy
+                ),
+                beta=(
+                    radiobiology.beta_per_gy2
+                ),
                 survival_per_fraction=(
                     fractionated_rt
                     .survival_fraction_per_fraction
@@ -565,9 +605,15 @@ def main() -> None:
     rows.append(
         result_row(
             patient_id=args.patient,
-            model="fractionated_rt_post_effect",
-            alpha=radiobiology.alpha_per_gy,
-            beta=radiobiology.beta_per_gy2,
+            model=(
+                "fractionated_rt_post_effect"
+            ),
+            alpha=(
+                radiobiology.alpha_per_gy
+            ),
+            beta=(
+                radiobiology.beta_per_gy2
+            ),
             survival_per_fraction=(
                 fractionated_rt
                 .survival_fraction_per_fraction
