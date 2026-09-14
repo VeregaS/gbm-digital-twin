@@ -76,6 +76,68 @@ def laplacian_3d(
     return d2x + d2y + d2z
 
 
+def _accumulate_face_flux(
+    result: np.ndarray,
+    field: np.ndarray,
+    domain: np.ndarray,
+    *,
+    axis: int,
+    inverse_spacing_squared: float,
+) -> None:
+    lower_slices = [
+        slice(None),
+        slice(None),
+        slice(None),
+    ]
+
+    upper_slices = [
+        slice(None),
+        slice(None),
+        slice(None),
+    ]
+
+    lower_slices[axis] = slice(
+        None,
+        -1,
+    )
+
+    upper_slices[axis] = slice(
+        1,
+        None,
+    )
+
+    lower = tuple(
+        lower_slices
+    )
+
+    upper = tuple(
+        upper_slices
+    )
+
+    valid_faces = (
+        domain[lower]
+        & domain[upper]
+    )
+
+    flux = (
+        field[upper]
+        - field[lower]
+    )
+
+    np.multiply(
+        flux,
+        valid_faces,
+        out=flux,
+    )
+
+    flux *= (
+        inverse_spacing_squared
+    )
+
+    result[lower] += flux
+    result[upper] -= flux
+
+
 def masked_laplacian_3d(
     field: np.ndarray,
     mask: np.ndarray,
@@ -97,84 +159,56 @@ def masked_laplacian_3d(
             "Spacing values must be positive"
         )
 
-    mask = mask.astype(bool)
+    domain = np.asarray(
+        mask,
+        dtype=bool,
+    )
+
+    if np.issubdtype(
+        field.dtype,
+        np.floating,
+    ):
+        working_field = field
+    else:
+        working_field = field.astype(
+            np.float64
+        )
+
+    result = np.zeros_like(
+        working_field
+    )
 
     dx, dy, dz = spacing
 
-    padded_field = np.pad(
-        field,
-        pad_width=1,
-        mode="constant",
-        constant_values=0,
+    _accumulate_face_flux(
+        result,
+        working_field,
+        domain,
+        axis=0,
+        inverse_spacing_squared=(
+            1.0 / dx**2
+        ),
     )
 
-    padded_mask = np.pad(
-        mask,
-        pad_width=1,
-        mode="constant",
-        constant_values=False,
+    _accumulate_face_flux(
+        result,
+        working_field,
+        domain,
+        axis=1,
+        inverse_spacing_squared=(
+            1.0 / dy**2
+        ),
     )
 
-    center = padded_field[
-        1:-1,
-        1:-1,
-        1:-1,
-    ]
-
-    x_plus = np.where(
-        padded_mask[2:, 1:-1, 1:-1],
-        padded_field[2:, 1:-1, 1:-1],
-        center,
+    _accumulate_face_flux(
+        result,
+        working_field,
+        domain,
+        axis=2,
+        inverse_spacing_squared=(
+            1.0 / dz**2
+        ),
     )
-
-    x_minus = np.where(
-        padded_mask[:-2, 1:-1, 1:-1],
-        padded_field[:-2, 1:-1, 1:-1],
-        center,
-    )
-
-    y_plus = np.where(
-        padded_mask[1:-1, 2:, 1:-1],
-        padded_field[1:-1, 2:, 1:-1],
-        center,
-    )
-
-    y_minus = np.where(
-        padded_mask[1:-1, :-2, 1:-1],
-        padded_field[1:-1, :-2, 1:-1],
-        center,
-    )
-
-    z_plus = np.where(
-        padded_mask[1:-1, 1:-1, 2:],
-        padded_field[1:-1, 1:-1, 2:],
-        center,
-    )
-
-    z_minus = np.where(
-        padded_mask[1:-1, 1:-1, :-2],
-        padded_field[1:-1, 1:-1, :-2],
-        center,
-    )
-
-    result = (
-        (x_plus - 2.0 * center + x_minus)
-        / dx**2
-        + (
-            y_plus
-            - 2.0 * center
-            + y_minus
-        )
-        / dy**2
-        + (
-            z_plus
-            - 2.0 * center
-            + z_minus
-        )
-        / dz**2
-    )
-
-    result[~mask] = 0.0
 
     return result
 
@@ -280,15 +314,16 @@ def reaction_diffusion_step(
                 f"{field.shape}"
             )
 
-        active_field = np.where(
+        domain = np.asarray(
             domain_mask,
-            field,
-            0.0,
+            dtype=bool,
         )
+
+        active_field = field
 
         laplacian = masked_laplacian_3d(
             active_field,
-            domain_mask,
+            domain,
             spacing,
         )
 
@@ -320,10 +355,12 @@ def reaction_diffusion_step(
             - treatment_term
         )
     )
+    
+    domain: np.ndarray | None = None
 
-    if domain_mask is not None:
+    if domain is not None:
         result[
-            ~domain_mask.astype(bool)
+            ~domain
         ] = 0.0
 
     return result
@@ -346,7 +383,10 @@ def _continuous_treatment(
 ) -> ContinuousTreatment | None:
     if isinstance(
         treatment,
-        (TreatmentWindow, PostRadiotherapyEffect),
+        (
+            TreatmentWindow,
+            PostRadiotherapyEffect,
+        ),
     ):
         return treatment
 
@@ -546,16 +586,25 @@ def simulate_reaction_diffusion(
             "within [0, 1]"
         )
 
-    if (
-        domain_mask is not None
-        and domain_mask.shape != field.shape
-    ):
-        raise ValueError(
-            f"Domain mask shape "
-            f"{domain_mask.shape} "
-            f"does not match field shape "
-            f"{field.shape}"
+    domain: np.ndarray | None = None
+
+    if domain_mask is not None:
+        if domain_mask.shape != field.shape:
+            raise ValueError(
+                f"Domain mask shape "
+                f"{domain_mask.shape} "
+                f"does not match field shape "
+                f"{field.shape}"
+            )
+
+        domain = np.asarray(
+            domain_mask,
+            dtype=bool,
         )
+
+        field[
+            ~domain
+        ] = 0.0
 
     if duration_days == 0:
         return field
@@ -624,7 +673,7 @@ def simulate_reaction_diffusion(
             params,
             spacing=spacing,
             dt=step_dt,
-            domain_mask=domain_mask,
+            domain_mask=domain,
             treatment=continuous_treatment,
             time_day=current_time_day,
         )
