@@ -396,6 +396,9 @@ def main() -> None:
                 .evaluation
                 .volume_weight
             ),
+            cache_dir=Path(
+                ".cache/gbm_twin/calibration"
+            ),
         )
 
         untreated_best = (
@@ -463,6 +466,9 @@ def main() -> None:
             ),
             treatment=treatment,
             start_time_day=0.0,
+            cache_dir=Path(
+                ".cache/gbm_twin/calibration"
+            ),
         )
 
         best = results[0]

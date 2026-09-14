@@ -1,7 +1,14 @@
 from dataclasses import dataclass
+from pathlib import Path
 
 import numpy as np
 
+from gbm_twin.calibration.cache import (
+    build_calibration_signature,
+    candidate_cache_key,
+    load_cached_metrics,
+    save_cached_metrics,
+)
 from gbm_twin.evaluation.metrics import (
     dice_score,
     relative_volume_error,
@@ -38,6 +45,7 @@ def grid_search(
     volume_weight: float = 0.5,
     treatment: TreatmentModel | None = None,
     start_time_day: float = 0.0,
+    cache_dir: Path | None = None,
 ) -> list[CalibrationResult]:
     if initial_field.shape != observed_mask.shape:
         raise ValueError(
@@ -85,7 +93,7 @@ def grid_search(
         raise ValueError(
             "start_time_day must be non-negative"
         )
-        
+
     simulation_initial = np.asarray(
         initial_field,
         dtype=np.float32,
@@ -101,45 +109,139 @@ def grid_search(
         dtype=bool,
     )
 
-    results: list[CalibrationResult] = []
+    cache_signature = None
+
+    if cache_dir is not None:
+        cache_signature = (
+            build_calibration_signature(
+                initial_field=(
+                    simulation_initial
+                ),
+                observed_mask=observed,
+                domain_mask=domain,
+                spacing=spacing,
+                duration_days=(
+                    duration_days
+                ),
+                dt=dt,
+                threshold=threshold,
+                treatment=treatment,
+                start_time_day=(
+                    start_time_day
+                ),
+            )
+        )
+
+    results: list[
+        CalibrationResult
+    ] = []
 
     for diffusion in diffusion_values:
-        for proliferation in proliferation_values:
-            print(
-                f"Running D={diffusion:.4f}, "
-                f"rho={proliferation:.4f}..."
-            )
+        for proliferation in (
+            proliferation_values
+        ):
+            cache_key = None
+            cached_metrics = None
 
-            params = ReactionDiffusionParameters(
-                diffusion=diffusion,
-                proliferation=proliferation,
-            )
+            if (
+                cache_dir is not None
+                and cache_signature
+                is not None
+            ):
+                cache_key = (
+                    candidate_cache_key(
+                        cache_signature,
+                        diffusion=diffusion,
+                        proliferation=(
+                            proliferation
+                        ),
+                    )
+                )
 
-            simulated = simulate_reaction_diffusion(
-                simulation_initial,
-                params,
-                spacing=spacing,
-                duration_days=duration_days,
-                dt=dt,
-                domain_mask=domain,
-                treatment=treatment,
-                start_time_day=start_time_day,
-            )
+                cached_metrics = (
+                    load_cached_metrics(
+                        cache_dir,
+                        cache_key,
+                    )
+                )
 
-            predicted = (
-                simulated
-                >= threshold
-            )
+            if cached_metrics is not None:
+                dice, volume_error = (
+                    cached_metrics
+                )
 
-            dice = dice_score(
-                predicted,
-                observed,
-            )
+                print(
+                    f"Cache hit D={diffusion:.4f}, "
+                    f"rho={proliferation:.4f}"
+                )
 
-            volume_error = relative_volume_error(
-                predicted,
-                observed,
-            )
+                print(
+                    f"  Dice={dice:.4f} "
+                    f"VolumeError="
+                    f"{volume_error:.2%}"
+                )
+
+            else:
+                print(
+                    f"Running D={diffusion:.4f}, "
+                    f"rho={proliferation:.4f}..."
+                )
+
+                params = (
+                    ReactionDiffusionParameters(
+                        diffusion=diffusion,
+                        proliferation=(
+                            proliferation
+                        ),
+                    )
+                )
+
+                simulated = (
+                    simulate_reaction_diffusion(
+                        simulation_initial,
+                        params,
+                        spacing=spacing,
+                        duration_days=(
+                            duration_days
+                        ),
+                        dt=dt,
+                        domain_mask=domain,
+                        treatment=treatment,
+                        start_time_day=(
+                            start_time_day
+                        ),
+                    )
+                )
+
+                predicted = (
+                    simulated
+                    >= threshold
+                )
+
+                dice = dice_score(
+                    predicted,
+                    observed,
+                )
+
+                volume_error = (
+                    relative_volume_error(
+                        predicted,
+                        observed,
+                    )
+                )
+
+                if (
+                    cache_dir is not None
+                    and cache_key is not None
+                ):
+                    save_cached_metrics(
+                        cache_dir,
+                        cache_key,
+                        dice=dice,
+                        volume_error=(
+                            volume_error
+                        ),
+                    )
 
             loss = (
                 1.0
@@ -150,9 +252,13 @@ def grid_search(
 
             result = CalibrationResult(
                 diffusion=diffusion,
-                proliferation=proliferation,
+                proliferation=(
+                    proliferation
+                ),
                 dice=dice,
-                volume_error=volume_error,
+                volume_error=(
+                    volume_error
+                ),
                 loss=loss,
             )
 
@@ -160,11 +266,17 @@ def grid_search(
                 result
             )
 
-            print(
-                f"  Dice={dice:.4f} "
-                f"VolumeError={volume_error:.2%} "
-                f"Loss={loss:.4f}"
-            )
+            if cached_metrics is None:
+                print(
+                    f"  Dice={dice:.4f} "
+                    f"VolumeError="
+                    f"{volume_error:.2%} "
+                    f"Loss={loss:.4f}"
+                )
+            else:
+                print(
+                    f"  Loss={loss:.4f}"
+                )
 
     results.sort(
         key=lambda result: result.loss

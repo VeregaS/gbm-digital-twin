@@ -186,6 +186,9 @@ def run_calibration(
         volume_weight=volume_weight,
         treatment=treatment,
         start_time_day=0.0,
+        cache_dir=Path(
+            ".cache/gbm_twin/calibration"
+        ),
     )
 
     return results[0]
