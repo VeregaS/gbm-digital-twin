@@ -4,6 +4,7 @@ from pathlib import Path
 import numpy as np
 
 from gbm_twin.calibration.grid_search import (
+    CalibrationObjective,
     CalibrationResult,
     grid_search,
 )
@@ -125,6 +126,8 @@ def adaptive_grid_search(
     start_time_day: float = 0.0,
     cache_dir: Path | None = None,
     workers: int = 1,
+    objective: CalibrationObjective = "hard",
+    soft_temperature: float = 0.05,
 ) -> AdaptiveCalibrationResult:
     coarse_results = grid_search(
         initial_field,
@@ -143,6 +146,8 @@ def adaptive_grid_search(
         start_time_day=start_time_day,
         cache_dir=cache_dir,
         workers=workers,
+        objective=objective,
+        soft_temperature=soft_temperature,
     )
 
     coarse_best = coarse_results[0]
@@ -195,6 +200,8 @@ def adaptive_grid_search(
         start_time_day=start_time_day,
         cache_dir=cache_dir,
         workers=workers,
+        objective=objective,
+        soft_temperature=soft_temperature,
     )
 
     combined = (

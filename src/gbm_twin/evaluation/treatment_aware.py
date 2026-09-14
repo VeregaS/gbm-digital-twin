@@ -3,6 +3,9 @@ from pathlib import Path
 
 import numpy as np
 
+from gbm_twin.calibration.grid_search import (
+    CalibrationObjective,
+)
 from gbm_twin.calibration.refinement import (
     adaptive_grid_search,
 )
@@ -52,6 +55,9 @@ class TreatmentAwareEvaluationResult:
     alpha_per_gy: float
     alpha_beta_ratio_gy: float
 
+    calibration_objective: CalibrationObjective
+    soft_temperature: float
+
     rt_total_dose_gy: float
     rt_fractions: int
     rt_dose_per_fraction_gy: float
@@ -89,6 +95,8 @@ def evaluate_treatment_aware_patient(
     alpha_beta_ratio_gy: float = 10.0,
     cache_dir: Path | None = None,
     workers: int = 1,
+    calibration_objective: CalibrationObjective = "hard",
+    soft_temperature: float = 0.05,
 ) -> TreatmentAwareEvaluationResult:
     if alpha_per_gy < 0:
         raise ValueError(
@@ -285,6 +293,8 @@ def evaluate_treatment_aware_patient(
         start_time_day=0.0,
         cache_dir=cache_dir,
         workers=workers,
+        objective=calibration_objective,
+        soft_temperature=soft_temperature,
     )
 
     best = calibration.best
@@ -396,6 +406,10 @@ def evaluate_treatment_aware_patient(
         alpha_beta_ratio_gy=(
             alpha_beta_ratio_gy
         ),
+        calibration_objective=(
+            calibration_objective
+        ),
+        soft_temperature=soft_temperature,
         rt_total_dose_gy=(
             schedule.total_dose_gy
         ),

@@ -3,6 +3,7 @@ from concurrent.futures import (
 )
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Literal
 
 import numpy as np
 
@@ -16,6 +17,11 @@ from gbm_twin.evaluation.metrics import (
     dice_score,
     relative_volume_error,
 )
+from gbm_twin.evaluation.soft_metrics import (
+    soft_dice_score,
+    soft_relative_volume_error,
+    soft_threshold_membership,
+)
 from gbm_twin.models.reaction_diffusion import (
     ReactionDiffusionParameters,
 )
@@ -23,6 +29,11 @@ from gbm_twin.models.solver import (
     TreatmentModel,
     simulate_reaction_diffusion,
 )
+
+CalibrationObjective = Literal[
+    "hard",
+    "soft",
+]
 
 
 @dataclass(frozen=True)
@@ -54,6 +65,29 @@ _WORKER_DT: float | None = None
 _WORKER_THRESHOLD: float | None = None
 _WORKER_TREATMENT: TreatmentModel | None = None
 _WORKER_START_TIME_DAY: float | None = None
+_WORKER_OBJECTIVE: CalibrationObjective | None = None
+_WORKER_SOFT_TEMPERATURE: float | None = None
+
+
+def _objective_cache_dir(
+    cache_dir: Path | None,
+    *,
+    objective: CalibrationObjective,
+    soft_temperature: float,
+) -> Path | None:
+    if cache_dir is None:
+        return None
+
+    if objective == "hard":
+        return cache_dir
+
+    return (
+        cache_dir
+        / (
+            "soft-v1-"
+            f"t{soft_temperature:.12g}"
+        )
+    )
 
 
 def _initialize_calibration_worker(
@@ -66,6 +100,8 @@ def _initialize_calibration_worker(
     threshold: float,
     treatment: TreatmentModel | None,
     start_time_day: float,
+    objective: CalibrationObjective,
+    soft_temperature: float,
 ) -> None:
     global _WORKER_INITIAL_FIELD
     global _WORKER_OBSERVED_MASK
@@ -76,6 +112,8 @@ def _initialize_calibration_worker(
     global _WORKER_THRESHOLD
     global _WORKER_TREATMENT
     global _WORKER_START_TIME_DAY
+    global _WORKER_OBJECTIVE
+    global _WORKER_SOFT_TEMPERATURE
 
     _WORKER_INITIAL_FIELD = initial_field
     _WORKER_OBSERVED_MASK = observed_mask
@@ -86,6 +124,10 @@ def _initialize_calibration_worker(
     _WORKER_THRESHOLD = threshold
     _WORKER_TREATMENT = treatment
     _WORKER_START_TIME_DAY = start_time_day
+    _WORKER_OBJECTIVE = objective
+    _WORKER_SOFT_TEMPERATURE = (
+        soft_temperature
+    )
 
 
 def _run_candidate(
@@ -143,6 +185,18 @@ def _run_candidate(
             "is not initialized"
         )
 
+    if _WORKER_OBJECTIVE is None:
+        raise RuntimeError(
+            "Calibration worker objective "
+            "is not initialized"
+        )
+
+    if _WORKER_SOFT_TEMPERATURE is None:
+        raise RuntimeError(
+            "Calibration worker soft "
+            "temperature is not initialized"
+        )
+
     params = ReactionDiffusionParameters(
         diffusion=candidate.diffusion,
         proliferation=(
@@ -169,20 +223,51 @@ def _run_candidate(
         ),
     )
 
-    predicted = (
-        simulated
-        >= _WORKER_THRESHOLD
-    )
+    if _WORKER_OBJECTIVE == "hard":
+        predicted = (
+            simulated
+            >= _WORKER_THRESHOLD
+        )
 
-    dice = dice_score(
-        predicted,
-        _WORKER_OBSERVED_MASK,
-    )
+        dice = dice_score(
+            predicted,
+            _WORKER_OBSERVED_MASK,
+        )
 
-    volume_error = relative_volume_error(
-        predicted,
-        _WORKER_OBSERVED_MASK,
-    )
+        volume_error = (
+            relative_volume_error(
+                predicted,
+                _WORKER_OBSERVED_MASK,
+            )
+        )
+
+    else:
+        membership = (
+            soft_threshold_membership(
+                simulated,
+                threshold=(
+                    _WORKER_THRESHOLD
+                ),
+                temperature=(
+                    _WORKER_SOFT_TEMPERATURE
+                ),
+                domain_mask=(
+                    _WORKER_DOMAIN_MASK
+                ),
+            )
+        )
+
+        dice = soft_dice_score(
+            membership,
+            _WORKER_OBSERVED_MASK,
+        )
+
+        volume_error = (
+            soft_relative_volume_error(
+                membership,
+                _WORKER_OBSERVED_MASK,
+            )
+        )
 
     return (
         candidate,
@@ -205,6 +290,8 @@ def _run_candidates_sequentially(
     threshold: float,
     treatment: TreatmentModel | None,
     start_time_day: float,
+    objective: CalibrationObjective,
+    soft_temperature: float,
 ) -> list[
     tuple[
         CalibrationCandidate,
@@ -222,6 +309,8 @@ def _run_candidates_sequentially(
         threshold,
         treatment,
         start_time_day,
+        objective,
+        soft_temperature,
     )
 
     return [
@@ -246,6 +335,8 @@ def _run_candidates_parallel(
     threshold: float,
     treatment: TreatmentModel | None,
     start_time_day: float,
+    objective: CalibrationObjective,
+    soft_temperature: float,
     workers: int,
 ) -> list[
     tuple[
@@ -269,6 +360,8 @@ def _run_candidates_parallel(
             threshold,
             treatment,
             start_time_day,
+            objective,
+            soft_temperature,
         ),
     ) as executor:
         return list(
@@ -295,6 +388,8 @@ def grid_search(
     start_time_day: float = 0.0,
     cache_dir: Path | None = None,
     workers: int = 1,
+    objective: CalibrationObjective = "hard",
+    soft_temperature: float = 0.05,
 ) -> list[CalibrationResult]:
     if initial_field.shape != observed_mask.shape:
         raise ValueError(
@@ -348,6 +443,19 @@ def grid_search(
             "workers must be at least 1"
         )
 
+    if objective not in (
+        "hard",
+        "soft",
+    ):
+        raise ValueError(
+            "objective must be 'hard' or 'soft'"
+        )
+
+    if soft_temperature <= 0:
+        raise ValueError(
+            "soft_temperature must be positive"
+        )
+
     simulation_initial = np.asarray(
         initial_field,
         dtype=np.float32,
@@ -363,9 +471,19 @@ def grid_search(
         dtype=bool,
     )
 
+    effective_cache_dir = (
+        _objective_cache_dir(
+            cache_dir,
+            objective=objective,
+            soft_temperature=(
+                soft_temperature
+            ),
+        )
+    )
+
     cache_signature = None
 
-    if cache_dir is not None:
+    if effective_cache_dir is not None:
         cache_signature = (
             build_calibration_signature(
                 initial_field=(
@@ -402,7 +520,8 @@ def grid_search(
             cached_metrics = None
 
             if (
-                cache_dir is not None
+                effective_cache_dir
+                is not None
                 and cache_signature
                 is not None
             ):
@@ -418,7 +537,7 @@ def grid_search(
 
                 cached_metrics = (
                     load_cached_metrics(
-                        cache_dir,
+                        effective_cache_dir,
                         cache_key,
                     )
                 )
@@ -481,6 +600,17 @@ def grid_search(
             f"{len(pending_candidates)}"
         )
 
+        print(
+            f"Calibration objective: "
+            f"{objective}"
+        )
+
+        if objective == "soft":
+            print(
+                "Soft temperature: "
+                f"{soft_temperature:.4f}"
+            )
+
         effective_workers = min(
             workers,
             len(pending_candidates),
@@ -519,6 +649,10 @@ def grid_search(
                     start_time_day=(
                         start_time_day
                     ),
+                    objective=objective,
+                    soft_temperature=(
+                        soft_temperature
+                    ),
                 )
             )
 
@@ -540,6 +674,10 @@ def grid_search(
                     treatment=treatment,
                     start_time_day=(
                         start_time_day
+                    ),
+                    objective=objective,
+                    soft_temperature=(
+                        soft_temperature
                     ),
                     workers=(
                         effective_workers
@@ -580,12 +718,13 @@ def grid_search(
         )
 
         if (
-            cache_dir is not None
+            effective_cache_dir
+            is not None
             and candidate.cache_key
             is not None
         ):
             save_cached_metrics(
-                cache_dir,
+                effective_cache_dir,
                 candidate.cache_key,
                 dice=dice,
                 volume_error=(

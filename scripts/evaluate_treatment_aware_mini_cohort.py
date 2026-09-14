@@ -1,11 +1,14 @@
 import argparse
 from dataclasses import asdict
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import pandas as pd
 import yaml
 
+from gbm_twin.calibration.grid_search import (
+    CalibrationObjective,
+)
 from gbm_twin.data.cfb_metadata import (
     CFBMetadata,
 )
@@ -25,10 +28,6 @@ DEFAULT_CONFIG = Path(
 
 DEFAULT_CACHE_DIR = Path(
     ".cache/gbm_twin/calibration"
-)
-
-DEFAULT_OUTPUT = Path(
-    "results/mini_cohort_treatment_aware.csv"
 )
 
 ResultRow = dict[str, Any]
@@ -67,6 +66,21 @@ def parse_args() -> argparse.Namespace:
     )
 
     parser.add_argument(
+        "--objective",
+        choices=(
+            "hard",
+            "soft",
+        ),
+        default="hard",
+    )
+
+    parser.add_argument(
+        "--soft-temperature",
+        type=float,
+        default=0.05,
+    )
+
+    parser.add_argument(
         "--patients",
         type=int,
         nargs="+",
@@ -76,7 +90,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--output",
         type=Path,
-        default=DEFAULT_OUTPUT,
+        default=None,
     )
 
     parser.add_argument(
@@ -89,6 +103,17 @@ def parse_args() -> argparse.Namespace:
     )
 
     return parser.parse_args()
+
+
+def default_output_path(
+    objective: CalibrationObjective,
+) -> Path:
+    return Path(
+        "results"
+    ) / (
+        "mini_cohort_treatment_aware_"
+        f"{objective}.csv"
+    )
 
 
 def load_configured_patients(
@@ -160,6 +185,74 @@ def load_existing_results(
     return pd.read_csv(
         output_path
     )
+
+
+def validate_existing_results(
+    dataframe: pd.DataFrame,
+    *,
+    objective: CalibrationObjective,
+    soft_temperature: float,
+) -> None:
+    if dataframe.empty:
+        return
+
+    if (
+        "calibration_objective"
+        not in dataframe.columns
+    ):
+        raise ValueError(
+            "Existing output does not contain "
+            "calibration_objective. Use another "
+            "output file or remove the old file."
+        )
+
+    objectives = {
+        str(value)
+        for value in dataframe[
+            "calibration_objective"
+        ].dropna()
+    }
+
+    if objectives != {
+        objective
+    }:
+        raise ValueError(
+            "Existing output uses a different "
+            "calibration objective"
+        )
+
+    if objective != "soft":
+        return
+
+    if (
+        "soft_temperature"
+        not in dataframe.columns
+    ):
+        raise ValueError(
+            "Existing soft output does not contain "
+            "soft_temperature"
+        )
+
+    temperatures = {
+        round(
+            float(value),
+            12,
+        )
+        for value in dataframe[
+            "soft_temperature"
+        ].dropna()
+    }
+
+    if temperatures != {
+        round(
+            soft_temperature,
+            12,
+        )
+    }:
+        raise ValueError(
+            "Existing output uses a different "
+            "soft temperature"
+        )
 
 
 def dataframe_rows(
@@ -330,6 +423,22 @@ def print_summary(
     )
 
     print(
+        "Calibration objective: "
+        f"{dataframe['calibration_objective'].iloc[0]}"
+    )
+
+    if (
+        dataframe[
+            "calibration_objective"
+        ].iloc[0]
+        == "soft"
+    ):
+        print(
+            "Soft temperature: "
+            f"{float(dataframe['soft_temperature'].iloc[0]):.4f}"
+        )
+
+    print(
         "Mean treatment-aware Dice: "
         f"{twin_mean:.4f}"
     )
@@ -380,6 +489,11 @@ def print_summary(
 def main() -> None:
     args = parse_args()
 
+    objective = cast(
+        CalibrationObjective,
+        args.objective,
+    )
+
     if args.alpha < 0:
         raise ValueError(
             "--alpha must be non-negative"
@@ -394,6 +508,19 @@ def main() -> None:
         raise ValueError(
             "--workers must be at least 1"
         )
+
+    if args.soft_temperature <= 0:
+        raise ValueError(
+            "--soft-temperature must be positive"
+        )
+
+    output_path = (
+        args.output
+        if args.output is not None
+        else default_output_path(
+            objective
+        )
+    )
 
     experiment = (
         load_cohort_experiment_config(
@@ -423,7 +550,15 @@ def main() -> None:
         )
 
     existing = load_existing_results(
-        args.output
+        output_path
+    )
+
+    validate_existing_results(
+        existing,
+        objective=objective,
+        soft_temperature=(
+            args.soft_temperature
+        ),
     )
 
     rows: list[ResultRow] = []
@@ -465,6 +600,17 @@ def main() -> None:
     )
 
     print(
+        "calibration objective: "
+        f"{objective}"
+    )
+
+    if objective == "soft":
+        print(
+            "soft temperature: "
+            f"{args.soft_temperature:.4f}"
+        )
+
+    print(
         f"workers: "
         f"{args.workers}"
     )
@@ -472,6 +618,11 @@ def main() -> None:
     print(
         f"cache: "
         f"{DEFAULT_CACHE_DIR}"
+    )
+
+    print(
+        f"output: "
+        f"{output_path}"
     )
 
     for index, patient_id in enumerate(
@@ -527,6 +678,12 @@ def main() -> None:
                     DEFAULT_CACHE_DIR
                 ),
                 workers=args.workers,
+                calibration_objective=(
+                    objective
+                ),
+                soft_temperature=(
+                    args.soft_temperature
+                ),
             )
         )
 
@@ -554,7 +711,7 @@ def main() -> None:
 
         save_results(
             rows,
-            args.output,
+            output_path,
         )
 
         print()
@@ -603,7 +760,7 @@ def main() -> None:
 
         print(
             "Saved checkpoint: "
-            f"{args.output}"
+            f"{output_path}"
         )
 
     final_dataframe = pd.DataFrame(
