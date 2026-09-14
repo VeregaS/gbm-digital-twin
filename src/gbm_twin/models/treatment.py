@@ -210,6 +210,23 @@ class FractionatedRadiotherapy:
             )
 
         return 1.0
+    
+    
+@dataclass(frozen=True)
+class PIRTFractionatedRadiotherapy(
+    FractionatedRadiotherapy
+):
+    """
+    Fractionated radiotherapy using the PIRT
+    density-dependent fraction operator.
+
+    Schedule and LQ radiosensitivity parameters are
+    identical to FractionatedRadiotherapy. The model
+    differs only in how each fraction is applied to
+    the tumor concentration field.
+    """
+
+    pass
 
 
 @dataclass(frozen=True)

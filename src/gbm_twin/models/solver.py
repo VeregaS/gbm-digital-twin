@@ -5,11 +5,15 @@ import numpy as np
 from gbm_twin.models.domain_crop import (
     DomainCrop,
 )
+from gbm_twin.models.pirt import (
+    apply_pirt_fraction,
+)
 from gbm_twin.models.reaction_diffusion import (
     ReactionDiffusionParameters,
 )
 from gbm_twin.models.treatment import (
     FractionatedRadiotherapy,
+    PIRTFractionatedRadiotherapy,
     PostRadiotherapyEffect,
     RadiotherapyProtocol,
     TreatmentWindow,
@@ -425,6 +429,7 @@ def _apply_fraction_if_due(
     *,
     treatment: FractionatedRadiotherapy | None,
     time_day: float,
+    domain_mask: np.ndarray | None = None,
 ) -> np.ndarray:
     if treatment is None:
         return field
@@ -434,6 +439,19 @@ def _apply_fraction_if_due(
         tolerance=_TOLERANCE,
     ):
         return field
+
+    if isinstance(
+        treatment,
+        PIRTFractionatedRadiotherapy,
+    ):
+        return apply_pirt_fraction(
+            field,
+            survival_fraction=(
+                treatment
+                .survival_fraction_per_fraction
+            ),
+            domain_mask=domain_mask,
+        )
 
     return (
         field
@@ -665,6 +683,7 @@ def simulate_reaction_diffusion(
         field,
         treatment=fractionated_treatment,
         time_day=current_time_day,
+        domain_mask=domain,
     )
 
     while elapsed_time < duration_days:
@@ -725,8 +744,8 @@ def simulate_reaction_diffusion(
                 fractionated_treatment
             ),
             time_day=new_time_day,
+            domain_mask=domain,
         )
-
     if domain_crop is not None:
         return domain_crop.restore(
             field

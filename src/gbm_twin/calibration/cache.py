@@ -9,6 +9,7 @@ import numpy as np
 
 from gbm_twin.models.treatment import (
     FractionatedRadiotherapy,
+    PIRTFractionatedRadiotherapy,
     PostRadiotherapyEffect,
     RadiotherapyProtocol,
     TreatmentWindow,
@@ -83,6 +84,29 @@ def treatment_signature(
             ),
             "decay_time_days": float(
                 treatment.decay_time_days
+            ),
+        }
+        
+    if isinstance(
+        treatment,
+        PIRTFractionatedRadiotherapy,
+    ):
+        return {
+            "type": "pirt_fractionated_rt",
+            "fraction_days": [
+                float(day)
+                for day
+                in treatment.fraction_days
+            ],
+            "dose_per_fraction_gy": float(
+                treatment
+                .dose_per_fraction_gy
+            ),
+            "alpha_per_gy": float(
+                treatment.alpha_per_gy
+            ),
+            "beta_per_gy2": float(
+                treatment.beta_per_gy2
             ),
         }
 

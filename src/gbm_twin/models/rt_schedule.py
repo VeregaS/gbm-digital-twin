@@ -5,6 +5,7 @@ from gbm_twin.models.radiobiology import (
 )
 from gbm_twin.models.treatment import (
     FractionatedRadiotherapy,
+    PIRTFractionatedRadiotherapy,
 )
 
 WEEKDAY_LIKE_ASSUMPTION = (
@@ -101,6 +102,25 @@ def build_fractionated_radiotherapy(
     radiobiology: RadiobiologyParameters,
 ) -> FractionatedRadiotherapy:
     return FractionatedRadiotherapy(
+        fraction_days=(
+            schedule.fraction_days
+        ),
+        dose_per_fraction_gy=(
+            schedule.dose_per_fraction_gy
+        ),
+        alpha_per_gy=(
+            radiobiology.alpha_per_gy
+        ),
+        beta_per_gy2=(
+            radiobiology.beta_per_gy2
+        ),
+    )
+    
+def build_pirt_radiotherapy(
+    schedule: ReconstructedRadiotherapySchedule,
+    radiobiology: RadiobiologyParameters,
+) -> PIRTFractionatedRadiotherapy:
+    return PIRTFractionatedRadiotherapy(
         fraction_days=(
             schedule.fraction_days
         ),
