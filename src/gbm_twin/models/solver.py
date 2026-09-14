@@ -566,10 +566,19 @@ def simulate_reaction_diffusion(
             "start_time_day must be non-negative"
         )
 
-    field = np.asarray(
-        initial_field,
-        dtype=float,
-    ).copy()
+    initial_array = np.asarray(
+        initial_field
+    )
+
+    if np.issubdtype(
+        initial_array.dtype,
+        np.floating,
+    ):
+        field = initial_array.copy()
+    else:
+        field = initial_array.astype(
+            np.float64
+        )
 
     if field.ndim != 3:
         raise ValueError(

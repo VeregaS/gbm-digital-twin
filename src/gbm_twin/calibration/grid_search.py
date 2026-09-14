@@ -85,6 +85,11 @@ def grid_search(
         raise ValueError(
             "start_time_day must be non-negative"
         )
+        
+    simulation_initial = np.asarray(
+        initial_field,
+        dtype=np.float32,
+    )
 
     observed = np.asarray(
         observed_mask,
@@ -111,7 +116,7 @@ def grid_search(
             )
 
             simulated = simulate_reaction_diffusion(
-                initial_field,
+                simulation_initial,
                 params,
                 spacing=spacing,
                 duration_days=duration_days,
