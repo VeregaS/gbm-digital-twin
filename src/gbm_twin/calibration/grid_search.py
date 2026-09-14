@@ -10,16 +10,8 @@ from gbm_twin.models.reaction_diffusion import (
     ReactionDiffusionParameters,
 )
 from gbm_twin.models.solver import (
+    TreatmentModel,
     simulate_reaction_diffusion,
-)
-from gbm_twin.models.treatment import (
-    FractionatedRadiotherapy,
-    TreatmentWindow,
-)
-
-TreatmentModel = (
-    TreatmentWindow
-    | FractionatedRadiotherapy
 )
 
 
@@ -69,11 +61,7 @@ def grid_search(
             "dt must be positive"
         )
 
-    if not (
-        0.0
-        <= threshold
-        <= 1.0
-    ):
+    if not 0.0 <= threshold <= 1.0:
         raise ValueError(
             "threshold must be within [0, 1]"
         )
@@ -108,41 +96,29 @@ def grid_search(
         dtype=bool,
     )
 
-    results: list[
-        CalibrationResult
-    ] = []
+    results: list[CalibrationResult] = []
 
     for diffusion in diffusion_values:
-        for proliferation in (
-            proliferation_values
-        ):
+        for proliferation in proliferation_values:
             print(
                 f"Running D={diffusion:.4f}, "
                 f"rho={proliferation:.4f}..."
             )
 
-            params = (
-                ReactionDiffusionParameters(
-                    diffusion=diffusion,
-                    proliferation=proliferation,
-                )
+            params = ReactionDiffusionParameters(
+                diffusion=diffusion,
+                proliferation=proliferation,
             )
 
-            simulated = (
-                simulate_reaction_diffusion(
-                    initial_field,
-                    params,
-                    spacing=spacing,
-                    duration_days=(
-                        duration_days
-                    ),
-                    dt=dt,
-                    domain_mask=domain,
-                    treatment=treatment,
-                    start_time_day=(
-                        start_time_day
-                    ),
-                )
+            simulated = simulate_reaction_diffusion(
+                initial_field,
+                params,
+                spacing=spacing,
+                duration_days=duration_days,
+                dt=dt,
+                domain_mask=domain,
+                treatment=treatment,
+                start_time_day=start_time_day,
             )
 
             predicted = (
@@ -155,11 +131,9 @@ def grid_search(
                 observed,
             )
 
-            volume_error = (
-                relative_volume_error(
-                    predicted,
-                    observed,
-                )
+            volume_error = relative_volume_error(
+                predicted,
+                observed,
             )
 
             loss = (
@@ -173,9 +147,7 @@ def grid_search(
                 diffusion=diffusion,
                 proliferation=proliferation,
                 dice=dice,
-                volume_error=(
-                    volume_error
-                ),
+                volume_error=volume_error,
                 loss=loss,
             )
 
@@ -185,8 +157,7 @@ def grid_search(
 
             print(
                 f"  Dice={dice:.4f} "
-                f"VolumeError="
-                f"{volume_error:.2%} "
+                f"VolumeError={volume_error:.2%} "
                 f"Loss={loss:.4f}"
             )
 
