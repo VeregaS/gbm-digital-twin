@@ -2,6 +2,9 @@ import math
 
 import numpy as np
 
+from gbm_twin.models.domain_crop import (
+    DomainCrop,
+)
 from gbm_twin.models.reaction_diffusion import (
     ReactionDiffusionParameters,
 )
@@ -550,6 +553,7 @@ def simulate_reaction_diffusion(
     domain_mask: np.ndarray | None = None,
     treatment: TreatmentModel | None = None,
     start_time_day: float = 0.0,
+    crop_to_domain: bool = True,
 ) -> np.ndarray:
     if duration_days < 0:
         raise ValueError(
@@ -615,6 +619,27 @@ def simulate_reaction_diffusion(
             ~domain
         ] = 0.0
 
+    domain_crop: DomainCrop | None = None
+
+    if (
+        domain is not None
+        and crop_to_domain
+    ):
+        domain_crop = DomainCrop.from_mask(
+            domain
+        )
+
+        field = (
+            domain_crop
+            .crop(field)
+            .copy()
+        )
+
+        domain = (
+            domain_crop
+            .crop(domain)
+        )
+    
     if duration_days == 0:
         return field
 
@@ -700,6 +725,11 @@ def simulate_reaction_diffusion(
                 fractionated_treatment
             ),
             time_day=new_time_day,
+        )
+
+    if domain_crop is not None:
+        return domain_crop.restore(
+            field
         )
 
     return field
