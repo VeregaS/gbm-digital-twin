@@ -5,7 +5,9 @@ from enum import StrEnum
 from pathlib import Path
 
 from gbm_twin.data.cfb_metadata import CFBMetadata
+from gbm_twin.data.cfb_treatment import CFBTreatmentMetadata
 from gbm_twin.data.dataset_manifest import CFBDatasetManifest
+from gbm_twin.models.rt_schedule import reconstruct_weekday_like_schedule
 
 
 class EligibilityReason(StrEnum):
@@ -78,17 +80,13 @@ def _validate_time_intervals(
         for index in range(
             len(required_timepoints) - 1
         ):
-            start_name = (
-                required_timepoints[
-                    index
-                ]
-            )
+            start_name = required_timepoints[
+                index
+            ]
 
-            end_name = (
-                required_timepoints[
-                    index + 1
-                ]
-            )
+            end_name = required_timepoints[
+                index + 1
+            ]
 
             patient.interval_days(
                 start_name,
@@ -111,12 +109,127 @@ def _validate_time_intervals(
     return None
 
 
+def _validate_treatment_schedule(
+    *,
+    treatment_metadata: CFBTreatmentMetadata,
+    patient_id: int,
+) -> EligibilityIssue | None:
+    try:
+        treatment = treatment_metadata.treatment(
+            patient_id
+        )
+    except (
+        TypeError,
+        ValueError,
+    ) as exc:
+        return EligibilityIssue(
+            reason=(
+                EligibilityReason
+                .TREATMENT_SCHEDULE_UNAVAILABLE
+            ),
+            detail=(
+                f"Patient {patient_id}: "
+                "treatment metadata could not "
+                f"be interpreted: {exc}"
+            ),
+        )
+
+    if treatment is None:
+        return EligibilityIssue(
+            reason=(
+                EligibilityReason
+                .TREATMENT_SCHEDULE_UNAVAILABLE
+            ),
+            detail=(
+                f"Patient {patient_id}: "
+                "treatment record is missing"
+            ),
+        )
+
+    start_day = (
+        treatment.radiotherapy_start_day
+    )
+
+    total_dose_gy = (
+        treatment.dose_gy
+    )
+
+    fractions_number = (
+        treatment.fractions_number
+    )
+
+    if (
+        start_day is None
+        or total_dose_gy is None
+        or fractions_number is None
+    ):
+        missing_fields: list[str] = []
+
+        if start_day is None:
+            missing_fields.append(
+                "radiotherapy_start_day"
+            )
+
+        if total_dose_gy is None:
+            missing_fields.append(
+                "dose_gy"
+            )
+
+        if fractions_number is None:
+            missing_fields.append(
+                "fractions_number"
+            )
+
+        missing_text = ", ".join(
+            missing_fields
+        )
+
+        return EligibilityIssue(
+            reason=(
+                EligibilityReason
+                .TREATMENT_SCHEDULE_UNAVAILABLE
+            ),
+            detail=(
+                f"Patient {patient_id}: "
+                "cannot reconstruct RT "
+                "schedule; missing "
+                f"{missing_text}"
+            ),
+        )
+
+    try:
+        reconstruct_weekday_like_schedule(
+            start_day=start_day,
+            total_dose_gy=total_dose_gy,
+            fractions_number=fractions_number,
+        )
+
+    except ValueError as exc:
+        return EligibilityIssue(
+            reason=(
+                EligibilityReason
+                .TREATMENT_SCHEDULE_UNAVAILABLE
+            ),
+            detail=(
+                f"Patient {patient_id}: "
+                "cannot reconstruct RT "
+                f"schedule: {exc}"
+            ),
+        )
+
+    return None
+
+
 def assess_patient_eligibility(
     *,
     metadata: CFBMetadata,
     manifest: CFBDatasetManifest,
     patients_root: Path,
     patient_id: int,
+    treatment_metadata: (
+        CFBTreatmentMetadata | None
+    ) = None,
+    require_treatment_schedule: bool = False,
 ) -> PatientEligibility:
     issues: list[
         EligibilityIssue
@@ -262,6 +375,32 @@ def assess_patient_eligibility(
         if interval_issue is not None:
             issues.append(
                 interval_issue
+            )
+
+    if (
+        require_treatment_schedule
+        and not issues
+    ):
+        if treatment_metadata is None:
+            raise ValueError(
+                "treatment_metadata is "
+                "required when "
+                "require_treatment_schedule "
+                "is True"
+            )
+
+        treatment_issue = (
+            _validate_treatment_schedule(
+                treatment_metadata=(
+                    treatment_metadata
+                ),
+                patient_id=patient_id,
+            )
+        )
+
+        if treatment_issue is not None:
+            issues.append(
+                treatment_issue
             )
 
     return PatientEligibility(
