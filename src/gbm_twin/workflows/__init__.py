@@ -8,9 +8,7 @@ from gbm_twin.workflows.calibration import (
     V2CalibrationRun,
     calibrate_v2_interval,
 )
-from gbm_twin.workflows.contracts import (
-    PredictionTarget,
-)
+from gbm_twin.workflows.contracts import PredictionTarget
 from gbm_twin.workflows.eligibility import (
     EligibilityIssue,
     EligibilityReason,
@@ -37,6 +35,13 @@ from gbm_twin.workflows.prediction import (
     freeze_v2_prediction,
     load_frozen_v2_prediction,
 )
+from gbm_twin.workflows.provenance import (
+    InputFileProvenance,
+    PredictionProvenance,
+    build_prediction_provenance,
+    sha256_file,
+    v2_calibration_config_sha256,
+)
 from gbm_twin.workflows.viewer import (
     ViewerPlane,
     ViewerPlaneMetadata,
@@ -51,10 +56,12 @@ __all__ = [
     "EligibilityIssue",
     "EligibilityReason",
     "FrozenV2PredictionArtifact",
+    "InputFileProvenance",
     "PatientCatalogSummary",
     "PatientCatalogTimepoint",
     "PatientEligibility",
     "PatientTreatmentSummary",
+    "PredictionProvenance",
     "PredictionTarget",
     "PreparedPatientTimepoint",
     "V2_ALPHA_BETA_RATIO_GY",
@@ -71,6 +78,7 @@ __all__ = [
     "ViewerPlaneMetadata",
     "ViewerVolumeMetadata",
     "assess_patient_eligibility",
+    "build_prediction_provenance",
     "calibrate_v2_interval",
     "clear_viewer_cache",
     "discover_patient_ids",
@@ -80,4 +88,6 @@ __all__ = [
     "load_frozen_v2_prediction",
     "prepare_patient_timepoint",
     "render_viewer_slice_png",
+    "sha256_file",
+    "v2_calibration_config_sha256",
 ]

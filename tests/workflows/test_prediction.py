@@ -21,10 +21,23 @@ from gbm_twin.workflows.contracts import PredictionTarget
 from gbm_twin.workflows.patients import PreparedPatientTimepoint
 from gbm_twin.workflows.prediction import (
     V2_ASSIMILATION_RULE,
+    V2_PREDICTION_ARTIFACT_SCHEMA_VERSION,
     FrozenV2PredictionArtifact,
     freeze_v2_prediction,
     load_frozen_v2_prediction,
 )
+from gbm_twin.workflows.provenance import (
+    InputFileProvenance,
+    PredictionProvenance,
+)
+
+GIT_SHA = (
+    "0123456789abcdef"
+    "0123456789abcdef"
+    "01234567"
+)
+
+CONFIG_SHA256 = "a" * 64
 
 
 @dataclass
@@ -65,9 +78,7 @@ def make_volume(
     )
 
 
-def make_brain_volume(
-    name: str,
-) -> NiftiVolume:
+def make_brain_volume(name: str) -> NiftiVolume:
     return NiftiVolume(
         path=Path(name),
         data=np.ones(
@@ -105,7 +116,7 @@ def make_timepoint(
             active,
         ),
         brain_mask=make_brain_volume(
-            f"{name}_brain.nii.gz",
+            f"{name}_brain_mask.nii.gz"
         ),
     )
 
@@ -114,6 +125,51 @@ def make_target() -> PredictionTarget:
     return PredictionTarget(
         timepoint_name="t2",
         target_day=120.0,
+    )
+
+
+def make_provenance() -> PredictionProvenance:
+    inputs = (
+        InputFileProvenance(
+            logical_name="t0_t1gd",
+            filename="42_t0_t1gd.nii.gz",
+            sha256="1" * 64,
+        ),
+        InputFileProvenance(
+            logical_name="t0_gtv",
+            filename="42_t0_gtv.nii.gz",
+            sha256="2" * 64,
+        ),
+        InputFileProvenance(
+            logical_name="t0_brain_mask",
+            filename="42_t0_brain_mask.nii.gz",
+            sha256="3" * 64,
+        ),
+        InputFileProvenance(
+            logical_name="t1_t1gd",
+            filename="42_t1_t1gd.nii.gz",
+            sha256="4" * 64,
+        ),
+        InputFileProvenance(
+            logical_name="t1_gtv",
+            filename="42_t1_gtv.nii.gz",
+            sha256="5" * 64,
+        ),
+        InputFileProvenance(
+            logical_name="t1_brain_mask",
+            filename="42_t1_brain_mask.nii.gz",
+            sha256="6" * 64,
+        ),
+    )
+
+    return PredictionProvenance(
+        dataset_name="CFB-GBM",
+        dataset_version=4,
+        dataset_doi="10.7937/v9pn-2f72",
+        git_commit_sha=GIT_SHA,
+        git_dirty=False,
+        config_sha256=CONFIG_SHA256,
+        inputs=inputs,
     )
 
 
@@ -180,9 +236,7 @@ def build_artifact(
     t0 = make_timepoint(
         name="t0",
         day=0.0,
-        active=(
-            (2, 2, 2),
-        ),
+        active=((2, 2, 2),),
     )
 
     t1 = make_timepoint(
@@ -262,6 +316,7 @@ def build_artifact(
         start=t0,
         observed=t1,
         target=target,
+        provenance=make_provenance(),
         treatment=treatment,
         config=make_config(),
         cache_dir=tmp_path / "cache",
@@ -295,8 +350,14 @@ def test_freeze_v2_prediction_seals_protocol_before_t2_loading(
 
     manifest = artifact.manifest
 
+    assert manifest["schema_version"] == V2_PREDICTION_ARTIFACT_SCHEMA_VERSION
+    assert manifest["schema_version"] == 2
     assert manifest["sealed"] is True
     assert manifest["model_version"] == "V2"
+
+    assert manifest["provenance"] == (
+        make_provenance().to_payload()
+    )
 
     assert manifest["calibration_interval"] == {
         "start_timepoint": "t0",
@@ -314,15 +375,8 @@ def test_freeze_v2_prediction_seals_protocol_before_t2_loading(
         "duration_days": 60.0,
     }
 
-    assert (
-        manifest["parameters"]["diffusion"]
-        == 0.03
-    )
-
-    assert (
-        manifest["parameters"]["proliferation"]
-        == 0.015
-    )
+    assert manifest["parameters"]["diffusion"] == 0.03
+    assert manifest["parameters"]["proliferation"] == 0.015
 
     assert (
         manifest["parameters"]["assimilation_rule"]
@@ -374,6 +428,7 @@ def test_freeze_v2_prediction_seals_protocol_before_t2_loading(
             start=t0,
             observed=t1,
             target=target,
+            provenance=make_provenance(),
             treatment=None,
             config=make_config(),
             cache_dir=tmp_path / "cache",
@@ -381,6 +436,57 @@ def test_freeze_v2_prediction_seals_protocol_before_t2_loading(
         )
 
     assert captured.calibration_calls == 1
+
+
+def test_frozen_manifest_contains_complete_prediction_provenance(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    artifact, _, _, _, _ = build_artifact(
+        monkeypatch,
+        tmp_path,
+    )
+
+    assert artifact.manifest["provenance"] == {
+        "dataset_name": "CFB-GBM",
+        "dataset_version": 4,
+        "dataset_doi": "10.7937/v9pn-2f72",
+        "git_commit_sha": GIT_SHA,
+        "git_dirty": False,
+        "config_sha256": CONFIG_SHA256,
+        "inputs": [
+            {
+                "logical_name": "t0_t1gd",
+                "filename": "42_t0_t1gd.nii.gz",
+                "sha256": "1" * 64,
+            },
+            {
+                "logical_name": "t0_gtv",
+                "filename": "42_t0_gtv.nii.gz",
+                "sha256": "2" * 64,
+            },
+            {
+                "logical_name": "t0_brain_mask",
+                "filename": "42_t0_brain_mask.nii.gz",
+                "sha256": "3" * 64,
+            },
+            {
+                "logical_name": "t1_t1gd",
+                "filename": "42_t1_t1gd.nii.gz",
+                "sha256": "4" * 64,
+            },
+            {
+                "logical_name": "t1_gtv",
+                "filename": "42_t1_gtv.nii.gz",
+                "sha256": "5" * 64,
+            },
+            {
+                "logical_name": "t1_brain_mask",
+                "filename": "42_t1_brain_mask.nii.gz",
+                "sha256": "6" * 64,
+            },
+        ],
+    }
 
 
 def test_load_frozen_prediction_rejects_modified_array(
@@ -526,11 +632,9 @@ def test_evaluator_receives_t2_only_after_artifact_is_frozen(
         ),
     )
 
-    result = (
-        evaluate_frozen_v2_prediction(
-            artifact_dir=artifact.directory,
-            observed_target=t2,
-        )
+    result = evaluate_frozen_v2_prediction(
+        artifact_dir=artifact.directory,
+        observed_target=t2,
     )
 
     assert result.patient_id == 42
@@ -558,17 +662,13 @@ def test_frozen_protocol_rejects_noncanonical_sequence(
     t0 = make_timepoint(
         name="baseline",
         day=0.0,
-        active=(
-            (2, 2, 2),
-        ),
+        active=((2, 2, 2),),
     )
 
     t1 = make_timepoint(
         name="t1",
         day=60.0,
-        active=(
-            (2, 2, 2),
-        ),
+        active=((2, 2, 2),),
     )
 
     with pytest.raises(
@@ -579,6 +679,7 @@ def test_frozen_protocol_rejects_noncanonical_sequence(
             start=t0,
             observed=t1,
             target=make_target(),
+            provenance=make_provenance(),
             treatment=None,
             config=make_config(),
             cache_dir=tmp_path / "cache",
@@ -592,17 +693,13 @@ def test_frozen_protocol_rejects_target_before_observation(
     t0 = make_timepoint(
         name="t0",
         day=0.0,
-        active=(
-            (2, 2, 2),
-        ),
+        active=((2, 2, 2),),
     )
 
     t1 = make_timepoint(
         name="t1",
         day=60.0,
-        active=(
-            (2, 2, 2),
-        ),
+        active=((2, 2, 2),),
     )
 
     target = PredictionTarget(
@@ -618,6 +715,7 @@ def test_frozen_protocol_rejects_target_before_observation(
             start=t0,
             observed=t1,
             target=target,
+            provenance=make_provenance(),
             treatment=None,
             config=make_config(),
             cache_dir=tmp_path / "cache",
