@@ -37,6 +37,33 @@ type ViewerMode =
   | ViewerPlane;
 
 
+type TimepointSelection = {
+  patient: PatientSummary;
+  timepointName: string;
+};
+
+
+type ModeSelection = {
+  patient: PatientSummary;
+  mode: ViewerMode;
+};
+
+
+type MetadataRequestState =
+  | {
+      patient: PatientSummary;
+      timepointName: string;
+      status: "success";
+      metadata: ViewerVolumeMetadata;
+    }
+  | {
+      patient: PatientSummary;
+      timepointName: string;
+      status: "error";
+      error: string;
+    };
+
+
 const planes: ViewerPlane[] = [
   "axial",
   "coronal",
@@ -59,22 +86,24 @@ function MedicalViewerPanel({
   patient,
 }: MedicalViewerPanelProps) {
   const [
-    timepointName,
-    setTimepointName,
-  ] = useState("");
-
-  const [
-    mode,
-    setMode,
-  ] = useState<ViewerMode>(
-    "workstation",
+    timepointSelection,
+    setTimepointSelection,
+  ] = useState<TimepointSelection | null>(
+    null,
   );
 
   const [
-    metadata,
-    setMetadata,
+    modeSelection,
+    setModeSelection,
+  ] = useState<ModeSelection | null>(
+    null,
+  );
+
+  const [
+    metadataRequest,
+    setMetadataRequest,
   ] = useState<
-    ViewerVolumeMetadata | null
+    MetadataRequestState | null
   >(null);
 
   const [
@@ -91,67 +120,33 @@ function MedicalViewerPanel({
     true,
   );
 
-  const [
-    loading,
-    setLoading,
-  ] = useState(
-    false,
-  );
+  const timepointNames =
+    patient?.timepoints.map(
+      (timepoint) =>
+        timepoint.name,
+    ) ?? [];
 
-  const [
-    error,
-    setError,
-  ] = useState<
-    string | null
-  >(
-    null,
-  );
+  const preferredTimepointName =
+    timepointNames.includes("t1")
+      ? "t1"
+      : timepointNames[0] ?? "";
 
+  const timepointName =
+    patient !== null
+    && timepointSelection?.patient
+      === patient
+    && timepointNames.includes(
+      timepointSelection.timepointName,
+    )
+      ? timepointSelection.timepointName
+      : preferredTimepointName;
 
-  useEffect(() => {
-    if (
-      patient === null
-    ) {
-      setTimepointName(
-        "",
-      );
-
-      setMetadata(
-        null,
-      );
-
-      setError(
-        null,
-      );
-
-      setMode(
-        "workstation",
-      );
-
-      return;
-    }
-
-    const names =
-      patient.timepoints.map(
-        (timepoint) =>
-          timepoint.name,
-      );
-
-    const preferred =
-      names.includes("t1")
-        ? "t1"
-        : names[0] ?? "";
-
-    setTimepointName(
-      preferred,
-    );
-
-    setMode(
-      "workstation",
-    );
-  }, [
-    patient,
-  ]);
+  const mode =
+    patient !== null
+    && modeSelection?.patient
+      === patient
+      ? modeSelection.mode
+      : "workstation";
 
 
   useEffect(() => {
@@ -159,22 +154,10 @@ function MedicalViewerPanel({
       patient === null
       || !timepointName
     ) {
-      setMetadata(
-        null,
-      );
-
       return;
     }
 
     let cancelled = false;
-
-    setLoading(
-      true,
-    );
-
-    setError(
-      null,
-    );
 
     fetchViewerMetadata(
       patient.patient_id,
@@ -186,9 +169,12 @@ function MedicalViewerPanel({
             return;
           }
 
-          setMetadata(
-            result,
-          );
+          setMetadataRequest({
+            patient,
+            timepointName,
+            status: "success",
+            metadata: result,
+          });
 
           const axial =
             result.planes.find(
@@ -213,28 +199,19 @@ function MedicalViewerPanel({
             return;
           }
 
-          setMetadata(
-            null,
-          );
-
-          setError(
-            requestError
-              instanceof Error
-              ? requestError.message
-              : (
-                "Failed to load "
-                + "viewer metadata"
-              ),
-          );
-        },
-      )
-      .finally(
-        () => {
-          if (!cancelled) {
-            setLoading(
-              false,
-            );
-          }
+          setMetadataRequest({
+            patient,
+            timepointName,
+            status: "error",
+            error:
+              requestError
+                instanceof Error
+                ? requestError.message
+                : (
+                  "Failed to load "
+                  + "viewer metadata"
+                ),
+          });
         },
       );
 
@@ -245,6 +222,33 @@ function MedicalViewerPanel({
     patient,
     timepointName,
   ]);
+
+
+  const currentMetadataRequest =
+    patient !== null
+    && metadataRequest?.patient
+      === patient
+    && metadataRequest.timepointName
+      === timepointName
+      ? metadataRequest
+      : null;
+
+  const metadata =
+    currentMetadataRequest?.status
+    === "success"
+      ? currentMetadataRequest.metadata
+      : null;
+
+  const error =
+    currentMetadataRequest?.status
+    === "error"
+      ? currentMetadataRequest.error
+      : null;
+
+  const loading =
+    patient !== null
+    && Boolean(timepointName)
+    && currentMetadataRequest === null;
 
 
   const activePlane =
@@ -312,9 +316,14 @@ function MedicalViewerPanel({
   function changePlane(
     plane: ViewerPlane,
   ) {
-    setMode(
-      plane,
-    );
+    if (patient === null) {
+      return;
+    }
+
+    setModeSelection({
+      patient,
+      mode: plane,
+    });
 
     const target =
       metadata?.planes.find(
@@ -364,12 +373,17 @@ function MedicalViewerPanel({
               timepointName
             }
             onChange={
-              (event) =>
-                setTimepointName(
-                  event
-                    .target
-                    .value,
-                )
+              (event) => {
+                if (patient === null) {
+                  return;
+                }
+
+                setTimepointSelection({
+                  patient,
+                  timepointName:
+                    event.target.value,
+                });
+              }
             }
           >
             {
@@ -407,11 +421,16 @@ function MedicalViewerPanel({
               disabled={
                 patient === null
               }
-              onClick={() =>
-                setMode(
-                  "workstation",
-                )
-              }
+              onClick={() => {
+                if (patient === null) {
+                  return;
+                }
+
+                setModeSelection({
+                  patient,
+                  mode: "workstation",
+                });
+              }}
             >
               Workstation
             </button>
@@ -426,11 +445,16 @@ function MedicalViewerPanel({
               disabled={
                 patient === null
               }
-              onClick={() =>
-                setMode(
-                  "3d",
-                )
-              }
+              onClick={() => {
+                if (patient === null) {
+                  return;
+                }
+
+                setModeSelection({
+                  patient,
+                  mode: "3d",
+                });
+              }}
             >
               3D
             </button>
@@ -668,6 +692,9 @@ function WorkstationMode({
 
       <div className="medical-workstation-grid">
         <TriPlanarViewer
+          key={
+            `${patientId}:${timepointName}`
+          }
           patientId={
             patientId
           }

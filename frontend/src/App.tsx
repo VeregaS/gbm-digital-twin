@@ -46,6 +46,18 @@ type NavigationItem = {
   icon: typeof Brain;
 };
 
+type PatientRequestState =
+  | {
+      patientId: number;
+      status: "success";
+      patient: PatientSummary;
+    }
+  | {
+      patientId: number;
+      status: "error";
+      error: string;
+    };
+
 const navigation: NavigationItem[] = [
   {
     id: "patients",
@@ -124,21 +136,9 @@ function App() {
   );
 
   const [
-    patient,
-    setPatient,
-  ] = useState<PatientSummary | null>(
-    null,
-  );
-
-  const [
-    patientLoading,
-    setPatientLoading,
-  ] = useState(false);
-
-  const [
-    patientError,
-    setPatientError,
-  ] = useState<string | null>(
+    patientRequest,
+    setPatientRequest,
+  ] = useState<PatientRequestState | null>(
     null,
   );
 
@@ -171,15 +171,10 @@ function App() {
 
   useEffect(() => {
     if (selectedPatientId === null) {
-      setPatient(null);
-      setPatientError(null);
       return;
     }
 
     let cancelled = false;
-
-    setPatientLoading(true);
-    setPatientError(null);
 
     fetchPatient(selectedPatientId)
       .then((data) => {
@@ -187,31 +182,61 @@ function App() {
           return;
         }
 
-        setPatient(data);
+        setPatientRequest({
+          patientId: selectedPatientId,
+          status: "success",
+          patient: data,
+        });
       })
       .catch((error: unknown) => {
         if (cancelled) {
           return;
         }
 
-        setPatient(null);
-
-        setPatientError(
-          error instanceof Error
-            ? error.message
-            : "Failed to load patient",
-        );
-      })
-      .finally(() => {
-        if (!cancelled) {
-          setPatientLoading(false);
-        }
+        setPatientRequest({
+          patientId: selectedPatientId,
+          status: "error",
+          error:
+            error instanceof Error
+              ? error.message
+              : "Failed to load patient",
+        });
       });
 
     return () => {
       cancelled = true;
     };
   }, [selectedPatientId]);
+
+  const selectedPatientRequest =
+    selectedPatientId !== null
+    && patientRequest?.patientId
+      === selectedPatientId
+      ? patientRequest
+      : null;
+
+  const patient =
+    selectedPatientRequest?.status
+    === "success"
+      ? selectedPatientRequest.patient
+      : null;
+
+  const patientLoading =
+    selectedPatientId !== null
+    && selectedPatientRequest === null;
+
+  const patientError =
+    selectedPatientRequest?.status
+    === "error"
+      ? selectedPatientRequest.error
+      : null;
+
+  function selectPatient(
+    patientId: number | null,
+  ) {
+    setPatientRequest(null);
+    setSelectedPatientId(patientId);
+  }
 
   const currentNavigation = useMemo(
     () =>
@@ -256,7 +281,7 @@ function App() {
               ?? patientError
             }
             onSelectPatient={
-              setSelectedPatientId
+              selectPatient
             }
             onOpenViewer={() =>
               setActivePage("viewer")

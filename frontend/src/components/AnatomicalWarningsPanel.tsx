@@ -26,42 +26,35 @@ type AnatomicalWarningsPanelProps = {
 };
 
 
+type AnatomicalRiskRequestState =
+  | {
+      patientId: number;
+      timepointName: string;
+      status: "success";
+      report: AnatomicalRiskReport;
+    }
+  | {
+      patientId: number;
+      timepointName: string;
+      status: "error";
+      error: string;
+    };
+
+
 function AnatomicalWarningsPanel({
   patientId,
   timepointName,
 }: AnatomicalWarningsPanelProps) {
   const [
-    report,
-    setReport,
+    request,
+    setRequest,
   ] = useState<
-    AnatomicalRiskReport | null
-  >(null);
-
-  const [
-    loading,
-    setLoading,
-  ] = useState(
-    true,
-  );
-
-  const [
-    error,
-    setError,
-  ] = useState<
-    string | null
+    AnatomicalRiskRequestState | null
   >(null);
 
 
   useEffect(() => {
     let cancelled = false;
-
-    setLoading(
-      true,
-    );
-
-    setError(
-      null,
-    );
 
     fetchAnatomicalRisk(
       patientId,
@@ -70,9 +63,12 @@ function AnatomicalWarningsPanel({
       .then(
         (result) => {
           if (!cancelled) {
-            setReport(
-              result,
-            );
+            setRequest({
+              patientId,
+              timepointName,
+              status: "success",
+              report: result,
+            });
           }
         },
       )
@@ -85,28 +81,19 @@ function AnatomicalWarningsPanel({
             return;
           }
 
-          setReport(
-            null,
-          );
-
-          setError(
-            requestError
-              instanceof Error
-              ? requestError.message
-              : (
-                "Failed to load "
-                + "anatomical analysis"
-              ),
-          );
-        },
-      )
-      .finally(
-        () => {
-          if (!cancelled) {
-            setLoading(
-              false,
-            );
-          }
+          setRequest({
+            patientId,
+            timepointName,
+            status: "error",
+            error:
+              requestError
+                instanceof Error
+                ? requestError.message
+                : (
+                  "Failed to load "
+                  + "anatomical analysis"
+                ),
+          });
         },
       );
 
@@ -117,6 +104,29 @@ function AnatomicalWarningsPanel({
     patientId,
     timepointName,
   ]);
+
+
+  const currentRequest =
+    request?.patientId === patientId
+    && request.timepointName
+      === timepointName
+      ? request
+      : null;
+
+  const report =
+    currentRequest?.status
+    === "success"
+      ? currentRequest.report
+      : null;
+
+  const error =
+    currentRequest?.status
+    === "error"
+      ? currentRequest.error
+      : null;
+
+  const loading =
+    currentRequest === null;
 
 
   return (

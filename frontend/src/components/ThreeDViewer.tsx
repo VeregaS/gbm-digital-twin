@@ -34,6 +34,21 @@ type ThreeDViewerProps = {
 };
 
 
+type SceneRequestState =
+  | {
+      patientId: number;
+      timepointName: string;
+      status: "success";
+      scene: Viewer3DScene;
+    }
+  | {
+      patientId: number;
+      timepointName: string;
+      status: "error";
+      error: string;
+    };
+
+
 type VtkActor = ReturnType<
   typeof vtkActor.newInstance
 >;
@@ -372,27 +387,11 @@ function ThreeDViewer({
     >(null);
 
   const [
-    scene,
-    setScene,
+    sceneRequest,
+    setSceneRequest,
   ] = useState<
-    Viewer3DScene | null
+    SceneRequestState | null
   >(null);
-
-  const [
-    loading,
-    setLoading,
-  ] = useState(
-    true,
-  );
-
-  const [
-    error,
-    setError,
-  ] = useState<
-    string | null
-  >(
-    null,
-  );
 
   const [
     showBrain,
@@ -423,6 +422,30 @@ function ThreeDViewer({
   );
 
 
+  const currentSceneRequest =
+    sceneRequest?.patientId
+      === patientId
+    && sceneRequest.timepointName
+      === timepointName
+      ? sceneRequest
+      : null;
+
+  const scene =
+    currentSceneRequest?.status
+    === "success"
+      ? currentSceneRequest.scene
+      : null;
+
+  const error =
+    currentSceneRequest?.status
+    === "error"
+      ? currentSceneRequest.error
+      : null;
+
+  const loading =
+    currentSceneRequest === null;
+
+
   const resetCamera =
     useCallback(
       () => {
@@ -448,23 +471,18 @@ function ThreeDViewer({
   useEffect(() => {
     let cancelled = false;
 
-    setLoading(
-      true,
-    );
-
-    setError(
-      null,
-    );
-
     fetchViewer3DScene(
       patientId,
       timepointName,
     )
       .then((result) => {
         if (!cancelled) {
-          setScene(
-            result,
-          );
+          setSceneRequest({
+            patientId,
+            timepointName,
+            status: "success",
+            scene: result,
+          });
         }
       })
       .catch(
@@ -475,28 +493,21 @@ function ThreeDViewer({
             return;
           }
 
-          setScene(
-            null,
-          );
-
-          setError(
-            requestError
-              instanceof Error
-              ? requestError.message
-              : (
-                "Failed to load "
-                + "3D scene"
-              ),
-          );
+          setSceneRequest({
+            patientId,
+            timepointName,
+            status: "error",
+            error:
+              requestError
+                instanceof Error
+                ? requestError.message
+                : (
+                  "Failed to load "
+                  + "3D scene"
+                ),
+          });
         },
-      )
-      .finally(() => {
-        if (!cancelled) {
-          setLoading(
-            false,
-          );
-        }
-      });
+      );
 
     return () => {
       cancelled = true;
@@ -571,10 +582,6 @@ function ThreeDViewer({
           },
         );
 
-      item.actor.setVisibility(
-        showBrain,
-      );
-
       actorsRef.current.brain =
         item.actor;
 
@@ -608,10 +615,6 @@ function ThreeDViewer({
             specularPower: 25,
           },
         );
-
-      item.actor.setVisibility(
-        showLatentOuter,
-      );
 
       actorsRef.current
         .latentOuter =
@@ -648,10 +651,6 @@ function ThreeDViewer({
           },
         );
 
-      item.actor.setVisibility(
-        showLatentCore,
-      );
-
       actorsRef.current
         .latentCore =
         item.actor;
@@ -686,10 +685,6 @@ function ThreeDViewer({
             specularPower: 30,
           },
         );
-
-      item.actor.setVisibility(
-        showGtv,
-      );
 
       actorsRef.current.gtv =
         item.actor;
@@ -799,6 +794,7 @@ function ThreeDViewer({
         .render();
     }
   }, [
+    scene,
     showBrain,
     showGtv,
     showLatentOuter,

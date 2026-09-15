@@ -1,5 +1,4 @@
 import {
-  useEffect,
   useMemo,
   useState,
 } from "react";
@@ -75,17 +74,6 @@ function TriPlanarViewer({
         metadata,
       ),
   );
-
-
-  useEffect(() => {
-    setIndices(
-      initialIndices(
-        metadata,
-      ),
-    );
-  }, [
-    metadata,
-  ]);
 
 
   const planeMetadata =
