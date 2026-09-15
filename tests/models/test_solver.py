@@ -60,6 +60,29 @@ def test_zero_dynamics_preserves_field() -> None:
     assert np.allclose(result, field)
 
 
+def test_domain_mask_is_enforced_by_single_step() -> None:
+    field = np.full((5, 5, 5), 0.75)
+
+    mask = np.zeros_like(field, dtype=bool)
+    mask[1:4, 1:4, 1:4] = True
+
+    params = ReactionDiffusionParameters(
+        diffusion=0.0,
+        proliferation=0.0,
+    )
+
+    result = reaction_diffusion_step(
+        field,
+        params,
+        spacing=(1.0, 1.0, 1.0),
+        dt=1.0,
+        domain_mask=mask,
+    )
+
+    assert np.all(result[mask] == field[mask])
+    assert np.all(result[~mask] == 0.0)
+
+
 def test_proliferation_only_increases_concentration() -> None:
     field = np.full((5, 5, 5), 0.25)
 

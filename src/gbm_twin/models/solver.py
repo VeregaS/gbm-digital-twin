@@ -304,6 +304,8 @@ def reaction_diffusion_step(
             f"{stability_limit:.6g}"
         )
 
+    domain: np.ndarray | None = None
+
     if domain_mask is None:
         laplacian = laplacian_3d(
             field,
@@ -362,8 +364,6 @@ def reaction_diffusion_step(
             - treatment_term
         )
     )
-    
-    domain: np.ndarray | None = None
 
     if domain is not None:
         result[
