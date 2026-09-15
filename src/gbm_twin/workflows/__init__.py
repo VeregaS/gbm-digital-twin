@@ -8,6 +8,9 @@ from gbm_twin.workflows.calibration import (
     V2CalibrationRun,
     calibrate_v2_interval,
 )
+from gbm_twin.workflows.contracts import (
+    PredictionTarget,
+)
 from gbm_twin.workflows.patient_catalog import (
     PatientCatalogSummary,
     PatientCatalogTimepoint,
@@ -40,20 +43,21 @@ from gbm_twin.workflows.viewer import (
 __all__ = [
     "DEFAULT_TARGET_SPACING",
     "FrozenV2PredictionArtifact",
+    "PredictionTarget",
     "PreparedPatientTimepoint",
     "PatientCatalogSummary",
     "PatientCatalogTimepoint",
     "PatientTreatmentSummary",
     "V2_ALPHA_BETA_RATIO_GY",
+    "V2_ASSIMILATION_RULE",
     "V2_EFFECTIVE_ALPHA_PER_GY",
+    "V2_FROZEN_PROTOCOL_VERSION",
     "V2_LATENT_WIDTH_MM",
     "V2_OBSERVATION_THRESHOLD",
+    "V2_PREDICTION_ARTIFACT_SCHEMA_VERSION",
     "V2_SOFT_TEMPERATURE",
     "V2CalibrationConfig",
     "V2CalibrationRun",
-    "V2_ASSIMILATION_RULE",
-    "V2_FROZEN_PROTOCOL_VERSION",
-    "V2_PREDICTION_ARTIFACT_SCHEMA_VERSION",
     "ViewerPlane",
     "ViewerPlaneMetadata",
     "ViewerVolumeMetadata",
