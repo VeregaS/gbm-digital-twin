@@ -22,6 +22,10 @@ from gbm_twin.workflows.patient_catalog import (
     discover_patient_ids,
     get_patient_catalog_summary,
 )
+from gbm_twin.workflows.patient_twin import (
+    PatientNotEligibleError,
+    PatientTwinService,
+)
 from gbm_twin.workflows.patients import (
     DEFAULT_TARGET_SPACING,
     PreparedPatientTimepoint,
@@ -90,4 +94,6 @@ __all__ = [
     "render_viewer_slice_png",
     "sha256_file",
     "v2_calibration_config_sha256",
+    "PatientNotEligibleError",
+    "PatientTwinService",
 ]
