@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from pathlib import Path
 
 import numpy as np
@@ -5,12 +6,17 @@ import pytest
 
 import gbm_twin.workflows.calibration as calibration_module
 from gbm_twin.calibration.grid_search import (
+    CalibrationObjective,
     CalibrationResult,
 )
 from gbm_twin.calibration.refinement import (
     AdaptiveCalibrationResult,
 )
 from gbm_twin.data.nifti import NiftiVolume
+from gbm_twin.models.latent_state import (
+    LatentStateParameters,
+)
+from gbm_twin.models.solver import TreatmentModel
 from gbm_twin.workflows.calibration import (
     V2CalibrationConfig,
     calibrate_v2_interval,
@@ -18,6 +24,14 @@ from gbm_twin.workflows.calibration import (
 from gbm_twin.workflows.patients import (
     PreparedPatientTimepoint,
 )
+
+
+@dataclass
+class CapturedCalibrationCall:
+    duration_days: float | None = None
+    start_time_day: float | None = None
+    objective: CalibrationObjective | None = None
+    soft_temperature: float | None = None
 
 
 def make_volume(
@@ -28,11 +42,7 @@ def make_volume(
         dtype=np.float32,
     )
 
-    data[
-        2,
-        2,
-        2,
-    ] = 1.0
+    data[2, 2, 2] = 1.0
 
     return NiftiVolume(
         path=Path(name),
@@ -80,7 +90,23 @@ def make_config() -> V2CalibrationConfig:
         proliferation_values=(
             0.0,
             0.015,
+            0.03,
         ),
+    )
+
+
+def make_result(
+    *,
+    diffusion: float,
+    proliferation: float,
+    loss: float,
+) -> CalibrationResult:
+    return CalibrationResult(
+        diffusion=diffusion,
+        proliferation=proliferation,
+        dice=1.0 - loss,
+        volume_error=0.0,
+        loss=loss,
     )
 
 
@@ -98,36 +124,114 @@ def test_calibrate_v2_interval_uses_only_interval(
         day=77.0,
     )
 
-    captured: dict[str, object] = {}
+    captured = CapturedCalibrationCall()
+
+    def fake_latent_state_from_gtv(
+        gtv_mask: np.ndarray,
+        brain_mask: np.ndarray,
+        *,
+        spacing: tuple[
+            float,
+            float,
+            float,
+        ],
+        parameters: LatentStateParameters,
+    ) -> np.ndarray:
+        assert (
+            gtv_mask.shape
+            == brain_mask.shape
+        )
+
+        assert spacing == (
+            2.0,
+            2.0,
+            2.0,
+        )
+
+        assert (
+            parameters.transition_width_mm
+            > 0.0
+        )
+
+        return np.zeros(
+            (5, 5, 5),
+            dtype=np.float32,
+        )
 
     monkeypatch.setattr(
         calibration_module,
         "latent_state_from_gtv",
-        lambda *args, **kwargs: (
-            np.zeros(
-                (5, 5, 5),
-                dtype=np.float32,
-            )
-        ),
+        fake_latent_state_from_gtv,
     )
 
-    expected = CalibrationResult(
+    expected = make_result(
         diffusion=0.03,
         proliferation=0.015,
-        dice=0.8,
-        volume_error=0.1,
-        loss=0.25,
+        loss=0.1,
+    )
+
+    lower_diffusion = make_result(
+        diffusion=0.015,
+        proliferation=0.015,
+        loss=0.2,
+    )
+
+    upper_diffusion = make_result(
+        diffusion=0.045,
+        proliferation=0.015,
+        loss=0.2,
+    )
+
+    lower_proliferation = make_result(
+        diffusion=0.03,
+        proliferation=0.0075,
+        loss=0.2,
+    )
+
+    upper_proliferation = make_result(
+        diffusion=0.03,
+        proliferation=0.0225,
+        loss=0.2,
     )
 
     def fake_adaptive_grid_search(
-        initial,
-        observed_mask,
-        domain,
-        **kwargs,
-    ):
-        captured.update(kwargs)
+        initial_field: np.ndarray,
+        observed_mask: np.ndarray,
+        domain_mask: np.ndarray,
+        *,
+        spacing: tuple[
+            float,
+            float,
+            float,
+        ],
+        duration_days: float,
+        dt: float,
+        diffusion_values: list[float],
+        proliferation_values: list[float],
+        threshold: float,
+        volume_weight: float,
+        treatment: TreatmentModel | None,
+        start_time_day: float,
+        cache_dir: Path | None,
+        workers: int,
+        objective: CalibrationObjective,
+        soft_temperature: float,
+    ) -> AdaptiveCalibrationResult:
+        captured.duration_days = (
+            duration_days
+        )
 
-        assert initial.shape == (
+        captured.start_time_day = (
+            start_time_day
+        )
+
+        captured.objective = objective
+
+        captured.soft_temperature = (
+            soft_temperature
+        )
+
+        assert initial_field.shape == (
             5,
             5,
             5,
@@ -139,17 +243,50 @@ def test_calibrate_v2_interval_uses_only_interval(
             5,
         )
 
-        assert domain.shape == (
+        assert domain_mask.shape == (
             5,
             5,
             5,
         )
 
+        assert spacing == (
+            2.0,
+            2.0,
+            2.0,
+        )
+
+        assert dt == 2.0
+
+        assert diffusion_values == [
+            0.0,
+            0.03,
+            0.06,
+        ]
+
+        assert proliferation_values == [
+            0.0,
+            0.015,
+            0.03,
+        ]
+
+        assert threshold == 0.5
+        assert volume_weight == 0.5
+        assert treatment is None
+        assert cache_dir == tmp_path
+        assert workers == 2
+
         return AdaptiveCalibrationResult(
             best=expected,
             coarse_best=expected,
-            coarse_results=[expected],
-            refined_results=[expected],
+            coarse_results=[
+                expected,
+            ],
+            refined_results=[
+                lower_diffusion,
+                upper_diffusion,
+                lower_proliferation,
+                upper_proliferation,
+            ],
             refined_diffusion_values=[
                 0.015,
                 0.03,
@@ -178,43 +315,78 @@ def test_calibrate_v2_interval_uses_only_interval(
     )
 
     assert result.patient_id == 42
-
-    assert (
-        result.start_timepoint
-        == "t0"
-    )
-
-    assert (
-        result.observed_timepoint
-        == "t1"
-    )
-
+    assert result.start_timepoint == "t0"
+    assert result.observed_timepoint == "t1"
     assert result.duration_days == 77.0
+
     assert result.best == expected
     assert result.coarse_best == expected
-    assert result.refined_diffusion_values == (
-        0.015,
-        0.03,
-        0.045,
+
+    assert (
+        result.refined_diffusion_values
+        == (
+            0.015,
+            0.03,
+            0.045,
+        )
     )
 
     assert (
-        captured["duration_days"]
+        result.refined_proliferation_values
+        == (
+            0.0075,
+            0.015,
+            0.0225,
+        )
+    )
+
+    assert (
+        not result
+        .diagnostics
+        .diffusion_at_boundary
+    )
+
+    assert (
+        not result
+        .diagnostics
+        .proliferation_at_boundary
+    )
+
+    assert (
+        result
+        .diagnostics
+        .diffusion_bracketed
+    )
+
+    assert (
+        result
+        .diagnostics
+        .proliferation_bracketed
+    )
+
+    assert (
+        result
+        .diagnostics
+        .identifiable
+    )
+
+    assert (
+        captured.duration_days
         == 77.0
     )
 
     assert (
-        captured["start_time_day"]
+        captured.start_time_day
         == 0.0
     )
 
     assert (
-        captured["objective"]
+        captured.objective
         == "soft"
     )
 
     assert (
-        captured["soft_temperature"]
+        captured.soft_temperature
         == 0.05
     )
 
@@ -245,8 +417,7 @@ def test_calibrate_v2_interval_rejects_reverse_time(
         )
 
 
-def test_config_rejects_empty_diffusion_axis(
-) -> None:
+def test_config_rejects_empty_diffusion_axis() -> None:
     with pytest.raises(
         ValueError,
         match="diffusion_values",

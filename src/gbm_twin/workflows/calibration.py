@@ -3,26 +3,20 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
-from gbm_twin.calibration.grid_search import (
-    CalibrationResult,
+from gbm_twin.calibration.diagnostics import (
+    CalibrationDiagnostics,
+    assess_calibration_diagnostics,
 )
-from gbm_twin.calibration.refinement import (
-    adaptive_grid_search,
-)
+from gbm_twin.calibration.grid_search import CalibrationResult
+from gbm_twin.calibration.refinement import adaptive_grid_search
 from gbm_twin.data.nifti import same_geometry
 from gbm_twin.models.latent_state import (
     LatentStateParameters,
     latent_state_from_gtv,
 )
-from gbm_twin.models.reaction_diffusion import (
-    build_computational_domain,
-)
-from gbm_twin.models.treatment import (
-    PIRTFractionatedRadiotherapy,
-)
-from gbm_twin.workflows.patients import (
-    PreparedPatientTimepoint,
-)
+from gbm_twin.models.reaction_diffusion import build_computational_domain
+from gbm_twin.models.treatment import PIRTFractionatedRadiotherapy
+from gbm_twin.workflows.patients import PreparedPatientTimepoint
 
 V2_EFFECTIVE_ALPHA_PER_GY = 0.01
 V2_ALPHA_BETA_RATIO_GY = 10.0
@@ -38,19 +32,9 @@ class V2CalibrationConfig:
     proliferation_values: tuple[float, ...]
 
     dt_days: float = 2.0
-
-    latent_width_mm: float = (
-        V2_LATENT_WIDTH_MM
-    )
-
-    observation_threshold: float = (
-        V2_OBSERVATION_THRESHOLD
-    )
-
-    soft_temperature: float = (
-        V2_SOFT_TEMPERATURE
-    )
-
+    latent_width_mm: float = V2_LATENT_WIDTH_MM
+    observation_threshold: float = V2_OBSERVATION_THRESHOLD
+    soft_temperature: float = V2_SOFT_TEMPERATURE
     volume_weight: float = 0.5
 
     def __post_init__(self) -> None:
@@ -69,18 +53,15 @@ class V2CalibrationConfig:
             for value in self.diffusion_values
         ):
             raise ValueError(
-                "diffusion values must be "
-                "non-negative"
+                "diffusion values must be non-negative"
             )
 
         if any(
             value < 0
-            for value
-            in self.proliferation_values
+            for value in self.proliferation_values
         ):
             raise ValueError(
-                "proliferation values must be "
-                "non-negative"
+                "proliferation values must be non-negative"
             )
 
         if self.dt_days <= 0:
@@ -99,8 +80,7 @@ class V2CalibrationConfig:
             < 1.0
         ):
             raise ValueError(
-                "observation_threshold must "
-                "be between 0 and 1"
+                "observation_threshold must be between 0 and 1"
             )
 
         if self.soft_temperature <= 0:
@@ -110,8 +90,7 @@ class V2CalibrationConfig:
 
         if self.volume_weight < 0:
             raise ValueError(
-                "volume_weight must be "
-                "non-negative"
+                "volume_weight must be non-negative"
             )
 
 
@@ -128,30 +107,44 @@ class V2CalibrationRun:
 
     best: CalibrationResult
     coarse_best: CalibrationResult
+    diagnostics: CalibrationDiagnostics
+
     candidates: tuple[
         CalibrationResult,
         ...,
     ]
+
     coarse_candidates: tuple[
         CalibrationResult,
         ...,
     ]
+
     refined_candidates: tuple[
         CalibrationResult,
         ...,
     ]
-    refined_diffusion_values: tuple[float, ...]
-    refined_proliferation_values: tuple[float, ...]
+
+    refined_diffusion_values: tuple[
+        float,
+        ...,
+    ]
+
+    refined_proliferation_values: tuple[
+        float,
+        ...,
+    ]
 
 
 def _validate_interval(
     start: PreparedPatientTimepoint,
     observed: PreparedPatientTimepoint,
 ) -> float:
-    if start.patient_id != observed.patient_id:
+    if (
+        start.patient_id
+        != observed.patient_id
+    ):
         raise ValueError(
-            "Calibration timepoints belong "
-            "to different patients"
+            "Calibration timepoints belong to different patients"
         )
 
     if not same_geometry(
@@ -160,8 +153,7 @@ def _validate_interval(
     ):
         raise ValueError(
             f"Patient {start.patient_id}: "
-            "calibration timepoint grids "
-            "do not match"
+            "calibration timepoint grids do not match"
         )
 
     duration_days = (
@@ -171,8 +163,7 @@ def _validate_interval(
 
     if duration_days <= 0:
         raise ValueError(
-            "Observed timepoint must occur "
-            "after start timepoint"
+            "Observed timepoint must occur after start timepoint"
         )
 
     return duration_days
@@ -255,7 +246,16 @@ def calibrate_v2_interval(
             *calibration.coarse_results,
             *calibration.refined_results,
         ),
-        key=lambda candidate: candidate.loss,
+        key=lambda candidate: (
+            candidate.loss
+        ),
+    )
+
+    diagnostics = (
+        assess_calibration_diagnostics(
+            best=calibration.best,
+            candidates=candidates,
+        )
     )
 
     return V2CalibrationRun(
@@ -270,8 +270,13 @@ def calibrate_v2_interval(
         ),
         duration_days=duration_days,
         best=calibration.best,
-        coarse_best=calibration.coarse_best,
-        candidates=tuple(candidates),
+        coarse_best=(
+            calibration.coarse_best
+        ),
+        diagnostics=diagnostics,
+        candidates=tuple(
+            candidates
+        ),
         coarse_candidates=tuple(
             calibration.coarse_results
         ),

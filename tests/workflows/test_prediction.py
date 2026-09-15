@@ -6,6 +6,7 @@ import numpy as np
 import pytest
 
 import gbm_twin.workflows.prediction as prediction_module
+from gbm_twin.calibration.diagnostics import CalibrationDiagnostics
 from gbm_twin.calibration.grid_search import CalibrationResult
 from gbm_twin.data.nifti import NiftiVolume
 from gbm_twin.evaluation.frozen_prediction import (
@@ -206,6 +207,13 @@ def make_calibration_run() -> V2CalibrationRun:
         duration_days=60.0,
         best=best,
         coarse_best=best,
+        diagnostics=CalibrationDiagnostics(
+            diffusion_at_boundary=False,
+            proliferation_at_boundary=False,
+            diffusion_bracketed=True,
+            proliferation_bracketed=True,
+            identifiable=True,
+        ),
         candidates=(best,),
         coarse_candidates=(best,),
         refined_candidates=(best,),
@@ -351,7 +359,7 @@ def test_freeze_v2_prediction_seals_protocol_before_t2_loading(
     manifest = artifact.manifest
 
     assert manifest["schema_version"] == V2_PREDICTION_ARTIFACT_SCHEMA_VERSION
-    assert manifest["schema_version"] == 2
+    assert manifest["schema_version"] == 3
     assert manifest["sealed"] is True
     assert manifest["model_version"] == "V2"
 
@@ -381,6 +389,21 @@ def test_freeze_v2_prediction_seals_protocol_before_t2_loading(
     assert (
         manifest["parameters"]["assimilation_rule"]
         == V2_ASSIMILATION_RULE
+    )
+    
+    assert (
+        manifest[
+            "calibration"
+        ][
+            "diagnostics"
+        ]
+        == {
+            "diffusion_at_boundary": False,
+            "proliferation_at_boundary": False,
+            "diffusion_bracketed": True,
+            "proliferation_bracketed": True,
+            "identifiable": True,
+        }
     )
 
     assert captured.calibration_start is t0

@@ -29,7 +29,7 @@ from gbm_twin.workflows.contracts import PredictionTarget
 from gbm_twin.workflows.patients import PreparedPatientTimepoint
 from gbm_twin.workflows.provenance import PredictionProvenance
 
-V2_PREDICTION_ARTIFACT_SCHEMA_VERSION = 2
+V2_PREDICTION_ARTIFACT_SCHEMA_VERSION = 3
 V2_FROZEN_PROTOCOL_VERSION = "v2-frozen-1"
 V2_ASSIMILATION_RULE = "replace_with_observed_t1_latent_state"
 
@@ -145,6 +145,33 @@ def _build_manifest(
         "treatment": _treatment_payload(treatment),
         "calibration": {
             "objective": "soft",
+            "diagnostics": {
+                "diffusion_at_boundary": (
+                    calibration
+                    .diagnostics
+                    .diffusion_at_boundary
+                ),
+                "proliferation_at_boundary": (
+                    calibration
+                    .diagnostics
+                    .proliferation_at_boundary
+                ),
+                "diffusion_bracketed": (
+                    calibration
+                    .diagnostics
+                    .diffusion_bracketed
+                ),
+                "proliferation_bracketed": (
+                    calibration
+                    .diagnostics
+                    .proliferation_bracketed
+                ),
+                "identifiable": (
+                    calibration
+                    .diagnostics
+                    .identifiable
+                ),
+            },
             "best": _calibration_result_payload(calibration.best),
             "coarse_best": _calibration_result_payload(calibration.coarse_best),
             "coarse_diffusion_values": list(config.diffusion_values),
@@ -444,6 +471,47 @@ def load_frozen_v2_prediction(
     ):
         raise ValueError(
             "Prediction manifest is missing provenance"
+        )
+        
+    calibration_payload = manifest.get(
+        "calibration"
+    )
+
+    if not isinstance(
+        calibration_payload,
+        dict,
+    ):
+        raise ValueError(
+            "Prediction manifest is missing calibration metadata"
+        )
+
+    diagnostics_payload = (
+        calibration_payload.get(
+            "diagnostics"
+        )
+    )
+
+    if not isinstance(
+        diagnostics_payload,
+        dict,
+    ):
+        raise ValueError(
+            "Prediction manifest is missing calibration diagnostics"
+        )
+
+    required_diagnostic_fields = {
+        "diffusion_at_boundary",
+        "proliferation_at_boundary",
+        "diffusion_bracketed",
+        "proliferation_bracketed",
+        "identifiable",
+    }
+
+    if not required_diagnostic_fields.issubset(
+        diagnostics_payload
+    ):
+        raise ValueError(
+            "Prediction manifest calibration diagnostics are incomplete"
         )
 
     required_provenance_fields = {
