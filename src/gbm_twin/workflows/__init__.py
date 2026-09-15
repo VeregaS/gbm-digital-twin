@@ -20,6 +20,14 @@ from gbm_twin.workflows.patients import (
     PreparedPatientTimepoint,
     prepare_patient_timepoint,
 )
+from gbm_twin.workflows.prediction import (
+    V2_ASSIMILATION_RULE,
+    V2_FROZEN_PROTOCOL_VERSION,
+    V2_PREDICTION_ARTIFACT_SCHEMA_VERSION,
+    FrozenV2PredictionArtifact,
+    freeze_v2_prediction,
+    load_frozen_v2_prediction,
+)
 from gbm_twin.workflows.viewer import (
     ViewerPlane,
     ViewerPlaneMetadata,
@@ -31,6 +39,7 @@ from gbm_twin.workflows.viewer import (
 
 __all__ = [
     "DEFAULT_TARGET_SPACING",
+    "FrozenV2PredictionArtifact",
     "PreparedPatientTimepoint",
     "PatientCatalogSummary",
     "PatientCatalogTimepoint",
@@ -42,14 +51,19 @@ __all__ = [
     "V2_SOFT_TEMPERATURE",
     "V2CalibrationConfig",
     "V2CalibrationRun",
+    "V2_ASSIMILATION_RULE",
+    "V2_FROZEN_PROTOCOL_VERSION",
+    "V2_PREDICTION_ARTIFACT_SCHEMA_VERSION",
     "ViewerPlane",
     "ViewerPlaneMetadata",
     "ViewerVolumeMetadata",
     "calibrate_v2_interval",
     "clear_viewer_cache",
     "discover_patient_ids",
+    "freeze_v2_prediction",
     "get_patient_catalog_summary",
     "get_viewer_volume_metadata",
+    "load_frozen_v2_prediction",
     "prepare_patient_timepoint",
     "render_viewer_slice_png",
 ]

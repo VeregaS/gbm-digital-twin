@@ -7,6 +7,9 @@ import gbm_twin.workflows.calibration as calibration_module
 from gbm_twin.calibration.grid_search import (
     CalibrationResult,
 )
+from gbm_twin.calibration.refinement import (
+    AdaptiveCalibrationResult,
+)
 from gbm_twin.data.nifti import NiftiVolume
 from gbm_twin.workflows.calibration import (
     V2CalibrationConfig,
@@ -116,7 +119,7 @@ def test_calibrate_v2_interval_uses_only_interval(
         loss=0.25,
     )
 
-    def fake_grid_search(
+    def fake_adaptive_grid_search(
         initial,
         observed_mask,
         domain,
@@ -142,12 +145,27 @@ def test_calibrate_v2_interval_uses_only_interval(
             5,
         )
 
-        return [expected]
+        return AdaptiveCalibrationResult(
+            best=expected,
+            coarse_best=expected,
+            coarse_results=[expected],
+            refined_results=[expected],
+            refined_diffusion_values=[
+                0.015,
+                0.03,
+                0.045,
+            ],
+            refined_proliferation_values=[
+                0.0075,
+                0.015,
+                0.0225,
+            ],
+        )
 
     monkeypatch.setattr(
         calibration_module,
-        "grid_search",
-        fake_grid_search,
+        "adaptive_grid_search",
+        fake_adaptive_grid_search,
     )
 
     result = calibrate_v2_interval(
@@ -173,6 +191,12 @@ def test_calibrate_v2_interval_uses_only_interval(
 
     assert result.duration_days == 77.0
     assert result.best == expected
+    assert result.coarse_best == expected
+    assert result.refined_diffusion_values == (
+        0.015,
+        0.03,
+        0.045,
+    )
 
     assert (
         captured["duration_days"]

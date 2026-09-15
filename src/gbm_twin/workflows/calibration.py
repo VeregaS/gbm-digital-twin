@@ -5,7 +5,9 @@ from pathlib import Path
 
 from gbm_twin.calibration.grid_search import (
     CalibrationResult,
-    grid_search,
+)
+from gbm_twin.calibration.refinement import (
+    adaptive_grid_search,
 )
 from gbm_twin.data.nifti import same_geometry
 from gbm_twin.models.latent_state import (
@@ -125,10 +127,21 @@ class V2CalibrationRun:
     duration_days: float
 
     best: CalibrationResult
+    coarse_best: CalibrationResult
     candidates: tuple[
         CalibrationResult,
         ...,
     ]
+    coarse_candidates: tuple[
+        CalibrationResult,
+        ...,
+    ]
+    refined_candidates: tuple[
+        CalibrationResult,
+        ...,
+    ]
+    refined_diffusion_values: tuple[float, ...]
+    refined_proliferation_values: tuple[float, ...]
 
 
 def _validate_interval(
@@ -208,7 +221,7 @@ def calibrate_v2_interval(
         > config.observation_threshold
     )
 
-    results = grid_search(
+    calibration = adaptive_grid_search(
         initial,
         observed_mask,
         domain,
@@ -237,10 +250,13 @@ def calibrate_v2_interval(
         ),
     )
 
-    if not results:
-        raise RuntimeError(
-            "Calibration returned no candidates"
-        )
+    candidates = sorted(
+        (
+            *calibration.coarse_results,
+            *calibration.refined_results,
+        ),
+        key=lambda candidate: candidate.loss,
+    )
 
     return V2CalibrationRun(
         patient_id=start.patient_id,
@@ -253,6 +269,19 @@ def calibrate_v2_interval(
             observed.days_from_baseline
         ),
         duration_days=duration_days,
-        best=results[0],
-        candidates=tuple(results),
+        best=calibration.best,
+        coarse_best=calibration.coarse_best,
+        candidates=tuple(candidates),
+        coarse_candidates=tuple(
+            calibration.coarse_results
+        ),
+        refined_candidates=tuple(
+            calibration.refined_results
+        ),
+        refined_diffusion_values=tuple(
+            calibration.refined_diffusion_values
+        ),
+        refined_proliferation_values=tuple(
+            calibration.refined_proliferation_values
+        ),
     )
