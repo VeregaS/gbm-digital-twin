@@ -11,6 +11,12 @@ from gbm_twin.workflows.calibration import (
 from gbm_twin.workflows.contracts import (
     PredictionTarget,
 )
+from gbm_twin.workflows.eligibility import (
+    EligibilityIssue,
+    EligibilityReason,
+    PatientEligibility,
+    assess_patient_eligibility,
+)
 from gbm_twin.workflows.patient_catalog import (
     PatientCatalogSummary,
     PatientCatalogTimepoint,
@@ -42,12 +48,15 @@ from gbm_twin.workflows.viewer import (
 
 __all__ = [
     "DEFAULT_TARGET_SPACING",
+    "EligibilityIssue",
+    "EligibilityReason",
     "FrozenV2PredictionArtifact",
-    "PredictionTarget",
-    "PreparedPatientTimepoint",
     "PatientCatalogSummary",
     "PatientCatalogTimepoint",
+    "PatientEligibility",
     "PatientTreatmentSummary",
+    "PredictionTarget",
+    "PreparedPatientTimepoint",
     "V2_ALPHA_BETA_RATIO_GY",
     "V2_ASSIMILATION_RULE",
     "V2_EFFECTIVE_ALPHA_PER_GY",
@@ -61,6 +70,7 @@ __all__ = [
     "ViewerPlane",
     "ViewerPlaneMetadata",
     "ViewerVolumeMetadata",
+    "assess_patient_eligibility",
     "calibrate_v2_interval",
     "clear_viewer_cache",
     "discover_patient_ids",
