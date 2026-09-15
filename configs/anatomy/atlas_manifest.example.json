@@ -1,0 +1,33 @@
+{
+  "atlas_name": "EXAMPLE ONLY - replace with actual atlas definition",
+  "regions": [
+    {
+      "label": 1,
+      "name": "Left precentral region",
+      "category": "motor",
+      "laterality": "left",
+      "functional_note": "Motor-associated cortical region"
+    },
+    {
+      "label": 2,
+      "name": "Right precentral region",
+      "category": "motor",
+      "laterality": "right",
+      "functional_note": "Motor-associated cortical region"
+    },
+    {
+      "label": 3,
+      "name": "Left inferior frontal region",
+      "category": "language",
+      "laterality": "left",
+      "functional_note": "Language-associated cortical region"
+    },
+    {
+      "label": 4,
+      "name": "Occipital visual region",
+      "category": "visual",
+      "laterality": null,
+      "functional_note": "Visual-associated cortical region"
+    }
+  ]
+}

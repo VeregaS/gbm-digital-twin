@@ -1,7 +1,6 @@
 import {
   Activity,
   Brain,
-  ChevronDown,
   CircleDot,
   FlaskConical,
   LayoutDashboard,
@@ -11,24 +10,38 @@ import {
   Stethoscope,
   Wrench,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import {
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 
 import "./App.css";
+import MedicalViewerPanel from "./components/MedicalViewerPanel";
 
-type HealthResponse = {
-  status: string;
-  service: string;
-  version: string;
-};
+import {
+  fetchHealth,
+  fetchPatient,
+  fetchPatients,
+} from "./api/client";
+
+import type {
+  HealthResponse,
+  PatientListItem,
+  PatientSummary,
+  PatientTreatment,
+} from "./api/types";
+
+type NavigationId =
+  | "patients"
+  | "viewer"
+  | "twin"
+  | "runs"
+  | "tools"
+  | "research";
 
 type NavigationItem = {
-  id:
-    | "patients"
-    | "viewer"
-    | "twin"
-    | "runs"
-    | "tools"
-    | "research";
+  id: NavigationId;
   label: string;
   icon: typeof Brain;
 };
@@ -67,39 +80,147 @@ const navigation: NavigationItem[] = [
 ];
 
 function App() {
-  const [activePage, setActivePage] =
-    useState<NavigationItem["id"]>("patients");
+  const [
+    activePage,
+    setActivePage,
+  ] = useState<NavigationId>(
+    "patients",
+  );
 
-  const [health, setHealth] =
-    useState<HealthResponse | null>(null);
+  const [
+    health,
+    setHealth,
+  ] = useState<HealthResponse | null>(
+    null,
+  );
 
-  const [backendError, setBackendError] =
-    useState(false);
+  const [
+    backendError,
+    setBackendError,
+  ] = useState(false);
+
+  const [
+    patients,
+    setPatients,
+  ] = useState<PatientListItem[]>([]);
+
+  const [
+    patientsLoading,
+    setPatientsLoading,
+  ] = useState(true);
+
+  const [
+    patientsError,
+    setPatientsError,
+  ] = useState<string | null>(
+    null,
+  );
+
+  const [
+    selectedPatientId,
+    setSelectedPatientId,
+  ] = useState<number | null>(
+    null,
+  );
+
+  const [
+    patient,
+    setPatient,
+  ] = useState<PatientSummary | null>(
+    null,
+  );
+
+  const [
+    patientLoading,
+    setPatientLoading,
+  ] = useState(false);
+
+  const [
+    patientError,
+    setPatientError,
+  ] = useState<string | null>(
+    null,
+  );
 
   useEffect(() => {
-    fetch("/api/health")
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error(
-            `HTTP ${response.status}`,
-          );
-        }
-
-        return response.json();
-      })
-      .then((data: HealthResponse) => {
+    fetchHealth()
+      .then((data) => {
         setHealth(data);
         setBackendError(false);
       })
       .catch(() => {
         setBackendError(true);
       });
+
+    fetchPatients()
+      .then((data) => {
+        setPatients(data.patients);
+        setPatientsError(null);
+      })
+      .catch((error: unknown) => {
+        setPatientsError(
+          error instanceof Error
+            ? error.message
+            : "Failed to load patients",
+        );
+      })
+      .finally(() => {
+        setPatientsLoading(false);
+      });
   }, []);
 
-  const currentNavigation =
-    navigation.find(
-      (item) => item.id === activePage,
-    ) ?? navigation[0];
+  useEffect(() => {
+    if (selectedPatientId === null) {
+      setPatient(null);
+      setPatientError(null);
+      return;
+    }
+
+    let cancelled = false;
+
+    setPatientLoading(true);
+    setPatientError(null);
+
+    fetchPatient(selectedPatientId)
+      .then((data) => {
+        if (cancelled) {
+          return;
+        }
+
+        setPatient(data);
+      })
+      .catch((error: unknown) => {
+        if (cancelled) {
+          return;
+        }
+
+        setPatient(null);
+
+        setPatientError(
+          error instanceof Error
+            ? error.message
+            : "Failed to load patient",
+        );
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setPatientLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedPatientId]);
+
+  const currentNavigation = useMemo(
+    () =>
+      navigation.find(
+        (item) =>
+          item.id === activePage,
+      ) ?? navigation[0],
+    [activePage],
+  );
 
   return (
     <div className="app-shell">
@@ -112,16 +233,46 @@ function App() {
 
       <main className="workspace">
         <Topbar
-          pageTitle={currentNavigation.label}
+          pageTitle={
+            currentNavigation.label
+          }
         />
 
         <div className="workspace-content">
-          <PatientToolbar />
+          <PatientToolbar
+            patients={patients}
+            selectedPatientId={
+              selectedPatientId
+            }
+            patient={patient}
+            patientsLoading={
+              patientsLoading
+            }
+            patientLoading={
+              patientLoading
+            }
+            error={
+              patientsError
+              ?? patientError
+            }
+            onSelectPatient={
+              setSelectedPatientId
+            }
+            onOpenViewer={() =>
+              setActivePage("viewer")
+            }
+          />
 
           <section className="summary-grid">
             <MetricCard
               label="Timepoints"
-              value="—"
+              value={
+                patient
+                  ? String(
+                      patient.timepoint_count,
+                    )
+                  : "—"
+              }
               unit="MRI studies"
             />
 
@@ -146,12 +297,23 @@ function App() {
           </section>
 
           <section className="main-grid">
-            <ViewerPanel />
-            <TwinPanel />
+            <MedicalViewerPanel
+              patient={patient}
+            />
+
+            <TwinPanel
+              treatment={
+                patient?.treatment
+                ?? null
+              }
+            />
           </section>
 
           <section className="lower-grid">
-            <TimelinePanel />
+            <TimelinePanel
+              patient={patient}
+            />
+
             <RunPanel />
           </section>
         </div>
@@ -161,10 +323,12 @@ function App() {
 }
 
 type SidebarProps = {
-  activePage: NavigationItem["id"];
+  activePage: NavigationId;
+
   onNavigate: (
-    page: NavigationItem["id"],
+    page: NavigationId,
   ) => void;
+
   health: HealthResponse | null;
   backendError: boolean;
 };
@@ -179,13 +343,17 @@ function Sidebar({
     <aside className="sidebar">
       <div className="sidebar-brand">
         <div className="brand-icon">
-          <Brain size={22} strokeWidth={1.9} />
+          <Brain
+            size={22}
+            strokeWidth={1.9}
+          />
         </div>
 
         <div>
           <div className="brand-name">
             GBM Twin
           </div>
+
           <div className="brand-description">
             Research Workbench
           </div>
@@ -199,6 +367,7 @@ function Sidebar({
       <nav className="sidebar-navigation">
         {navigation.map((item) => {
           const Icon = item.icon;
+
           const selected =
             activePage === item.id;
 
@@ -219,7 +388,10 @@ function Sidebar({
                 size={18}
                 strokeWidth={1.8}
               />
-              <span>{item.label}</span>
+
+              <span>
+                {item.label}
+              </span>
             </button>
           );
         })}
@@ -276,7 +448,9 @@ function Topbar({
       <div className="topbar-actions">
         <div className="model-pill">
           <CircleDot size={15} />
-          <span>V2 · Latent PIRT</span>
+          <span>
+            V2 · Latent PIRT
+          </span>
         </div>
 
         <button
@@ -291,7 +465,48 @@ function Topbar({
   );
 }
 
-function PatientToolbar() {
+type PatientToolbarProps = {
+  patients: PatientListItem[];
+
+  selectedPatientId: number | null;
+  patient: PatientSummary | null;
+
+  patientsLoading: boolean;
+  patientLoading: boolean;
+
+  error: string | null;
+
+  onSelectPatient: (
+    patientId: number | null,
+  ) => void;
+
+  onOpenViewer: () => void;
+};
+
+function PatientToolbar({
+  patients,
+  selectedPatientId,
+  patient,
+  patientsLoading,
+  patientLoading,
+  error,
+  onSelectPatient,
+  onOpenViewer,
+}: PatientToolbarProps) {
+  const title = patientLoading
+    ? "Loading patient…"
+    : patient
+      ? `Patient ${patient.patient_id}`
+      : "No patient selected";
+
+  const status = error
+    ? "Data error"
+    : patient
+      ? `${patient.timepoint_count} timepoints`
+      : patientsLoading
+        ? "Loading dataset"
+        : `${patients.length} patients available`;
+
   return (
     <section className="patient-toolbar">
       <div>
@@ -300,34 +515,82 @@ function PatientToolbar() {
         </div>
 
         <div className="patient-row">
-          <h2>No patient selected</h2>
+          <h2>{title}</h2>
 
           <span className="patient-status">
-            Waiting for dataset
+            {status}
           </span>
         </div>
 
         <p>
-          Select a longitudinal CFB-GBM
-          patient to inspect MRI, tumor
-          segmentation and digital twin
-          predictions.
+          {error
+            ? error
+            : patient
+              ? patientDescription(
+                  patient,
+                )
+              : (
+                "Select a longitudinal "
+                + "CFB-GBM patient to inspect "
+                + "MRI, tumor segmentation "
+                + "and digital twin predictions."
+              )}
         </p>
       </div>
 
       <div className="patient-actions">
-        <button
-          type="button"
-          className="secondary-button"
+        <select
+          className="secondary-button patient-select"
+          aria-label="Select patient"
+          disabled={
+            patientsLoading
+            || patients.length === 0
+          }
+          value={
+            selectedPatientId
+            ?? ""
+          }
+          onChange={(event) => {
+            const value =
+              event.target.value;
+
+            onSelectPatient(
+              value
+                ? Number(value)
+                : null,
+            );
+          }}
         >
-          Select patient
-          <ChevronDown size={16} />
-        </button>
+          <option value="">
+            {patientsLoading
+              ? "Loading patients…"
+              : "Select patient"}
+          </option>
+
+          {patients.map(
+            (patientItem) => (
+              <option
+                key={
+                  patientItem.patient_id
+                }
+                value={
+                  patientItem.patient_id
+                }
+              >
+                {patientItem.label}
+              </option>
+            ),
+          )}
+        </select>
 
         <button
           type="button"
           className="primary-button"
-          disabled
+          disabled={
+            patient === null
+            || patientLoading
+          }
+          onClick={onOpenViewer}
         >
           <Play size={16} />
           Open viewer
@@ -335,6 +598,43 @@ function PatientToolbar() {
       </div>
     </section>
   );
+}
+
+function patientDescription(
+  patient: PatientSummary,
+): string {
+  const intervals: string[] = [];
+
+  if (patient.dt01_days !== null) {
+    intervals.push(
+      `t0→t1 ${formatDay(
+        patient.dt01_days,
+      )}`,
+    );
+  }
+
+  if (patient.dt12_days !== null) {
+    intervals.push(
+      `t1→t2 ${formatDay(
+        patient.dt12_days,
+      )}`,
+    );
+  }
+
+  const treatment = (
+    patient.treatment.reconstructable
+      ? "RT schedule reconstructable"
+      : patient.treatment.has_record
+        ? "RT metadata incomplete"
+        : "RT metadata unavailable"
+  );
+
+  const intervalText =
+    intervals.length > 0
+      ? intervals.join(" · ")
+      : "Longitudinal intervals unavailable";
+
+  return `${intervalText} · ${treatment}`;
 }
 
 type MetricCardProps = {
@@ -354,7 +654,10 @@ function MetricCard({
     <article
       className={
         accent
-          ? "metric-card metric-card-accent"
+          ? (
+            "metric-card "
+            + "metric-card-accent"
+          )
           : "metric-card"
       }
     >
@@ -371,101 +674,13 @@ function MetricCard({
   );
 }
 
-function ViewerPanel() {
-  return (
-    <section className="panel viewer-panel">
-      <div className="panel-heading">
-        <div>
-          <div className="section-eyebrow">
-            Imaging
-          </div>
-          <h3>MRI Viewer</h3>
-        </div>
-
-        <div className="viewer-tabs">
-          <button
-            type="button"
-            className="viewer-tab active"
-          >
-            3D
-          </button>
-
-          <button
-            type="button"
-            className="viewer-tab"
-          >
-            Axial
-          </button>
-
-          <button
-            type="button"
-            className="viewer-tab"
-          >
-            Coronal
-          </button>
-
-          <button
-            type="button"
-            className="viewer-tab"
-          >
-            Sagittal
-          </button>
-        </div>
-      </div>
-
-      <div className="viewer-stage">
-        <div className="viewer-grid" />
-
-        <div className="scan-placeholder">
-          <Brain
-            size={76}
-            strokeWidth={1.15}
-          />
-
-          <div className="scan-placeholder-title">
-            MRI volume
-          </div>
-
-          <div className="scan-placeholder-text">
-            T1Gd, GTV and latent tumor
-            density will be rendered here.
-          </div>
-        </div>
-
-        <div className="viewer-legend">
-          <LegendItem
-            className="legend-dot observation"
-            label="Observed GTV"
-          />
-
-          <LegendItem
-            className="legend-dot prediction"
-            label="Predicted tumor"
-          />
-        </div>
-      </div>
-    </section>
-  );
-}
-
-type LegendItemProps = {
-  className: string;
-  label: string;
+type TwinPanelProps = {
+  treatment: PatientTreatment | null;
 };
 
-function LegendItem({
-  className,
-  label,
-}: LegendItemProps) {
-  return (
-    <div className="legend-item">
-      <span className={className} />
-      <span>{label}</span>
-    </div>
-  );
-}
-
-function TwinPanel() {
+function TwinPanel({
+  treatment,
+}: TwinPanelProps) {
   return (
     <section className="panel twin-panel">
       <div className="panel-heading compact">
@@ -473,6 +688,7 @@ function TwinPanel() {
           <div className="section-eyebrow">
             Model
           </div>
+
           <h3>Digital Twin</h3>
         </div>
 
@@ -498,6 +714,11 @@ function TwinPanel() {
         />
 
         <ParameterRow
+          label="Effective α"
+          value="0.01 /Gy"
+        />
+
+        <ParameterRow
           label="α / β"
           value="10 Gy"
         />
@@ -515,6 +736,34 @@ function TwinPanel() {
         <ParameterRow
           label="Soft temperature"
           value="0.05"
+        />
+
+        <ParameterRow
+          label="RT dose"
+          value={
+            treatment?.dose_gy
+            !== null
+            && treatment?.dose_gy
+            !== undefined
+              ? (
+                `${treatment.dose_gy} Gy`
+              )
+              : "—"
+          }
+        />
+
+        <ParameterRow
+          label="RT fractions"
+          value={
+            treatment?.fractions
+            !== null
+            && treatment?.fractions
+            !== undefined
+              ? String(
+                  treatment.fractions,
+                )
+              : "—"
+          }
         />
       </div>
 
@@ -551,7 +800,33 @@ function ParameterRow({
   );
 }
 
-function TimelinePanel() {
+type TimelinePanelProps = {
+  patient: PatientSummary | null;
+};
+
+function TimelinePanel({
+  patient,
+}: TimelinePanelProps) {
+  const t0 = getTimepointDay(
+    patient,
+    "t0",
+  );
+
+  const t1 = getTimepointDay(
+    patient,
+    "t1",
+  );
+
+  const t2 = getTimepointDay(
+    patient,
+    "t2",
+  );
+
+  const rt = (
+    patient?.treatment.rt_start_day
+    ?? null
+  );
+
   return (
     <section className="panel timeline-panel">
       <div className="panel-heading compact">
@@ -559,6 +834,7 @@ function TimelinePanel() {
           <div className="section-eyebrow">
             Longitudinal protocol
           </div>
+
           <h3>Patient timeline</h3>
         </div>
       </div>
@@ -568,19 +844,31 @@ function TimelinePanel() {
 
         <TimelineStep
           title="t0"
-          description="Baseline"
+          description={
+            t0 === null
+              ? "Baseline"
+              : `Day ${formatNumber(t0)}`
+          }
           variant="observation"
         />
 
         <TimelineStep
           title="RT"
-          description="Treatment"
+          description={
+            rt === null
+              ? "Unknown"
+              : `Day ${formatNumber(rt)}`
+          }
           variant="treatment"
         />
 
         <TimelineStep
           title="t1"
-          description="Calibration target"
+          description={
+            t1 === null
+              ? "Calibration target"
+              : `Day ${formatNumber(t1)}`
+          }
           variant="observation"
         />
 
@@ -592,7 +880,11 @@ function TimelinePanel() {
 
         <TimelineStep
           title="t2"
-          description="Held-out"
+          description={
+            t2 === null
+              ? "Held-out"
+              : `Day ${formatNumber(t2)}`
+          }
           variant="evaluation"
         />
       </div>
@@ -603,6 +895,7 @@ function TimelinePanel() {
 type TimelineStepProps = {
   title: string;
   description: string;
+
   variant:
     | "observation"
     | "treatment"
@@ -618,7 +911,9 @@ function TimelineStep({
   return (
     <div className="timeline-step">
       <div
-        className={`timeline-node ${variant}`}
+        className={
+          `timeline-node ${variant}`
+        }
       />
 
       <strong>{title}</strong>
@@ -635,6 +930,7 @@ function RunPanel() {
           <div className="section-eyebrow">
             Runtime
           </div>
+
           <h3>Latest run</h3>
         </div>
       </div>
@@ -658,6 +954,41 @@ function RunPanel() {
       </div>
     </section>
   );
+}
+
+function getTimepointDay(
+  patient: PatientSummary | null,
+  name: string,
+): number | null {
+  if (patient === null) {
+    return null;
+  }
+
+  const timepoint =
+    patient.timepoints.find(
+      (item) => item.name === name,
+    );
+
+  return (
+    timepoint?.days_from_baseline
+    ?? null
+  );
+}
+
+function formatNumber(
+  value: number,
+): string {
+  if (Number.isInteger(value)) {
+    return String(value);
+  }
+
+  return value.toFixed(1);
+}
+
+function formatDay(
+  value: number,
+): string {
+  return `${formatNumber(value)} d`;
 }
 
 export default App;
