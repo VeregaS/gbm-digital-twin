@@ -93,13 +93,16 @@ def capabilities(
         ).is_file()
     )
 
-    anatomy = (
-        _yes()
-        if anatomy_ready
-        else _no(
+    if not dataset_ready:
+        anatomy = _no(
+            "CFB-GBM dataset is not configured."
+        )
+    elif not anatomy_ready:
+        anatomy = _no(
             "Anatomical atlas is not configured."
         )
-    )
+    else:
+        anatomy = _yes()
 
     return CapabilitiesResponse(
         patients=patients,
