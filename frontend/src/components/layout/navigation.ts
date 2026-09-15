@@ -1,71 +1,23 @@
-import {
-  Activity,
-  Brain,
-  FlaskConical,
-  ScanLine,
-  Stethoscope,
-  Wrench,
-} from "lucide-react";
-
-
-export type NavigationId =
+export type WorkbenchSection =
   | "patients"
   | "viewer"
-  | "twin"
-  | "runs"
-  | "tools"
-  | "research";
+  | "anatomy";
 
 
-type NavigationItem = {
-  id: NavigationId;
-  label: string;
-  icon: typeof Brain;
+const sectionLabels: Record<
+  WorkbenchSection,
+  string
+> = {
+  patients: "Patients",
+  viewer: "Imaging",
+  anatomy: "Anatomy · Experimental",
 };
 
 
-export const navigation: NavigationItem[] = [
-  {
-    id: "patients",
-    label: "Patients",
-    icon: Stethoscope,
-  },
-  {
-    id: "viewer",
-    label: "Viewer",
-    icon: ScanLine,
-  },
-  {
-    id: "twin",
-    label: "Digital Twin",
-    icon: Brain,
-  },
-  {
-    id: "runs",
-    label: "Runs",
-    icon: Activity,
-  },
-  {
-    id: "tools",
-    label: "Tools",
-    icon: Wrench,
-  },
-  {
-    id: "research",
-    label: "Research",
-    icon: FlaskConical,
-  },
-];
-
-
-export function navigationLabel(
-  navigationId: NavigationId,
+export function sectionLabel(
+  section: WorkbenchSection,
 ): string {
-  return (
-    navigation.find(
-      (item) =>
-        item.id === navigationId,
-    )?.label
-    ?? navigation[0].label
-  );
+  return sectionLabels[
+    section
+  ];
 }

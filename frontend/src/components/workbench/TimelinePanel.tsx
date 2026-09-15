@@ -81,12 +81,6 @@ function TimelinePanel({
         />
 
         <TimelineStep
-          title="Twin"
-          description="Forecast"
-          variant="prediction"
-        />
-
-        <TimelineStep
           title="t2"
           description={
             t2 === null
@@ -108,7 +102,6 @@ type TimelineStepProps = {
   variant:
     | "observation"
     | "treatment"
-    | "prediction"
     | "evaluation";
 };
 

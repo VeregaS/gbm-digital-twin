@@ -2,6 +2,10 @@ import type {
   PatientSummary,
 } from "../../api/types";
 
+import {
+  formatDay,
+} from "./formatters";
+
 
 type PatientMetricsProps = {
   patient: PatientSummary | null;
@@ -26,25 +30,73 @@ function PatientMetrics({
       />
 
       <MetricCard
-        label="Diffusion"
-        value="—"
-        unit="D · mm²/day"
+        label="Calibration interval"
+        value={
+          patient?.dt01_days
+          !== null
+          && patient?.dt01_days
+          !== undefined
+            ? formatDay(
+                patient.dt01_days,
+              )
+            : "—"
+        }
+        unit="t0 → t1"
       />
 
       <MetricCard
-        label="Proliferation"
-        value="—"
-        unit="ρ · 1/day"
+        label="Held-out horizon"
+        value={
+          patient?.dt12_days
+          !== null
+          && patient?.dt12_days
+          !== undefined
+            ? formatDay(
+                patient.dt12_days,
+              )
+            : "—"
+        }
+        unit="t1 → t2"
       />
 
       <MetricCard
-        label="Effective RT response"
-        value="0.010"
-        unit="α · 1/Gy"
-        accent
+        label="Radiotherapy"
+        value={
+          treatmentSummary(
+            patient,
+          )
+        }
+        unit="clinical metadata"
       />
     </section>
   );
+}
+
+
+function treatmentSummary(
+  patient: PatientSummary | null,
+): string {
+  if (patient === null) {
+    return "—";
+  }
+
+  const treatment =
+    patient.treatment;
+
+  if (
+    treatment.reconstructable
+    && treatment.dose_gy !== null
+    && treatment.fractions !== null
+  ) {
+    return (
+      `${treatment.dose_gy} Gy`
+      + ` · ${treatment.fractions} fx`
+    );
+  }
+
+  return treatment.has_record
+    ? "Incomplete"
+    : "Unavailable";
 }
 
 

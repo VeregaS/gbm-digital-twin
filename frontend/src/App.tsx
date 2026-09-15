@@ -17,20 +17,22 @@ import type {
   PatientSummary,
 } from "./api/types";
 
-import MedicalViewerPanel from "./components/MedicalViewerPanel";
+import {
+  fetchCapabilities,
+} from "./api/capabilities";
+import type {
+  Capabilities,
+} from "./api/capabilities";
+
 import Sidebar from "./components/layout/Sidebar";
 import {
-  navigationLabel,
+  sectionLabel,
 } from "./components/layout/navigation";
 import type {
-  NavigationId,
+  WorkbenchSection,
 } from "./components/layout/navigation";
 import Topbar from "./components/layout/Topbar";
-import PatientMetrics from "./components/workbench/PatientMetrics";
-import PatientToolbar from "./components/workbench/PatientToolbar";
-import RunPanel from "./components/workbench/RunPanel";
-import TimelinePanel from "./components/workbench/TimelinePanel";
-import TwinPanel from "./components/workbench/TwinPanel";
+import WorkbenchContent from "./components/workbench/WorkbenchContent";
 
 
 type PatientRequestState =
@@ -48,9 +50,9 @@ type PatientRequestState =
 
 function App() {
   const [
-    activePage,
-    setActivePage,
-  ] = useState<NavigationId>(
+    activeSection,
+    setActiveSection,
+  ] = useState<WorkbenchSection>(
     "patients",
   );
 
@@ -65,6 +67,20 @@ function App() {
     backendError,
     setBackendError,
   ] = useState(false);
+
+  const [
+    capabilities,
+    setCapabilities,
+  ] = useState<Capabilities | null>(
+    null,
+  );
+
+  const [
+    capabilitiesError,
+    setCapabilitiesError,
+  ] = useState<string | null>(
+    null,
+  );
 
   const [
     patients,
@@ -105,6 +121,22 @@ function App() {
       })
       .catch(() => {
         setBackendError(true);
+      });
+
+    fetchCapabilities()
+      .then((data) => {
+        setCapabilities(data);
+        setCapabilitiesError(null);
+      })
+      .catch((error: unknown) => {
+        setCapabilitiesError(
+          error instanceof Error
+            ? error.message
+            : (
+              "Failed to load backend "
+              + "capabilities"
+            ),
+        );
       });
 
     fetchPatients()
@@ -196,23 +228,32 @@ function App() {
   return (
     <div className="app-shell">
       <Sidebar
-        activePage={activePage}
-        onNavigate={setActivePage}
+        activeSection={activeSection}
+        onNavigate={setActiveSection}
         health={health}
         backendError={backendError}
+        capabilities={capabilities}
+        capabilitiesError={
+          capabilitiesError
+        }
       />
 
       <main className="workspace">
         <Topbar
           pageTitle={
-            navigationLabel(
-              activePage,
+            sectionLabel(
+              activeSection,
             )
           }
         />
 
         <div className="workspace-content">
-          <PatientToolbar
+          <WorkbenchContent
+            section={activeSection}
+            capabilities={capabilities}
+            capabilitiesError={
+              capabilitiesError
+            }
             patients={patients}
             selectedPatientId={
               selectedPatientId
@@ -224,7 +265,7 @@ function App() {
             patientLoading={
               patientLoading
             }
-            error={
+            patientError={
               patientsError
               ?? patientError
             }
@@ -232,34 +273,9 @@ function App() {
               selectPatient
             }
             onOpenViewer={() =>
-              setActivePage("viewer")
+              setActiveSection("viewer")
             }
           />
-
-          <PatientMetrics
-            patient={patient}
-          />
-
-          <section className="main-grid">
-            <MedicalViewerPanel
-              patient={patient}
-            />
-
-            <TwinPanel
-              treatment={
-                patient?.treatment
-                ?? null
-              }
-            />
-          </section>
-
-          <section className="lower-grid">
-            <TimelinePanel
-              patient={patient}
-            />
-
-            <RunPanel />
-          </section>
         </div>
       </main>
     </div>

@@ -27,7 +27,7 @@ type PatientToolbarProps = {
     patientId: number | null,
   ) => void;
 
-  onOpenViewer: () => void;
+  onOpenViewer?: () => void;
 };
 
 
@@ -131,18 +131,20 @@ function PatientToolbar({
           )}
         </select>
 
-        <button
-          type="button"
-          className="primary-button"
-          disabled={
-            patient === null
-            || patientLoading
-          }
-          onClick={onOpenViewer}
-        >
-          <Play size={16} />
-          Open viewer
-        </button>
+        {onOpenViewer && (
+          <button
+            type="button"
+            className="primary-button"
+            disabled={
+              patient === null
+              || patientLoading
+            }
+            onClick={onOpenViewer}
+          >
+            <Play size={16} />
+            Open viewer
+          </button>
+        )}
       </div>
     </section>
   );

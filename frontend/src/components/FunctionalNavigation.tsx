@@ -4,20 +4,20 @@ import {
   Users,
 } from "lucide-react";
 
+import type {
+  Capabilities,
+  FeatureCapability,
+} from "../api/capabilities";
 
-export type WorkbenchSection =
-  | "patients"
-  | "viewer"
-  | "anatomy";
+import type {
+  WorkbenchSection,
+} from "./layout/navigation";
 
 
-type Props = {
+type FunctionalNavigationProps = {
   active: WorkbenchSection;
-
-  anatomyAvailable: boolean;
-
-  anatomyReason:
-    string | null;
+  capabilities: Capabilities | null;
+  capabilitiesError: string | null;
 
   onChange: (
     section: WorkbenchSection,
@@ -27,86 +27,127 @@ type Props = {
 
 function FunctionalNavigation({
   active,
-  anatomyAvailable,
-  anatomyReason,
+  capabilities,
+  capabilitiesError,
   onChange,
-}: Props) {
+}: FunctionalNavigationProps) {
+  const fallbackReason =
+    capabilitiesError
+    ?? "Checking backend availability…";
+
   return (
     <nav
       className="functional-nav"
       aria-label="Workbench"
     >
-      <button
-        type="button"
-        className={
-          active === "patients"
-            ? "functional-nav-item active"
-            : "functional-nav-item"
+      <NavigationButton
+        section="patients"
+        label="Patients"
+        icon={Users}
+        active={active}
+        capability={
+          capabilities?.patients
+          ?? null
         }
-        onClick={() =>
-          onChange("patients")
-        }
-      >
-        <Users size={16} />
+        fallbackReason={fallbackReason}
+        onChange={onChange}
+      />
 
-        <span>
-          Patients
-        </span>
-      </button>
+      <NavigationButton
+        section="viewer"
+        label="Imaging"
+        icon={Images}
+        active={active}
+        capability={
+          capabilities?.viewer
+          ?? null
+        }
+        fallbackReason={fallbackReason}
+        onChange={onChange}
+      />
 
-      <button
-        type="button"
-        className={
-          active === "viewer"
-            ? "functional-nav-item active"
-            : "functional-nav-item"
+      <NavigationButton
+        section="anatomy"
+        label="Anatomy"
+        badge="Experimental"
+        icon={Brain}
+        active={active}
+        capability={
+          capabilities?.anatomy
+          ?? null
         }
-        onClick={() =>
-          onChange("viewer")
-        }
-      >
-        <Images size={16} />
-
-        <span>
-          Imaging
-        </span>
-      </button>
-
-      <button
-        type="button"
-        disabled={
-          !anatomyAvailable
-        }
-        title={
-          anatomyAvailable
-            ? "Anatomical risk analysis"
-            : (
-              anatomyReason
-              ?? "Atlas setup required"
-            )
-        }
-        className={
-          active === "anatomy"
-            ? "functional-nav-item active"
-            : "functional-nav-item"
-        }
-        onClick={() =>
-          onChange("anatomy")
-        }
-      >
-        <Brain size={16} />
-
-        <span>
-          Anatomy
-        </span>
-
-        {!anatomyAvailable && (
-          <small>
-            Setup required
-          </small>
-        )}
-      </button>
+        fallbackReason={fallbackReason}
+        onChange={onChange}
+      />
     </nav>
+  );
+}
+
+
+type NavigationButtonProps = {
+  section: WorkbenchSection;
+  label: string;
+  badge?: string;
+  icon: typeof Brain;
+
+  active: WorkbenchSection;
+  capability: FeatureCapability | null;
+  fallbackReason: string;
+
+  onChange: (
+    section: WorkbenchSection,
+  ) => void;
+};
+
+
+function NavigationButton({
+  section,
+  label,
+  badge,
+  icon: Icon,
+  active,
+  capability,
+  fallbackReason,
+  onChange,
+}: NavigationButtonProps) {
+  const available =
+    capability?.available
+    ?? false;
+
+  const reason =
+    capability?.reason
+    ?? fallbackReason;
+
+  return (
+    <button
+      type="button"
+      disabled={!available}
+      title={
+        available
+          ? label
+          : reason
+      }
+      className={
+        active === section
+          ? "functional-nav-item active"
+          : "functional-nav-item"
+      }
+      onClick={() =>
+        onChange(section)
+      }
+    >
+      <Icon size={16} />
+
+      <span>
+        {label}
+      </span>
+
+      {badge && (
+        <small>
+          {badge}
+        </small>
+      )}
+    </button>
   );
 }
 

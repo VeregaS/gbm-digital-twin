@@ -6,31 +6,39 @@ import type {
   HealthResponse,
 } from "../../api/types";
 
-import {
-  navigation,
-} from "./navigation";
 import type {
-  NavigationId,
+  Capabilities,
+} from "../../api/capabilities";
+
+import FunctionalNavigation from "../FunctionalNavigation";
+
+import type {
+  WorkbenchSection,
 } from "./navigation";
 
 
 type SidebarProps = {
-  activePage: NavigationId;
+  activeSection: WorkbenchSection;
 
   onNavigate: (
-    page: NavigationId,
+    section: WorkbenchSection,
   ) => void;
 
   health: HealthResponse | null;
   backendError: boolean;
+
+  capabilities: Capabilities | null;
+  capabilitiesError: string | null;
 };
 
 
 function Sidebar({
-  activePage,
+  activeSection,
   onNavigate,
   health,
   backendError,
+  capabilities,
+  capabilitiesError,
 }: SidebarProps) {
   return (
     <aside className="sidebar">
@@ -57,38 +65,14 @@ function Sidebar({
         Workspace
       </div>
 
-      <nav className="sidebar-navigation">
-        {navigation.map((item) => {
-          const Icon = item.icon;
-
-          const selected =
-            activePage === item.id;
-
-          return (
-            <button
-              key={item.id}
-              type="button"
-              className={
-                selected
-                  ? "navigation-button selected"
-                  : "navigation-button"
-              }
-              onClick={() =>
-                onNavigate(item.id)
-              }
-            >
-              <Icon
-                size={18}
-                strokeWidth={1.8}
-              />
-
-              <span>
-                {item.label}
-              </span>
-            </button>
-          );
-        })}
-      </nav>
+      <FunctionalNavigation
+        active={activeSection}
+        capabilities={capabilities}
+        capabilitiesError={
+          capabilitiesError
+        }
+        onChange={onNavigate}
+      />
 
       <div className="sidebar-footer">
         <div className="system-card">

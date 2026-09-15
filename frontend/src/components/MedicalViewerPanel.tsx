@@ -28,6 +28,7 @@ import TriPlanarViewer from "./TriPlanarViewer";
 
 type MedicalViewerPanelProps = {
   patient: PatientSummary | null;
+  showAnatomy?: boolean;
 };
 
 
@@ -84,6 +85,7 @@ function isViewerPlane(
 
 function MedicalViewerPanel({
   patient,
+  showAnatomy = false,
 }: MedicalViewerPanelProps) {
   const [
     timepointSelection,
@@ -345,7 +347,9 @@ function MedicalViewerPanel({
       <div className="panel-heading viewer-panel-heading">
         <div>
           <div className="section-eyebrow">
-            Imaging
+            {showAnatomy
+              ? "Experimental anatomy"
+              : "Imaging"}
           </div>
 
           <h3>
@@ -525,6 +529,9 @@ function MedicalViewerPanel({
                 onOverlayChange={
                   setOverlayGtv
                 }
+                showAnatomy={
+                  showAnatomy
+                }
               />
             )
             : mode === "3d"
@@ -601,6 +608,8 @@ type WorkstationModeProps = {
   onOverlayChange: (
     value: boolean,
   ) => void;
+
+  showAnatomy: boolean;
 };
 
 
@@ -612,6 +621,7 @@ function WorkstationMode({
   error,
   overlayGtv,
   onOverlayChange,
+  showAnatomy,
 }: WorkstationModeProps) {
   if (loading) {
     return (
@@ -690,7 +700,16 @@ function WorkstationMode({
       </div>
 
 
-      <div className="medical-workstation-grid">
+      <div
+        className={
+          showAnatomy
+            ? "medical-workstation-grid"
+            : (
+              "medical-workstation-grid "
+              + "imaging-only"
+            )
+        }
+      >
         <TriPlanarViewer
           key={
             `${patientId}:${timepointName}`
@@ -709,14 +728,16 @@ function WorkstationMode({
           }
         />
 
-        <AnatomicalWarningsPanel
-          patientId={
-            patientId
-          }
-          timepointName={
-            timepointName
-          }
-        />
+        {showAnatomy && (
+          <AnatomicalWarningsPanel
+            patientId={
+              patientId
+            }
+            timepointName={
+              timepointName
+            }
+          />
+        )}
       </div>
     </>
   );
