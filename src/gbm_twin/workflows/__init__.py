@@ -8,6 +8,11 @@ from gbm_twin.workflows.calibration import (
     V2CalibrationRun,
     calibrate_v2_interval,
 )
+from gbm_twin.workflows.cohort_freeze import (
+    COHORT_FREEZE_SCHEMA_VERSION,
+    CohortFreezeResult,
+    freeze_cohort_from_configs,
+)
 from gbm_twin.workflows.contracts import PredictionTarget
 from gbm_twin.workflows.eligibility import (
     EligibilityIssue,
@@ -96,4 +101,7 @@ __all__ = [
     "v2_calibration_config_sha256",
     "PatientNotEligibleError",
     "PatientTwinService",
+    "COHORT_FREEZE_SCHEMA_VERSION",
+    "CohortFreezeResult",
+    "freeze_cohort_from_configs",
 ]
