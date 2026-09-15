@@ -11,7 +11,6 @@ from gbm_twin.anatomy.models import (
     AtlasRegionDefinition,
 )
 
-
 DEFAULT_LATENT_RISK_LEVEL = 0.2
 
 DEFAULT_PROXIMITY_THRESHOLD_MM = 5.0

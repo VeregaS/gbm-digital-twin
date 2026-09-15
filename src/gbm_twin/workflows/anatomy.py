@@ -24,7 +24,6 @@ from gbm_twin.workflows.patients import (
     prepare_patient_timepoint,
 )
 
-
 ANATOMICAL_LATENT_WIDTH_MM = 4.0
 
 

@@ -16,7 +16,6 @@ from gbm_twin.api.schemas.capabilities import (
     FeatureCapability,
 )
 
-
 router = APIRouter(
     prefix="/capabilities",
     tags=["capabilities"],

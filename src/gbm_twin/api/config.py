@@ -6,7 +6,6 @@ from pathlib import Path
 
 from fastapi import Request
 
-
 DEFAULT_CFB_ROOT = Path(
     r"D:\Datasets\CFB-GBM"
 )

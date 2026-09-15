@@ -9,6 +9,9 @@ from gbm_twin.api.config import (
 from gbm_twin.api.routes.anatomy import (
     router as anatomy_router,
 )
+from gbm_twin.api.routes.capabilities import (
+    router as capabilities_router,
+)
 from gbm_twin.api.routes.health import (
     router as health_router,
 )
@@ -17,9 +20,6 @@ from gbm_twin.api.routes.patients import (
 )
 from gbm_twin.api.routes.viewer import (
     router as viewer_router,
-)
-from gbm_twin.api.routes.capabilities import (
-    router as capabilities_router,
 )
 
 

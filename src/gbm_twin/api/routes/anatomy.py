@@ -19,7 +19,6 @@ from gbm_twin.workflows.anatomy import (
     analyze_patient_anatomy,
 )
 
-
 router = APIRouter(
     prefix="/patients/{patient_id}/anatomy",
     tags=["anatomy"],
