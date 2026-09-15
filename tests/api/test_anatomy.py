@@ -95,10 +95,8 @@ def test_anatomy_endpoint(
     )
 
     response = client.get(
-        
-            "/api/patients/108/"
-            "anatomy/t1"
-        
+        "/api/patients/108/"
+        "anatomy/t1"
     )
 
     assert response.status_code == 200
