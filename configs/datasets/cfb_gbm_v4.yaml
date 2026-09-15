@@ -1,0 +1,27 @@
+dataset:
+  name: CFB-GBM
+  version: 4
+  updated: "2026-09-11"
+  doi: "10.7937/v9pn-2f72"
+  source: "The Cancer Imaging Archive"
+  license: "CC BY 4.0"
+  expected_subjects: 264
+
+contract:
+  metadata_patterns:
+    - "CFB-GBM_mri_availability_*.tsv"
+    - "CFB-GBM_rano_criteria_*.tsv"
+    - "CFB-GBM_treatment_imaging_availability_*.tsv"
+
+  required_timepoints:
+    - t0
+    - t1
+    - t2
+
+  required_modalities:
+    - t1gd
+
+  required_patient_files:
+    - "{patient_id}_{timepoint}_t1gd.nii.gz"
+    - "{patient_id}_{timepoint}_gtv.nii.gz"
+    - "{patient_id}_{timepoint}_brain_mask.nii.gz"
