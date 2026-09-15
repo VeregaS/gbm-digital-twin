@@ -23,10 +23,18 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+anatomy = [
+    "SimpleITK>=2.5",
+    "nilearn>=0.14",
+    "templateflow>=25.1",
+]
 dev = [
     "pytest>=8.0",
     "ruff>=0.6",
     "httpx>=0.27",
+    "SimpleITK>=2.5",
+    "nilearn>=0.14",
+    "templateflow>=25.1",
 ]
 
 [tool.setuptools.packages.find]
