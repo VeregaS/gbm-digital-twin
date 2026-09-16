@@ -8,6 +8,11 @@ from gbm_twin.workflows.calibration import (
     V2CalibrationRun,
     calibrate_v2_interval,
 )
+from gbm_twin.workflows.cohort_evaluation import (
+    COHORT_EVALUATION_SCHEMA_VERSION,
+    CohortEvaluationResult,
+    evaluate_frozen_cohort,
+)
 from gbm_twin.workflows.cohort_freeze import (
     COHORT_FREEZE_SCHEMA_VERSION,
     CohortFreezeResult,
@@ -104,4 +109,7 @@ __all__ = [
     "COHORT_FREEZE_SCHEMA_VERSION",
     "CohortFreezeResult",
     "freeze_cohort_from_configs",
+    "COHORT_EVALUATION_SCHEMA_VERSION",
+    "CohortEvaluationResult",
+    "evaluate_frozen_cohort",
 ]
