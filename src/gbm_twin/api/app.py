@@ -18,6 +18,9 @@ from gbm_twin.api.routes.health import (
 from gbm_twin.api.routes.patients import (
     router as patients_router,
 )
+from gbm_twin.api.routes.twin import (
+    router as twin_router,
+)
 from gbm_twin.api.routes.viewer import (
     router as viewer_router,
 )
@@ -69,6 +72,11 @@ def create_app(
     )
 
     app.include_router(
+        twin_router,
+        prefix="/api",
+    )
+
+    app.include_router(
         viewer_router,
         prefix="/api",
     )
@@ -77,7 +85,7 @@ def create_app(
         anatomy_router,
         prefix="/api",
     )
-    
+
     app.include_router(
         capabilities_router,
         prefix="/api",

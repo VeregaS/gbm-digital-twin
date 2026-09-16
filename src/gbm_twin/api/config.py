@@ -10,6 +10,14 @@ DEFAULT_CFB_ROOT = Path(
     r"D:\Datasets\CFB-GBM"
 )
 
+DEFAULT_COHORT_FREEZE_ROOT = Path(
+    "results/cohort/v2-freeze"
+)
+
+DEFAULT_COHORT_EVALUATION_ROOT = Path(
+    "results/cohort/v2-evaluation"
+)
+
 
 @dataclass(frozen=True)
 class ApiSettings:
@@ -19,6 +27,14 @@ class ApiSettings:
     patients_root: Path
 
     atlas_root: Path | None = None
+
+    cohort_freeze_root: (
+        Path | None
+    ) = None
+
+    cohort_evaluation_root: (
+        Path | None
+    ) = None
 
     @classmethod
     def from_environment(
@@ -79,11 +95,35 @@ class ApiSettings:
             )
         )
 
+        cohort_freeze_root = Path(
+            os.environ.get(
+                "GBM_TWIN_COHORT_FREEZE_ROOT",
+                str(
+                    DEFAULT_COHORT_FREEZE_ROOT
+                ),
+            )
+        )
+
+        cohort_evaluation_root = Path(
+            os.environ.get(
+                "GBM_TWIN_COHORT_EVALUATION_ROOT",
+                str(
+                    DEFAULT_COHORT_EVALUATION_ROOT
+                ),
+            )
+        )
+
         return cls(
             dataset_root=dataset_root,
             metadata_root=metadata_root,
             patients_root=patients_root,
             atlas_root=atlas_root,
+            cohort_freeze_root=(
+                cohort_freeze_root
+            ),
+            cohort_evaluation_root=(
+                cohort_evaluation_root
+            ),
         )
 
 
