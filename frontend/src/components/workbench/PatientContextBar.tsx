@@ -44,11 +44,11 @@ function PatientContextBar({
 
         <div>
           <span>
-            Active patient
+            Выбранный пациент
           </span>
 
           <strong>
-            Patient
+            Пациент
             {" "}
             {patient.patient_id}
           </strong>
@@ -77,7 +77,7 @@ function PatientContextBar({
               .days_from_baseline
               !== null && (
                 <>
-                  {" · day "}
+                  {" · день "}
                   {
                     timepoint
                     .days_from_baseline
@@ -103,7 +103,7 @@ function PatientContextBar({
           size={14}
         />
 
-        Change patient
+        Сменить пациента
       </button>
     </section>
   );
