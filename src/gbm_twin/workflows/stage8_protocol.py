@@ -37,6 +37,35 @@ class Stage8ObservationConfig:
 
 
 @dataclass(frozen=True)
+class Stage8RadiobiologyConfig:
+    alpha_beta_ratio_gy: float
+    effective_alpha_candidates_per_gy: tuple[float, ...]
+
+    def __post_init__(self) -> None:
+        if self.alpha_beta_ratio_gy <= 0.0:
+            raise ValueError("alpha_beta_ratio_gy must be positive")
+
+        if not self.effective_alpha_candidates_per_gy:
+            raise ValueError(
+                "effective_alpha_candidates_per_gy cannot be empty"
+            )
+
+        if any(
+            value <= 0.0
+            for value in self.effective_alpha_candidates_per_gy
+        ):
+            raise ValueError(
+                "effective alpha candidates must be positive"
+            )
+
+        if (
+            len(set(self.effective_alpha_candidates_per_gy))
+            != len(self.effective_alpha_candidates_per_gy)
+        ):
+            raise ValueError("effective alpha candidates contain duplicates")
+
+
+@dataclass(frozen=True)
 class Stage8TreatmentMemoryConfig:
     enabled: bool
     proliferation_survival_candidates: tuple[float, ...]
@@ -53,6 +82,14 @@ class Stage8TreatmentMemoryConfig:
                     "proliferation survival candidates must be within (0, 1]"
                 )
 
+        if (
+            len(set(self.proliferation_survival_candidates))
+            != len(self.proliferation_survival_candidates)
+        ):
+            raise ValueError(
+                "proliferation survival candidates contain duplicates"
+            )
+
 
 @dataclass(frozen=True)
 class Stage8ProtocolConfig:
@@ -66,6 +103,7 @@ class Stage8ProtocolConfig:
     require_complete_rt_schedule: bool
     require_rtdose: bool
     observation: Stage8ObservationConfig
+    radiobiology: Stage8RadiobiologyConfig
     chemotherapy_enabled: bool
     treatment_memory: Stage8TreatmentMemoryConfig
 
@@ -188,6 +226,10 @@ def load_stage8_protocol_config(path: Path) -> Stage8ProtocolConfig:
         root.get("observation_model"),
         name="observation_model",
     )
+    radiobiology_raw = _mapping(
+        root.get("radiobiology"),
+        name="radiobiology",
+    )
     chemotherapy_raw = _mapping(
         root.get("chemotherapy"),
         name="chemotherapy",
@@ -225,6 +267,16 @@ def load_stage8_protocol_config(path: Path) -> Stage8ProtocolConfig:
             transition_width_mm=_float(
                 observation_raw,
                 "transition_width_mm",
+            ),
+        ),
+        radiobiology=Stage8RadiobiologyConfig(
+            alpha_beta_ratio_gy=_float(
+                radiobiology_raw,
+                "alpha_beta_ratio_gy",
+            ),
+            effective_alpha_candidates_per_gy=_float_tuple(
+                radiobiology_raw,
+                "effective_alpha_candidates_per_gy",
             ),
         ),
         chemotherapy_enabled=_bool(chemotherapy_raw, "enabled"),
