@@ -15,7 +15,7 @@ from gbm_twin.models.latent_state import (
     latent_state_from_gtv,
 )
 from gbm_twin.models.reaction_diffusion import build_computational_domain
-from gbm_twin.models.treatment import PIRTFractionatedRadiotherapy
+from gbm_twin.models.solver import TreatmentModel
 from gbm_twin.workflows.patients import PreparedPatientTimepoint
 
 V2_EFFECTIVE_ALPHA_PER_GY = 0.01
@@ -186,10 +186,7 @@ def calibrate_v2_interval(
     *,
     start: PreparedPatientTimepoint,
     observed: PreparedPatientTimepoint,
-    treatment: (
-        PIRTFractionatedRadiotherapy
-        | None
-    ),
+    treatment: TreatmentModel | None,
     config: V2CalibrationConfig,
     cache_dir: Path,
     workers: int = 1,
