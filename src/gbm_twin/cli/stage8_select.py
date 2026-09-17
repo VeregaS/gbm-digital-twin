@@ -35,8 +35,8 @@ def _resolve(repo_root: Path, path: Path) -> Path:
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description=(
-            "Select a Stage 8 model family using only development-exposed "
-            "patients. Untouched holdout t2 data are never loaded."
+            "Select Stage 8 mechanisms through sequential nested ablations "
+            "using development-exposed patients only."
         )
     )
     parser.add_argument("--repo-root", type=Path, default=Path("."))
@@ -110,10 +110,14 @@ def main(argv: Sequence[str] | None = None) -> int:
         )
 
         selected = result.manifest.get("selected_candidate")
-        loo = result.manifest.get("loo")
-
-        if not isinstance(selected, dict) or not isinstance(loo, dict):
+        phases = result.manifest.get("phases")
+        if not isinstance(selected, dict) or not isinstance(phases, list):
             raise ValueError("Generated Stage 8 selection artifact is incomplete")
+        if not phases or not isinstance(phases[-1], dict):
+            raise ValueError("Stage 8 selection has no final phase")
+        loo = phases[-1].get("loo")
+        if not isinstance(loo, dict):
+            raise ValueError("Stage 8 final phase has no LOO summary")
 
     except (OSError, ValueError, RuntimeError) as exc:
         print(f"Error: {exc}", file=sys.stderr)
@@ -122,11 +126,19 @@ def main(argv: Sequence[str] | None = None) -> int:
     print(f"Stage 8 model selection created: {result.directory}")
     print(
         "Leakage contract: t2 was loaded only for development-exposed "
-        "patients; untouched holdout t2 was not loaded."
+        "patients; internal-validation and untouched-holdout t2 were not loaded."
     )
+    print("Nested ablation phases:")
+    for phase in phases:
+        if not isinstance(phase, dict):
+            continue
+        print(
+            f"  {phase.get('phase')}: "
+            f"{phase.get('selected_candidate_id')}"
+        )
     print(f"Selected candidate: {selected}")
     print(
-        "LOO: mean Dice="
+        "Final-phase LOO: mean Dice="
         f"{float(loo['mean_dice']):.4f}, "
         "median Dice="
         f"{float(loo['median_dice']):.4f}, "
