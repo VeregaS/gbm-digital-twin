@@ -7,9 +7,12 @@ import tempfile
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from statistics import fmean, median
-from typing import TypedDict
+from typing import TypedDict, cast
 
-from gbm_twin.data.cfb_treatment import CFBTreatmentMetadata
+from gbm_twin.data.cfb_treatment import (
+    CFBTreatmentMetadata,
+    TreatmentRecord,
+)
 from gbm_twin.evaluation.config import load_cohort_experiment_config
 from gbm_twin.evaluation.post_rt_selection_config import (
     PostRTSelectionConfig,
@@ -21,7 +24,10 @@ from gbm_twin.workflows.calibration import (
     V2_EFFECTIVE_ALPHA_PER_GY,
     calibrate_v2_interval,
 )
-from gbm_twin.workflows.patients import prepare_patient_timepoint
+from gbm_twin.workflows.patients import (
+    PreparedPatientTimepoint,
+    prepare_patient_timepoint,
+)
 from gbm_twin.workflows.provenance import (
     sha256_file,
     v2_calibration_config_sha256,
@@ -91,6 +97,14 @@ class PostRTCandidateSummary:
     calibration_non_identifiable_count: int
 
 
+@dataclass(frozen=True)
+class _PreparedSelectionPatient:
+    patient_id: int
+    treatment_record: TreatmentRecord
+    start: PreparedPatientTimepoint
+    observed: PreparedPatientTimepoint
+
+
 class PostRTExcludedPatient(TypedDict):
     patient_id: int
     reason: str
@@ -100,7 +114,6 @@ class PostRTExcludedPatient(TypedDict):
 class PostRTSelectionResult:
     directory: Path
     manifest: dict[str, object]
-
 
 
 def _candidate_id(
@@ -113,7 +126,6 @@ def _candidate_id(
         f"k{kill_rate:.6g}-"
         f"tau{decay_time_days:.6g}"
     )
-
 
 
 def build_post_rt_candidates(
@@ -151,7 +163,6 @@ def build_post_rt_candidates(
     return tuple(candidates)
 
 
-
 def _post_rt_config(
     candidate: PostRTCandidate,
 ) -> PostRadiotherapyConfig | None:
@@ -170,7 +181,6 @@ def _post_rt_config(
         initial_kill_rate_per_day=kill_rate,
         decay_time_days=decay_time,
     )
-
 
 
 def _summarize_candidate(
@@ -230,7 +240,6 @@ def _summarize_candidate(
     )
 
 
-
 def _selection_key(
     summary: PostRTCandidateSummary,
 ) -> tuple[float, float, int, int, str]:
@@ -241,7 +250,6 @@ def _selection_key(
         summary.calibration_non_identifiable_count,
         summary.candidate_id,
     )
-
 
 
 def _write_candidate_csv(
@@ -270,7 +278,6 @@ def _write_candidate_csv(
             )
 
 
-
 def _write_patient_csv(
     path: Path,
     rows: list[PostRTPatientCalibration],
@@ -295,7 +302,6 @@ def _write_patient_csv(
             writer.writerow(
                 asdict(row)
             )
-
 
 
 def select_post_rt_parameters(
@@ -356,12 +362,7 @@ def select_post_rt_parameters(
     )
 
     prepared_patients: list[
-        tuple[
-            int,
-            object,
-            object,
-            object,
-        ]
+        _PreparedSelectionPatient
     ] = []
 
     excluded: list[PostRTExcludedPatient] = []
@@ -402,12 +403,17 @@ def select_post_rt_parameters(
         )
 
         prepared_patients.append(
-            (
-                patient_id,
-                record,
-                start,
-                observed,
+            _PreparedSelectionPatient(
+                patient_id=patient_id,
+                treatment_record=record,
+                start=start,
+                observed=observed,
             )
+        )
+
+    if not prepared_patients:
+        raise ValueError(
+            "No patients have reconstructable RT schedules"
         )
 
     rows: list[PostRTPatientCalibration] = []
@@ -417,32 +423,9 @@ def select_post_rt_parameters(
             candidate
         )
 
-        for (
-            patient_id,
-            raw_record,
-            raw_start,
-            raw_observed,
-        ) in prepared_patients:
-            from gbm_twin.data.cfb_treatment import TreatmentRecord
-            from gbm_twin.workflows.patients import PreparedPatientTimepoint
-
-            if not isinstance(raw_record, TreatmentRecord):
-                raise TypeError(
-                    "Prepared treatment record has invalid type"
-                )
-
-            if not isinstance(raw_start, PreparedPatientTimepoint):
-                raise TypeError(
-                    "Prepared t0 has invalid type"
-                )
-
-            if not isinstance(raw_observed, PreparedPatientTimepoint):
-                raise TypeError(
-                    "Prepared t1 has invalid type"
-                )
-
+        for prepared in prepared_patients:
             reconstructed = reconstruct_patient_treatment(
-                raw_record,
+                prepared.treatment_record,
                 radiobiology=radiobiology,
                 post_rt=post_rt,
             )
@@ -452,13 +435,13 @@ def select_post_rt_parameters(
             )
 
             calibration = calibrate_v2_interval(
-                start=raw_start,
-                observed=raw_observed,
+                start=prepared.start,
+                observed=prepared.observed,
                 treatment=reconstructed.model,
                 config=calibration_config,
                 cache_dir=(
                     cache_root.resolve()
-                    / f"patient-{patient_id}"
+                    / f"patient-{prepared.patient_id}"
                 ),
                 workers=workers,
             )
@@ -467,7 +450,7 @@ def select_post_rt_parameters(
 
             rows.append(
                 PostRTPatientCalibration(
-                    patient_id=patient_id,
+                    patient_id=prepared.patient_id,
                     candidate_id=candidate.candidate_id,
                     initial_kill_rate_per_day=(
                         candidate.initial_kill_rate_per_day
@@ -479,7 +462,7 @@ def select_post_rt_parameters(
                         last_fraction_day
                     ),
                     days_last_fraction_to_t1=(
-                        raw_observed.days_from_baseline
+                        prepared.observed.days_from_baseline
                         - last_fraction_day
                     ),
                     diffusion=calibration.best.diffusion,
@@ -635,7 +618,7 @@ def select_post_rt_parameters(
         )
         raise
 
-    canonical_payload = json.loads(
+    raw_canonical: object = json.loads(
         (
             destination
             / "post_rt_selection.json"
@@ -644,10 +627,15 @@ def select_post_rt_parameters(
         )
     )
 
-    if not isinstance(canonical_payload, dict):
+    if not isinstance(raw_canonical, dict):
         raise ValueError(
             "Post-RT selection artifact must be a JSON object"
         )
+
+    canonical_payload = cast(
+        dict[str, object],
+        raw_canonical,
+    )
 
     return PostRTSelectionResult(
         directory=destination,
