@@ -88,10 +88,7 @@ function TwinTimelineTab({
                 requestError
                 instanceof Error
                   ? requestError.message
-                  : (
-                    "Unable to load "
-                    + "timepoint"
-                  ),
+                  : "Не удалось загрузить временную точку",
             };
           }
         },
@@ -123,10 +120,7 @@ function TwinTimelineTab({
               requestError
               instanceof Error
                 ? requestError.message
-                : (
-                  "Unable to load "
-                  + "patient timeline"
-                ),
+                : "Не удалось загрузить динамику пациента",
           });
         },
       );
@@ -149,11 +143,9 @@ function TwinTimelineTab({
   ) {
     return (
       <div
-        className={
-          "twin-tab-state"
-        }
+        className="twin-tab-state"
       >
-        Loading t0 / t1 / t2…
+        Загружаем t0 / t1 / t2…
       </div>
     );
   }
@@ -164,9 +156,7 @@ function TwinTimelineTab({
   ) {
     return (
       <div
-        className={
-          "twin-tab-state error"
-        }
+        className="twin-tab-state error"
       >
         {currentRequest.error}
       </div>
@@ -191,40 +181,28 @@ function TwinTimelineTab({
 
   return (
     <div
-      className={
-        "twin-tab-stack"
-      }
+      className="twin-tab-stack"
     >
       <section
-        className={
-          "twin-explanation-card"
-        }
+        className="twin-explanation-card"
       >
         <div>
           <span>
-            Longitudinal story
+            Динамика опухоли
           </span>
 
           <strong>
-            Observe → calibrate →
-            assimilate → forecast
+            Наблюдение → калибровка → ассимиляция → прогноз
           </strong>
         </div>
 
         <p>
-          t0 and t1 describe the
-          tumour before the held-out
-          forecast target. The sealed
-          Twin forecast starts from
-          t1 and is evaluated only
-          after observed t2 is revealed.
+          t0 и t1 доступны модели до прогнозирования. На t1 фактическое наблюдение используется как новое исходное состояние цифрового двойника. После этого строится прогноз t2. Реальная t2 открывается только после фиксации прогноза.
         </p>
       </section>
 
       <div
-        className={
-          "twin-temporal-grid"
-        }
+        className="twin-temporal-grid"
       >
         {items.map(
           (item) => (
@@ -244,13 +222,11 @@ function TwinTimelineTab({
       </div>
 
       <section
-        className={
-          "twin-time-intervals"
-        }
+        className="twin-time-intervals"
       >
         <div>
           <span>
-            Calibration interval
+            Интервал калибровки
           </span>
 
           <strong>
@@ -262,7 +238,7 @@ function TwinTimelineTab({
                   patient
                   .dt01_days
                   .toFixed(0)
-                  + " days"
+                  + " дней"
                 )
             }
           </strong>
@@ -274,7 +250,7 @@ function TwinTimelineTab({
 
         <div>
           <span>
-            Held-out horizon
+            Горизонт прогноза
           </span>
 
           <strong>
@@ -286,7 +262,7 @@ function TwinTimelineTab({
                   patient
                   .dt12_days
                   .toFixed(0)
-                  + " days"
+                  + " дней"
                 )
             }
           </strong>
@@ -298,7 +274,7 @@ function TwinTimelineTab({
 
         <div>
           <span>
-            Radiotherapy start
+            Начало лучевой терапии
           </span>
 
           <strong>
@@ -306,9 +282,9 @@ function TwinTimelineTab({
               patient.treatment
               .rt_start_day
               === null
-                ? "Unknown"
+                ? "Неизвестно"
                 : (
-                  "Day "
+                  "День "
                   + patient
                   .treatment
                   .rt_start_day
@@ -321,8 +297,8 @@ function TwinTimelineTab({
             {
               patient.treatment
               .reconstructable
-                ? "schedule reconstructable"
-                : "metadata incomplete"
+                ? "схема лечения восстановлена"
+                : "метаданные лечения неполные"
             }
           </small>
         </div>
@@ -366,21 +342,14 @@ function TimepointCard({
 
   const role =
     item.timepoint.name === "t0"
-      ? "Baseline observation"
+      ? "Исходное наблюдение"
       : item.timepoint.name === "t1"
-        ? (
-          "Assimilation / "
-          + "forecast start"
-        )
-        : (
-          "Held-out truth"
-        );
+        ? "Последнее наблюдение / старт прогноза"
+        : "Реальная отложенная цель";
 
   return (
     <article
-      className={
-        "twin-timepoint-card"
-      }
+      className="twin-timepoint-card"
     >
       <header>
         <div>
@@ -403,9 +372,9 @@ function TimepointCard({
             item.timepoint
             .days_from_baseline
             === null
-              ? "Day —"
+              ? "День —"
               : (
-                "Day "
+                "День "
                 + item
                 .timepoint
                 .days_from_baseline
@@ -416,31 +385,26 @@ function TimepointCard({
       </header>
 
       <div
-        className={
-          "twin-timepoint-image"
-        }
+        className="twin-timepoint-image"
       >
         {imageUrl !== null ? (
           <img
             src={imageUrl}
             alt={
-              `${item.timepoint.name} `
-              + "MRI with GTV"
+              `${item.timepoint.name} МРТ с сегментацией GTV`
             }
           />
         ) : (
           <span>
             {item.error
-              ?? (
-                "Image unavailable"
-              )}
+              ?? "Снимок недоступен"}
           </span>
         )}
       </div>
 
       <footer>
         <span>
-          GTV volume
+          Объём GTV
         </span>
 
         <strong>
@@ -450,7 +414,7 @@ function TimepointCard({
               metadata
               .gtv_volume_cm3
               .toFixed(2)
-              + " cm³"
+              + " см³"
             )}
         </strong>
       </footer>
@@ -458,12 +422,9 @@ function TimepointCard({
       {item.timepoint.name
       === "t2" && (
         <div
-          className={
-            "twin-heldout-note"
-          }
+          className="twin-heldout-note"
         >
-          Not used before
-          prediction sealing
+          Не использовалась до фиксации прогноза
         </div>
       )}
     </article>
