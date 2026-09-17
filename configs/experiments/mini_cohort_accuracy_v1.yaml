@@ -1,0 +1,54 @@
+patients:
+  - 8
+  - 18
+  - 25
+  - 42
+  - 65
+  - 99
+  - 108
+  - 112
+  - 214
+  - 251
+
+data:
+  metadata_root: "D:/Datasets/CFB-GBM/metadata"
+  patients_root: "D:/Datasets/CFB-GBM/patients"
+
+evaluation:
+  target_spacing:
+    - 2.0
+    - 2.0
+    - 2.0
+
+  threshold: 0.5
+  dt: 2.0
+
+  # Keep the original V2 coarse grid unchanged. Accuracy V1 changes only
+  # the adaptive search strategy so any metric change is attributable to
+  # calibration search rather than to a different scientific model.
+  diffusion_values:
+    - 0.0
+    - 0.005
+    - 0.015
+    - 0.030
+
+  proliferation_values:
+    - 0.0
+    - 0.015
+    - 0.035
+    - 0.055
+
+  volume_weight: 0.5
+
+  # Baseline V2 used one refinement round with a half-gap upper extension.
+  # Accuracy V1 allows the optimum to move beyond that first artificial
+  # boundary while still performing local midpoint refinement.
+  refinement_rounds: 3
+  upper_boundary_expansion_factor: 1.0
+
+analysis:
+  trajectory_stable_threshold: 0.10
+
+output:
+  raw_csv: "results/mini_cohort_accuracy_v1.csv"
+  analyzed_csv: "results/mini_cohort_accuracy_v1_analyzed.csv"
