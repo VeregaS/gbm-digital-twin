@@ -182,6 +182,20 @@ def select_stage8_model(
     if not summaries:
         raise ValueError("No complete Stage 8 candidate matrix")
 
+    # Candidate eligibility is fixed on the complete paired development
+    # cohort before any LOO fold is formed. Otherwise a candidate missing the
+    # held-out patient's score could look artificially strong on the smaller
+    # training fold and then be impossible to evaluate on that held-out case.
+    eligible_candidate_ids = {
+        summary.candidate_id
+        for summary in summaries
+    }
+    paired_scores = tuple(
+        score
+        for score in scores
+        if score.candidate_id in eligible_candidate_ids
+    )
+
     final_selected = summaries[0]
     folds: list[Stage8LOOFold] = []
 
@@ -191,12 +205,12 @@ def select_stage8_model(
             for patient_id in patient_ids
             if patient_id != held_out
         )
-        selected = _best_candidate(scores, training_ids)
+        selected = _best_candidate(paired_scores, training_ids)
         held_out_score = index.get((selected.candidate_id, held_out))
 
         if held_out_score is None:
-            raise ValueError(
-                "LOO-selected candidate is missing the held-out patient score"
+            raise RuntimeError(
+                "Globally paired Stage 8 candidate is missing a held-out score"
             )
 
         folds.append(
