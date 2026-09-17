@@ -63,8 +63,8 @@ function requirePatient(
     selectedPatientId === null
   ) {
     return unavailable(
-      "Select a patient on "
-      + "the Patients page first.",
+      "Сначала выберите пациента "
+      + "в разделе «Пациенты».",
     );
   }
 
@@ -89,8 +89,8 @@ function resolveTwinCapability(
     selectedPatientId === null
   ) {
     return unavailable(
-      "Select a patient on "
-      + "the Patients page first.",
+      "Сначала выберите пациента "
+      + "в разделе «Пациенты».",
     );
   }
 
@@ -107,8 +107,8 @@ function resolveTwinCapability(
     === null
   ) {
     return unavailable(
-      "Checking sealed "
-      + "Twin availability…",
+      "Проверяем наличие "
+      + "зафиксированного прогноза…",
     );
   }
 
@@ -116,9 +116,8 @@ function resolveTwinCapability(
     !selectedPatientHasTwin
   ) {
     return unavailable(
-      `Patient ${selectedPatientId} `
-      + "has no sealed V2 "
-      + "prediction/evaluation.",
+      `Для пациента ${selectedPatientId} `
+      + "нет зафиксированного прогноза V2.",
     );
   }
 
@@ -138,8 +137,8 @@ function FunctionalNavigation({
   const fallbackReason =
     capabilitiesError
     ?? (
-      "Checking backend "
-      + "availability…"
+      "Проверяем доступность "
+      + "возможностей сервера…"
     );
 
   const patientBadge =
@@ -176,11 +175,11 @@ function FunctionalNavigation({
   return (
     <nav
       className="functional-nav"
-      aria-label="Workbench"
+      aria-label="Разделы рабочей среды"
     >
       <NavigationButton
         section="patients"
-        label="Patients"
+        label="Пациенты"
         icon={Users}
         active={active}
         capability={
@@ -195,7 +194,7 @@ function FunctionalNavigation({
 
       <NavigationButton
         section="digital_twin"
-        label="Digital Twin"
+        label="Цифровой двойник"
         badge={patientBadge}
         icon={Activity}
         active={active}
@@ -210,7 +209,7 @@ function FunctionalNavigation({
 
       <NavigationButton
         section="viewer"
-        label="Imaging"
+        label="МРТ"
         badge={patientBadge}
         icon={Images}
         active={active}
@@ -225,8 +224,8 @@ function FunctionalNavigation({
 
       <NavigationButton
         section="anatomy"
-        label="Anatomy"
-        badge="Experimental"
+        label="Анатомия"
+        badge="Эксперимент"
         icon={Brain}
         active={active}
         capability={
