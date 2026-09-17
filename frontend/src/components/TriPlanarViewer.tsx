@@ -75,7 +75,6 @@ function TriPlanarViewer({
       ),
   );
 
-
   const planeMetadata =
     useMemo(
       () => {
@@ -97,11 +96,8 @@ function TriPlanarViewer({
 
         return mapping;
       },
-      [
-        metadata,
-      ],
+      [metadata],
     );
-
 
   function changeSlice(
     plane: ViewerPlane,
@@ -114,7 +110,6 @@ function TriPlanarViewer({
       }),
     );
   }
-
 
   return (
     <div className="tri-planar-viewer">
@@ -135,22 +130,12 @@ function TriPlanarViewer({
               primary={
                 plane === "axial"
               }
-              patientId={
-                patientId
-              }
-              timepointName={
-                timepointName
-              }
+              patientId={patientId}
+              timepointName={timepointName}
               plane={plane}
-              index={
-                indices[
-                  plane
-                ]
-              }
+              index={indices[plane]}
               metadata={info}
-              overlayGtv={
-                overlayGtv
-              }
+              overlayGtv={overlayGtv}
               onChange={
                 (value) =>
                   changeSlice(
@@ -169,17 +154,12 @@ function TriPlanarViewer({
 
 type SliceViewportProps = {
   primary: boolean;
-
   patientId: number;
   timepointName: string;
-
   plane: ViewerPlane;
   index: number;
-
   metadata: ViewerPlaneMetadata;
-
   overlayGtv: boolean;
-
   onChange: (
     value: number,
   ) => void;
@@ -209,37 +189,25 @@ function SliceViewport({
     <article
       className={
         primary
-          ? (
-            "tri-planar-card "
-            + "primary"
-          )
+          ? "tri-planar-card primary"
           : "tri-planar-card"
       }
     >
       <header className="tri-planar-card-header">
         <div>
           <strong>
-            {
-              capitalize(
-                plane,
-              )
-            }
+            {planeLabel(plane)}
           </strong>
 
           <span>
-            {
-              timepointName
-                .toUpperCase()
-            }
+            {timepointName.toUpperCase()}
           </span>
         </div>
 
         <span>
-          {index}
+          Срез {index}
           {" / "}
-          {
-            metadata.max_index
-          }
+          {metadata.max_index}
         </span>
       </header>
 
@@ -247,8 +215,7 @@ function SliceViewport({
         <img
           src={imageUrl}
           alt={
-            `${plane} MRI `
-            + `slice ${index}`
+            `${planeLabel(plane)} МРТ, срез ${index}`
           }
           draggable={false}
         />
@@ -266,10 +233,9 @@ function SliceViewport({
         <input
           type="range"
           min={0}
-          max={
-            metadata.max_index
-          }
+          max={metadata.max_index}
           value={index}
+          aria-label={`Срез: ${planeLabel(plane)}`}
           onChange={
             (event) =>
               onChange(
@@ -285,14 +251,17 @@ function SliceViewport({
 }
 
 
-function capitalize(
-  value: string,
+function planeLabel(
+  value: ViewerPlane,
 ): string {
-  return (
-    value.charAt(0)
-      .toUpperCase()
-    + value.slice(1)
-  );
+  switch (value) {
+    case "axial":
+      return "Аксиальная";
+    case "coronal":
+      return "Корональная";
+    case "sagittal":
+      return "Сагиттальная";
+  }
 }
 
 
