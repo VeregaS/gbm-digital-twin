@@ -45,13 +45,15 @@ observation_model:
   infiltrative_detection_threshold: 0.16
   transition_width_mm: 4.0
 
-# Keep alpha/beta fixed while selecting one cohort-level effective alpha on
-# development data. 0.01/Gy is retained as the legacy V2/V3 ablation; the
-# 0.10-0.14/Gy candidates cover the pooled clinical GBM estimate around
-# 0.12/Gy. Patient-specific alpha is deliberately not co-fitted with D/rho
-# from a single treated interval because that inverse problem is underidentified.
+# Keep alpha/beta fixed while comparing cohort-level effective alpha values on
+# development data. 0.01/Gy is retained as the legacy V2/V3 ablation;
+# 0.10-0.14/Gy bracket the pooled clinical GBM estimate around 0.12/Gy.
+# Patient-specific alpha is deliberately not co-fitted with D/rho from one
+# treated interval because that inverse problem is underidentified.
 radiobiology:
   alpha_beta_ratio_gy: 10.0
+  legacy_alpha_per_gy: 0.01
+  reference_alpha_per_gy: 0.12
   effective_alpha_candidates_per_gy:
     - 0.01
     - 0.10
