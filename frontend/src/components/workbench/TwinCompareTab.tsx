@@ -1,6 +1,5 @@
 import {
   useEffect,
-  useMemo,
   useRef,
   useState,
 } from "react";
@@ -205,33 +204,35 @@ function TwinCompareTab({
       new AbortController();
 
     Promise.all([
-      fetchImageObjectUrl(
+      fetchImageBlob(
         observedUrl,
         controller.signal,
       ),
-      fetchImageObjectUrl(
+      fetchImageBlob(
         predictionUrl,
         controller.signal,
       ),
     ])
       .then(
         ([
-          nextObservedUrl,
-          nextPredictionUrl,
+          observedBlob,
+          predictionBlob,
         ]) => {
           if (
             controller.signal.aborted
           ) {
-            URL.revokeObjectURL(
-              nextObservedUrl,
-            );
-
-            URL.revokeObjectURL(
-              nextPredictionUrl,
-            );
-
             return;
           }
+
+          const nextObservedUrl =
+            URL.createObjectURL(
+              observedBlob,
+            );
+
+          const nextPredictionUrl =
+            URL.createObjectURL(
+              predictionBlob,
+            );
 
           const previous =
             pairUrlsRef.current;
@@ -843,10 +844,10 @@ function planeLabel(
 }
 
 
-async function fetchImageObjectUrl(
+async function fetchImageBlob(
   url: string,
   signal: AbortSignal,
-): Promise<string> {
+): Promise<Blob> {
   const response = await fetch(
     url,
     {
@@ -861,11 +862,7 @@ async function fetchImageObjectUrl(
     );
   }
 
-  const blob = await response.blob();
-
-  return URL.createObjectURL(
-    blob,
-  );
+  return response.blob();
 }
 
 
