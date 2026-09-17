@@ -57,7 +57,7 @@ type LoadedPair = {
 type PairRequestState =
   | {
       status: "success";
-      pair: LoadedPair;
+      key: string;
     }
   | {
       status: "error";
@@ -139,6 +139,13 @@ function TwinCompareTab({
     ?.default_index
     ?? 0,
   );
+
+  const [
+    displayedPair,
+    setDisplayedPair,
+  ] = useState<
+    LoadedPair | null
+  >(null);
 
   const [
     pairRequest,
@@ -248,18 +255,27 @@ function TwinCompareTab({
           pairUrlsRef.current =
             nextPair;
 
+          setDisplayedPair(
+            nextPair,
+          );
+
           setPairRequest({
             status: "success",
-            pair: nextPair,
+            key: pairKey,
           });
 
           if (previous !== null) {
-            URL.revokeObjectURL(
-              previous.observedUrl,
-            );
+            window.setTimeout(
+              () => {
+                URL.revokeObjectURL(
+                  previous.observedUrl,
+                );
 
-            URL.revokeObjectURL(
-              previous.predictionUrl,
+                URL.revokeObjectURL(
+                  previous.predictionUrl,
+                );
+              },
+              0,
             );
           }
         },
@@ -310,12 +326,6 @@ function TwinCompareTab({
       }
     };
   }, []);
-
-  const displayedPair =
-    pairRequest?.status
-    === "success"
-      ? pairRequest.pair
-      : pairUrlsRef.current;
 
   const pairLoading =
     mode === "side_by_side"
