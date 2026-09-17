@@ -3,7 +3,7 @@ from __future__ import annotations
 import math
 from dataclasses import dataclass
 from pathlib import Path
-from typing import cast
+from typing import Callable, cast
 
 import numpy as np
 
@@ -17,7 +17,9 @@ from gbm_twin.workflows.patients import (
     PreparedPatientTimepoint,
 )
 from gbm_twin.workflows.prediction import (
+    FrozenPredictionArtifact,
     load_frozen_v2_prediction,
+    load_frozen_v3_prediction,
 )
 
 
@@ -43,20 +45,23 @@ class FrozenV2EvaluationResult:
     volume_baseline_centroid_distance_mm: float | None
 
 
+FrozenV3EvaluationResult = FrozenV2EvaluationResult
+
+ArtifactLoader = Callable[
+    [Path],
+    FrozenPredictionArtifact,
+]
+
+
 def _require_mapping(
     mapping: dict[str, object],
     key: str,
 ) -> dict[str, object]:
-    value = mapping.get(
-        key
-    )
+    value = mapping.get(key)
 
-    if not isinstance(
-        value,
-        dict,
-    ):
+    if not isinstance(value, dict):
         raise ValueError(
-            f"Prediction manifest field "
+            "Prediction manifest field "
             f"{key!r} must be a mapping"
         )
 
@@ -70,16 +75,11 @@ def _require_string(
     mapping: dict[str, object],
     key: str,
 ) -> str:
-    value = mapping.get(
-        key
-    )
+    value = mapping.get(key)
 
-    if not isinstance(
-        value,
-        str,
-    ):
+    if not isinstance(value, str):
         raise ValueError(
-            f"Prediction manifest field "
+            "Prediction manifest field "
             f"{key!r} must be a string"
         )
 
@@ -90,13 +90,11 @@ def _require_int(
     mapping: dict[str, object],
     key: str,
 ) -> int:
-    value = mapping.get(
-        key
-    )
+    value = mapping.get(key)
 
     if type(value) is not int:
         raise ValueError(
-            f"Prediction manifest field "
+            "Prediction manifest field "
             f"{key!r} must be an integer"
         )
 
@@ -110,34 +108,25 @@ def _require_float(
     mapping: dict[str, object],
     key: str,
 ) -> float:
-    value = mapping.get(
-        key
-    )
+    value = mapping.get(key)
 
     if (
-        isinstance(
-            value,
-            bool,
-        )
+        isinstance(value, bool)
         or not isinstance(
             value,
             (int, float),
         )
     ):
         raise ValueError(
-            f"Prediction manifest field "
+            "Prediction manifest field "
             f"{key!r} must be numeric"
         )
 
-    result = float(
-        value
-    )
+    result = float(value)
 
-    if not math.isfinite(
-        result
-    ):
+    if not math.isfinite(result):
         raise ValueError(
-            f"Prediction manifest field "
+            "Prediction manifest field "
             f"{key!r} must be finite"
         )
 
@@ -148,16 +137,11 @@ def _require_shape(
     mapping: dict[str, object],
     key: str,
 ) -> tuple[int, ...]:
-    value = mapping.get(
-        key
-    )
+    value = mapping.get(key)
 
-    if not isinstance(
-        value,
-        list,
-    ):
+    if not isinstance(value, list):
         raise ValueError(
-            f"Prediction manifest field "
+            "Prediction manifest field "
             f"{key!r} must be a list"
         )
 
@@ -171,7 +155,7 @@ def _require_shape(
     for raw_value in raw_values:
         if type(raw_value) is not int:
             raise ValueError(
-                f"Prediction manifest field "
+                "Prediction manifest field "
                 f"{key!r} must contain integers"
             )
 
@@ -182,9 +166,7 @@ def _require_shape(
             )
         )
 
-    return tuple(
-        result
-    )
+    return tuple(result)
 
 
 def _require_spacing(
@@ -195,16 +177,11 @@ def _require_spacing(
     float,
     float,
 ]:
-    value = mapping.get(
-        key
-    )
+    value = mapping.get(key)
 
-    if not isinstance(
-        value,
-        list,
-    ):
+    if not isinstance(value, list):
         raise ValueError(
-            f"Prediction manifest field "
+            "Prediction manifest field "
             f"{key!r} must be a list"
         )
 
@@ -215,7 +192,7 @@ def _require_spacing(
 
     if len(raw_values) != 3:
         raise ValueError(
-            f"Prediction manifest field "
+            "Prediction manifest field "
             f"{key!r} must contain three values"
         )
 
@@ -223,39 +200,30 @@ def _require_spacing(
 
     for raw_value in raw_values:
         if (
-            isinstance(
-                raw_value,
-                bool,
-            )
+            isinstance(raw_value, bool)
             or not isinstance(
                 raw_value,
                 (int, float),
             )
         ):
             raise ValueError(
-                f"Prediction manifest field "
+                "Prediction manifest field "
                 f"{key!r} must contain numbers"
             )
 
-        converted = float(
-            raw_value
-        )
+        converted = float(raw_value)
 
         if (
-            not math.isfinite(
-                converted
-            )
+            not math.isfinite(converted)
             or converted <= 0.0
         ):
             raise ValueError(
-                f"Prediction manifest field "
+                "Prediction manifest field "
                 f"{key!r} must contain "
                 "finite positive values"
             )
 
-        result.append(
-            converted
-        )
+        result.append(converted)
 
     return (
         result[0],
@@ -268,13 +236,11 @@ def _require_affine(
     mapping: dict[str, object],
     key: str,
 ) -> np.ndarray:
-    value = mapping.get(
-        key
-    )
+    value = mapping.get(key)
 
     if value is None:
         raise ValueError(
-            f"Prediction manifest field "
+            "Prediction manifest field "
             f"{key!r} is missing"
         )
 
@@ -288,7 +254,7 @@ def _require_affine(
         ValueError,
     ) as exc:
         raise ValueError(
-            f"Prediction manifest field "
+            "Prediction manifest field "
             f"{key!r} must be numeric"
         ) from exc
 
@@ -297,7 +263,7 @@ def _require_affine(
         4,
     ):
         raise ValueError(
-            f"Prediction manifest field "
+            "Prediction manifest field "
             f"{key!r} must be a 4x4 matrix"
         )
 
@@ -307,7 +273,7 @@ def _require_affine(
         )
     ):
         raise ValueError(
-            f"Prediction manifest field "
+            "Prediction manifest field "
             f"{key!r} must contain "
             "finite values"
         )
@@ -315,15 +281,14 @@ def _require_affine(
     return affine
 
 
-def evaluate_frozen_v2_prediction(
+def _evaluate_frozen_prediction(
     *,
     artifact_dir: Path,
     observed_target: PreparedPatientTimepoint,
+    loader: ArtifactLoader,
 ) -> FrozenV2EvaluationResult:
-    artifact = (
-        load_frozen_v2_prediction(
-            artifact_dir
-        )
+    artifact = loader(
+        artifact_dir
     )
 
     manifest = cast(
@@ -541,4 +506,28 @@ def evaluate_frozen_v2_prediction(
                 spacing=spacing,
             )
         ),
+    )
+
+
+def evaluate_frozen_v2_prediction(
+    *,
+    artifact_dir: Path,
+    observed_target: PreparedPatientTimepoint,
+) -> FrozenV2EvaluationResult:
+    return _evaluate_frozen_prediction(
+        artifact_dir=artifact_dir,
+        observed_target=observed_target,
+        loader=load_frozen_v2_prediction,
+    )
+
+
+def evaluate_frozen_v3_prediction(
+    *,
+    artifact_dir: Path,
+    observed_target: PreparedPatientTimepoint,
+) -> FrozenV3EvaluationResult:
+    return _evaluate_frozen_prediction(
+        artifact_dir=artifact_dir,
+        observed_target=observed_target,
+        loader=load_frozen_v3_prediction,
     )
