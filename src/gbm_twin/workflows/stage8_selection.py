@@ -7,75 +7,43 @@ import tempfile
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
-import numpy as np
-
-from gbm_twin.calibration.stage8 import (
-    Stage8CalibrationConfig,
-    calibrate_stage8_interval,
-)
+from gbm_twin.calibration.stage8 import Stage8CalibrationConfig
 from gbm_twin.data.cfb_treatment import CFBTreatmentMetadata
 from gbm_twin.evaluation.config import load_cohort_experiment_config
-from gbm_twin.evaluation.metrics import (
-    centroid_distance_mm,
-    dice_score,
-    hausdorff95_mm,
-    relative_volume_error,
-)
 from gbm_twin.evaluation.stage8_model_selection import (
+    Stage8ModelSelectionResult,
     Stage8PatientCandidateScore,
     select_stage8_model,
 )
-from gbm_twin.models.observation import (
-    MRIDetectionObservationParameters,
-    latent_density_from_mri_detection,
-)
-from gbm_twin.models.radiobiology import RadiobiologyParameters
-from gbm_twin.models.reaction_diffusion import ReactionDiffusionParameters
-from gbm_twin.models.rt_schedule import reconstruct_weekday_like_schedule
-from gbm_twin.models.treatment_memory import initial_treatment_memory_state
-from gbm_twin.workflows.patients import prepare_patient_timepoint
+from gbm_twin.models.observation import MRIDetectionObservationParameters
 from gbm_twin.workflows.provenance import sha256_file
 from gbm_twin.workflows.repository import read_repository_state
+from gbm_twin.workflows.stage8_candidate import (
+    Stage8PatientCandidateEvaluation,
+    evaluate_stage8_candidate,
+)
 from gbm_twin.workflows.stage8_data_audit import (
     load_sealed_stage8_data_audit,
 )
-from gbm_twin.workflows.stage8_forecast import simulate_stage8_forecast
-from gbm_twin.workflows.stage8_inputs import prepare_spatial_rtdose
 from gbm_twin.workflows.stage8_model_family import (
     Stage8ModelCandidate,
-    build_stage8_model_family,
+    build_dose_candidates,
+    build_final_alpha_sensitivity_candidates,
+    build_memory_candidates,
+    build_radiobiology_candidates,
+)
+from gbm_twin.workflows.stage8_patient import (
+    Stage8EvaluationTarget,
+    Stage8ForecastInputs,
+    prepare_stage8_evaluation_target,
+    prepare_stage8_forecast_inputs,
 )
 from gbm_twin.workflows.stage8_protocol import (
     Stage8ProtocolConfig,
     load_stage8_protocol_config,
 )
-from gbm_twin.workflows.stage8_treatment import (
-    build_stage8_radiotherapy_events,
-)
 
 STAGE8_SELECTION_SCHEMA_VERSION = 1
-
-
-@dataclass(frozen=True)
-class Stage8PatientCandidateEvaluation:
-    patient_id: int
-    candidate_id: str
-    use_spatial_rtdose: bool
-    effective_alpha_per_gy: float
-    alpha_beta_ratio_gy: float
-    proliferation_survival: float
-    diffusion: float
-    proliferation: float
-    calibration_dice: float
-    calibration_volume_error: float
-    calibration_loss: float
-    calibration_identifiable: bool
-    diffusion_at_boundary: bool
-    proliferation_at_boundary: bool
-    t2_dice: float
-    t2_relative_volume_error: float
-    t2_hd95_mm: float | None
-    t2_centroid_distance_mm: float | None
 
 
 @dataclass(frozen=True)
@@ -91,6 +59,12 @@ class Stage8SelectionArtifact:
     manifest: dict[str, object]
 
 
+@dataclass(frozen=True)
+class _PreparedDevelopmentPatient:
+    inputs: Stage8ForecastInputs
+    target: Stage8EvaluationTarget
+
+
 def _audit_development_ids(audit: dict[str, object]) -> tuple[int, ...]:
     raw_patients = audit.get("patients")
 
@@ -98,43 +72,25 @@ def _audit_development_ids(audit: dict[str, object]) -> tuple[int, ...]:
         raise ValueError("Stage 8 audit patient rows are missing")
 
     selected: list[int] = []
-
     for raw in raw_patients:
         if not isinstance(raw, dict):
             raise ValueError("Stage 8 audit patient row must be a mapping")
-
         if raw.get("split") != "development-exposed":
             continue
-
         if raw.get("core_eligible") is not True:
             continue
 
         patient_id = raw.get("patient_id")
-
         if type(patient_id) is not int:
             raise ValueError("Stage 8 audit patient_id must be an integer")
-
         selected.append(patient_id)
 
     result = tuple(sorted(selected))
-
     if len(result) < 3:
         raise ValueError(
             "Stage 8 model selection needs at least 3 eligible "
             "development-exposed patients"
         )
-
-    return result
-
-
-def _candidate_by_id(
-    candidates: tuple[Stage8ModelCandidate, ...],
-) -> dict[str, Stage8ModelCandidate]:
-    result = {candidate.candidate_id: candidate for candidate in candidates}
-
-    if len(result) != len(candidates):
-        raise ValueError("Stage 8 model family contains duplicate IDs")
-
     return result
 
 
@@ -157,11 +113,10 @@ def _observation_parameters(
 def _calibration_config(
     *,
     protocol: Stage8ProtocolConfig,
-    experiment_path: Path,
+    experiment_config_path: Path,
 ) -> Stage8CalibrationConfig:
-    experiment = load_cohort_experiment_config(experiment_path)
+    experiment = load_cohort_experiment_config(experiment_config_path)
     evaluation = experiment.evaluation
-
     return Stage8CalibrationConfig(
         diffusion_values=evaluation.diffusion_values,
         proliferation_values=evaluation.proliferation_values,
@@ -178,201 +133,29 @@ def _calibration_config(
     )
 
 
-def _treatment_schedule(
-    treatment: CFBTreatmentMetadata,
-    patient_id: int,
-):
-    record = treatment.treatment(patient_id)
-
-    if (
-        record is None
-        or record.radiotherapy_start_day is None
-        or record.dose_gy is None
-        or record.fractions_number is None
-    ):
-        raise ValueError(
-            f"Patient {patient_id}: complete RT schedule is required"
-        )
-
-    return reconstruct_weekday_like_schedule(
-        start_day=record.radiotherapy_start_day,
-        total_dose_gy=record.dose_gy,
-        fractions_number=record.fractions_number,
-    )
+def _candidate_payload(candidate: Stage8ModelCandidate) -> dict[str, object]:
+    return asdict(candidate)
 
 
-def _calibration_events(
-    events,
-    *,
-    start_day: float,
-    end_day: float,
-):
-    tolerance = 1e-9
-    return tuple(
-        event
-        for event in events
-        if event.day >= start_day - tolerance
-        and event.day <= end_day + tolerance
-    )
-
-
-def _evaluate_candidate_patient(
-    *,
-    patient_id: int,
-    candidate: Stage8ModelCandidate,
-    metadata_root: Path,
-    patients_root: Path,
-    target_spacing: tuple[float, float, float],
-    treatment: CFBTreatmentMetadata,
-    observation_parameters: MRIDetectionObservationParameters,
-    calibration_config: Stage8CalibrationConfig,
-    cache_root: Path,
-    workers: int,
-) -> Stage8PatientCandidateEvaluation:
-    start = prepare_patient_timepoint(
-        metadata_root=metadata_root,
-        patients_root=patients_root,
-        patient_id=patient_id,
-        timepoint_name="t0",
-        target_spacing=target_spacing,
-    )
-    observed = prepare_patient_timepoint(
-        metadata_root=metadata_root,
-        patients_root=patients_root,
-        patient_id=patient_id,
-        timepoint_name="t1",
-        target_spacing=target_spacing,
-    )
-    target = prepare_patient_timepoint(
-        metadata_root=metadata_root,
-        patients_root=patients_root,
-        patient_id=patient_id,
-        timepoint_name="t2",
-        target_spacing=target_spacing,
-    )
-
-    schedule = _treatment_schedule(treatment, patient_id)
-    radiobiology = RadiobiologyParameters(
-        alpha_per_gy=candidate.effective_alpha_per_gy,
-        alpha_beta_ratio_gy=candidate.alpha_beta_ratio_gy,
-    )
-
-    cumulative_rtdose: np.ndarray | None = None
-
-    if candidate.use_spatial_rtdose:
-        prepared_dose = prepare_spatial_rtdose(
-            patients_root=patients_root,
-            patient_id=patient_id,
-            reference=start.t1gd,
-        )
-
-        if prepared_dose is None:
-            raise FileNotFoundError(
-                f"Patient {patient_id}: spatial candidate requires local RTDOSE"
-            )
-
-        cumulative_rtdose = np.asarray(
-            prepared_dose.volume.data,
-            dtype=np.float32,
-        )
-
-    domain = np.asarray(
-        (start.brain_mask.data > 0.5)
-        | (observed.brain_mask.data > 0.5)
-        | (start.gtv.data > 0.5)
-        | (observed.gtv.data > 0.5),
-        dtype=bool,
-    )
-    initial_density = latent_density_from_mri_detection(
-        start.gtv.data > 0.5,
-        domain,
-        spacing=start.spacing,
-        parameters=observation_parameters,
-    )
-    initial_state = initial_treatment_memory_state(
-        initial_density,
-        domain_mask=domain,
-    )
-    rt_events = build_stage8_radiotherapy_events(
-        schedule,
-        radiobiology,
-        proliferation_survival=candidate.proliferation_survival,
-        cumulative_rtdose=cumulative_rtdose,
-    )
-    calibration = calibrate_stage8_interval(
-        initial_state=initial_state,
-        observed_mask=observed.gtv.data > 0.5,
-        domain_mask=domain,
-        spacing=start.spacing,
-        duration_days=(
-            observed.days_from_baseline - start.days_from_baseline
-        ),
-        fraction_events=_calibration_events(
-            rt_events.events,
-            start_day=start.days_from_baseline,
-            end_day=observed.days_from_baseline,
-        ),
-        config=calibration_config,
-        cache_dir=(
-            cache_root
-            / f"patient-{patient_id}"
-            / candidate.candidate_id
-        ),
-        workers=workers,
-    )
-    forecast = simulate_stage8_forecast(
-        start=start,
-        observed=observed,
-        target_day=target.days_from_baseline,
-        parameters=ReactionDiffusionParameters(
-            diffusion=calibration.best.diffusion,
-            proliferation=calibration.best.proliferation,
-        ),
-        schedule=schedule,
-        radiobiology=radiobiology,
-        proliferation_survival=candidate.proliferation_survival,
-        dt_days=calibration_config.dt_days,
-        observation_parameters=observation_parameters,
-        cumulative_rtdose=cumulative_rtdose,
-    )
-    observed_t2 = np.asarray(target.gtv.data > 0.5, dtype=bool)
-    predicted_t2 = forecast.prediction_mask
-
-    return Stage8PatientCandidateEvaluation(
-        patient_id=patient_id,
-        candidate_id=candidate.candidate_id,
-        use_spatial_rtdose=candidate.use_spatial_rtdose,
-        effective_alpha_per_gy=candidate.effective_alpha_per_gy,
-        alpha_beta_ratio_gy=candidate.alpha_beta_ratio_gy,
-        proliferation_survival=candidate.proliferation_survival,
-        diffusion=calibration.best.diffusion,
-        proliferation=calibration.best.proliferation,
-        calibration_dice=calibration.best.dice,
-        calibration_volume_error=calibration.best.volume_error,
-        calibration_loss=calibration.best.loss,
-        calibration_identifiable=calibration.diagnostics.identifiable,
-        diffusion_at_boundary=(
-            calibration.diagnostics.diffusion_at_boundary
-        ),
-        proliferation_at_boundary=(
-            calibration.diagnostics.proliferation_at_boundary
-        ),
-        t2_dice=dice_score(predicted_t2, observed_t2),
-        t2_relative_volume_error=relative_volume_error(
-            predicted_t2,
-            observed_t2,
-        ),
-        t2_hd95_mm=hausdorff95_mm(
-            predicted_t2,
-            observed_t2,
-            spacing=target.spacing,
-        ),
-        t2_centroid_distance_mm=centroid_distance_mm(
-            predicted_t2,
-            observed_t2,
-            spacing=target.spacing,
-        ),
-    )
+def _selection_payload(
+    selection: Stage8ModelSelectionResult,
+) -> dict[str, object]:
+    return {
+        "selected_candidate_id": selection.selected_candidate_id,
+        "candidate_summaries": [
+            asdict(summary)
+            for summary in selection.candidate_summaries
+        ],
+        "loo": {
+            "mean_dice": selection.loo_mean_dice,
+            "median_dice": selection.loo_median_dice,
+            "mean_relative_volume_error": (
+                selection.loo_mean_relative_volume_error
+            ),
+            "selection_counts": selection.loo_selection_counts,
+            "folds": [asdict(fold) for fold in selection.loo_folds],
+        },
+    }
 
 
 def _write_csv(
@@ -383,7 +166,6 @@ def _write_csv(
         return
 
     fieldnames = list(asdict(rows[0]).keys())
-
     with path.open("w", encoding="utf-8", newline="") as stream:
         writer = csv.DictWriter(
             stream,
@@ -391,9 +173,121 @@ def _write_csv(
             lineterminator="\n",
         )
         writer.writeheader()
-
         for row in rows:
             writer.writerow(asdict(row))
+
+
+def _prepare_patients(
+    *,
+    patient_ids: tuple[int, ...],
+    metadata_root: Path,
+    patients_root: Path,
+    target_spacing: tuple[float, float, float],
+    treatment: CFBTreatmentMetadata,
+    observation_parameters: MRIDetectionObservationParameters,
+) -> dict[int, _PreparedDevelopmentPatient]:
+    """Materialize each development patient once for the whole model family."""
+
+    prepared: dict[int, _PreparedDevelopmentPatient] = {}
+    for patient_id in patient_ids:
+        inputs = prepare_stage8_forecast_inputs(
+            metadata_root=metadata_root,
+            patients_root=patients_root,
+            patient_id=patient_id,
+            target_spacing=target_spacing,
+            treatment=treatment,
+            observation_parameters=observation_parameters,
+            load_spatial_rtdose=True,
+        )
+        target = prepare_stage8_evaluation_target(
+            metadata_root=metadata_root,
+            patients_root=patients_root,
+            patient_id=patient_id,
+            target_spacing=target_spacing,
+            reference=inputs.observed,
+        )
+        prepared[patient_id] = _PreparedDevelopmentPatient(
+            inputs=inputs,
+            target=target,
+        )
+    return prepared
+
+
+def _run_phase(
+    *,
+    name: str,
+    candidates: tuple[Stage8ModelCandidate, ...],
+    patient_ids: tuple[int, ...],
+    prepared: dict[int, _PreparedDevelopmentPatient],
+    observation_parameters: MRIDetectionObservationParameters,
+    calibration_config: Stage8CalibrationConfig,
+    cache_root: Path,
+    workers: int,
+    evaluation_cache: dict[
+        tuple[int, str],
+        Stage8PatientCandidateEvaluation,
+    ],
+    failures: dict[tuple[int, str], Stage8CandidateFailure],
+) -> tuple[Stage8ModelSelectionResult, dict[str, object]]:
+    candidate_index = {
+        candidate.candidate_id: candidate
+        for candidate in candidates
+    }
+    if len(candidate_index) != len(candidates):
+        raise ValueError(f"Stage 8 phase {name!r} contains duplicate candidates")
+
+    for candidate in candidates:
+        for patient_id in patient_ids:
+            key = (patient_id, candidate.candidate_id)
+            if key in evaluation_cache or key in failures:
+                continue
+
+            patient = prepared[patient_id]
+            try:
+                evaluation_cache[key] = evaluate_stage8_candidate(
+                    inputs=patient.inputs,
+                    target=patient.target,
+                    candidate=candidate,
+                    observation_parameters=observation_parameters,
+                    calibration_config=calibration_config,
+                    cache_root=cache_root,
+                    workers=workers,
+                )
+            except (FileNotFoundError, ValueError) as exc:
+                failures[key] = Stage8CandidateFailure(
+                    patient_id=patient_id,
+                    candidate_id=candidate.candidate_id,
+                    reason=str(exc),
+                )
+
+    phase_ids = set(candidate_index)
+    scores = tuple(
+        Stage8PatientCandidateScore(
+            patient_id=row.patient_id,
+            candidate_id=row.candidate_id,
+            complexity_rank=(
+                candidate_index[row.candidate_id].complexity_rank
+            ),
+            dice=row.t2_dice,
+            relative_volume_error=row.t2_relative_volume_error,
+            hd95_mm=row.t2_hd95_mm,
+            centroid_distance_mm=row.t2_centroid_distance_mm,
+        )
+        for row in evaluation_cache.values()
+        if row.candidate_id in phase_ids
+    )
+    selection = select_stage8_model(
+        scores,
+        development_patient_ids=patient_ids,
+    )
+    selected_candidate = candidate_index[selection.selected_candidate_id]
+    payload = {
+        "phase": name,
+        "candidate_ids": [candidate.candidate_id for candidate in candidates],
+        "selected_candidate": _candidate_payload(selected_candidate),
+        **_selection_payload(selection),
+    }
+    return selection, payload
 
 
 def select_stage8_model_family(
@@ -408,14 +302,14 @@ def select_stage8_model_family(
     allow_dirty: bool = False,
 ) -> Stage8SelectionArtifact:
     destination = output_dir.resolve()
-
     if destination.exists():
         raise FileExistsError(
             f"Stage 8 model-selection destination already exists: {destination}"
         )
+    if workers < 1:
+        raise ValueError("workers must be at least 1")
 
     repository = read_repository_state(repo_root.resolve())
-
     if repository.dirty and not allow_dirty:
         raise ValueError(
             "Stage 8 model selection requires a clean Git working tree"
@@ -427,20 +321,17 @@ def select_stage8_model_family(
 
     expected_protocol_sha = audit.manifest.get("protocol_config_sha256")
     actual_protocol_sha = sha256_file(protocol_config_path.resolve())
-
     if expected_protocol_sha != actual_protocol_sha:
         raise ValueError(
             "Stage 8 audit does not match the current protocol config"
         )
 
-    development_ids = _audit_development_ids(audit.manifest)
+    patient_ids = _audit_development_ids(audit.manifest)
     observation_parameters = _observation_parameters(protocol)
     calibration_config = _calibration_config(
         protocol=protocol,
-        experiment_path=experiment_config_path,
+        experiment_config_path=experiment_config_path,
     )
-    candidates = build_stage8_model_family(protocol)
-    candidate_index = _candidate_by_id(candidates)
     metadata_root = (
         experiment.metadata_root
         if experiment.metadata_root.is_absolute()
@@ -452,55 +343,126 @@ def select_stage8_model_family(
         else repo_root / experiment.patients_root
     )
     treatment = CFBTreatmentMetadata(metadata_root)
-    rows: list[Stage8PatientCandidateEvaluation] = []
-    failures: list[Stage8CandidateFailure] = []
-
-    for candidate in candidates:
-        for patient_id in development_ids:
-            try:
-                row = _evaluate_candidate_patient(
-                    patient_id=patient_id,
-                    candidate=candidate,
-                    metadata_root=metadata_root,
-                    patients_root=patients_root,
-                    target_spacing=experiment.evaluation.target_spacing,
-                    treatment=treatment,
-                    observation_parameters=observation_parameters,
-                    calibration_config=calibration_config,
-                    cache_root=cache_root.resolve(),
-                    workers=workers,
-                )
-            except (FileNotFoundError, ValueError) as exc:
-                failures.append(
-                    Stage8CandidateFailure(
-                        patient_id=patient_id,
-                        candidate_id=candidate.candidate_id,
-                        reason=str(exc),
-                    )
-                )
-                continue
-
-            rows.append(row)
-
-    scores = tuple(
-        Stage8PatientCandidateScore(
-            patient_id=row.patient_id,
-            candidate_id=row.candidate_id,
-            complexity_rank=candidate_index[row.candidate_id].complexity_rank,
-            dice=row.t2_dice,
-            relative_volume_error=row.t2_relative_volume_error,
-            hd95_mm=row.t2_hd95_mm,
-            centroid_distance_mm=row.t2_centroid_distance_mm,
-        )
-        for row in rows
+    prepared = _prepare_patients(
+        patient_ids=patient_ids,
+        metadata_root=metadata_root,
+        patients_root=patients_root,
+        target_spacing=experiment.evaluation.target_spacing,
+        treatment=treatment,
+        observation_parameters=observation_parameters,
     )
-    selection = select_stage8_model(
-        scores,
-        development_patient_ids=development_ids,
+
+    evaluation_cache: dict[
+        tuple[int, str],
+        Stage8PatientCandidateEvaluation,
+    ] = {}
+    failures: dict[tuple[int, str], Stage8CandidateFailure] = {}
+    phases: list[dict[str, object]] = []
+    all_candidates: dict[str, Stage8ModelCandidate] = {}
+
+    radiobiology_candidates = build_radiobiology_candidates(protocol)
+    all_candidates.update(
+        (candidate.candidate_id, candidate)
+        for candidate in radiobiology_candidates
     )
-    selected_candidate = candidate_index[
-        selection.selected_candidate_id
+    radiobiology_selection, phase = _run_phase(
+        name="radiobiology",
+        candidates=radiobiology_candidates,
+        patient_ids=patient_ids,
+        prepared=prepared,
+        observation_parameters=observation_parameters,
+        calibration_config=calibration_config,
+        cache_root=cache_root.resolve(),
+        workers=workers,
+        evaluation_cache=evaluation_cache,
+        failures=failures,
+    )
+    phases.append(phase)
+    selected_alpha = all_candidates[
+        radiobiology_selection.selected_candidate_id
+    ].effective_alpha_per_gy
+
+    dose_candidates = build_dose_candidates(
+        protocol,
+        effective_alpha_per_gy=selected_alpha,
+    )
+    all_candidates.update(
+        (candidate.candidate_id, candidate)
+        for candidate in dose_candidates
+    )
+    dose_selection, phase = _run_phase(
+        name="dose",
+        candidates=dose_candidates,
+        patient_ids=patient_ids,
+        prepared=prepared,
+        observation_parameters=observation_parameters,
+        calibration_config=calibration_config,
+        cache_root=cache_root.resolve(),
+        workers=workers,
+        evaluation_cache=evaluation_cache,
+        failures=failures,
+    )
+    phases.append(phase)
+    selected_dose = all_candidates[dose_selection.selected_candidate_id]
+
+    memory_candidates = build_memory_candidates(
+        protocol,
+        effective_alpha_per_gy=selected_alpha,
+        use_spatial_rtdose=selected_dose.use_spatial_rtdose,
+    )
+    all_candidates.update(
+        (candidate.candidate_id, candidate)
+        for candidate in memory_candidates
+    )
+    memory_selection, phase = _run_phase(
+        name="treatment-memory",
+        candidates=memory_candidates,
+        patient_ids=patient_ids,
+        prepared=prepared,
+        observation_parameters=observation_parameters,
+        calibration_config=calibration_config,
+        cache_root=cache_root.resolve(),
+        workers=workers,
+        evaluation_cache=evaluation_cache,
+        failures=failures,
+    )
+    phases.append(phase)
+    selected_memory = all_candidates[memory_selection.selected_candidate_id]
+
+    sensitivity_candidates = build_final_alpha_sensitivity_candidates(
+        protocol,
+        use_spatial_rtdose=selected_memory.use_spatial_rtdose,
+        proliferation_survival=selected_memory.proliferation_survival,
+    )
+    all_candidates.update(
+        (candidate.candidate_id, candidate)
+        for candidate in sensitivity_candidates
+    )
+    final_selection, phase = _run_phase(
+        name="final-alpha-sensitivity",
+        candidates=sensitivity_candidates,
+        patient_ids=patient_ids,
+        prepared=prepared,
+        observation_parameters=observation_parameters,
+        calibration_config=calibration_config,
+        cache_root=cache_root.resolve(),
+        workers=workers,
+        evaluation_cache=evaluation_cache,
+        failures=failures,
+    )
+    phases.append(phase)
+    selected_candidate = all_candidates[
+        final_selection.selected_candidate_id
     ]
+
+    rows = sorted(
+        evaluation_cache.values(),
+        key=lambda row: (row.candidate_id, row.patient_id),
+    )
+    failure_rows = sorted(
+        failures.values(),
+        key=lambda item: (item.candidate_id, item.patient_id),
+    )
 
     payload: dict[str, object] = {
         "schema_version": STAGE8_SELECTION_SCHEMA_VERSION,
@@ -521,40 +483,32 @@ def select_stage8_model_family(
         },
         "leakage_control": {
             "development_t2_loaded": True,
-            "development_patient_ids": list(development_ids),
+            "development_patient_ids": list(patient_ids),
+            "internal_validation_t2_loaded": False,
             "untouched_holdout_t2_loaded": False,
             "candidate_selection_uses_only_development_exposed": True,
         },
         "selection_rule": {
-            "candidate_ranking": [
-                "mean_t2_dice_desc",
-                "median_t2_dice_desc",
-                "mean_relative_volume_error_asc",
-                "complexity_rank_asc",
-                "candidate_id_asc",
+            "design": "sequential_nested_ablation_v1",
+            "phase_order": [
+                "radiobiology",
+                "dose",
+                "treatment-memory",
+                "final-alpha-sensitivity",
             ],
-            "internal_validation": "leave_one_patient_out",
-        },
-        "selected_candidate": asdict(selected_candidate),
-        "loo": {
-            "mean_dice": selection.loo_mean_dice,
-            "median_dice": selection.loo_median_dice,
-            "mean_relative_volume_error": (
-                selection.loo_mean_relative_volume_error
+            "within_phase_ranking": (
+                "paired mean Dice desc, median Dice desc, mean relative "
+                "volume error asc, complexity asc, candidate ID"
             ),
-            "selection_counts": selection.loo_selection_counts,
-            "folds": [asdict(fold) for fold in selection.loo_folds],
+            "cross_validation": "leave-one-patient-out within each phase",
         },
-        "candidate_summaries": [
-            asdict(summary)
-            for summary in selection.candidate_summaries
-        ],
-        "patient_candidate_evaluations": [
-            asdict(row) for row in rows
-        ],
-        "candidate_failures": [
-            asdict(failure) for failure in failures
-        ],
+        "selected_candidate": _candidate_payload(selected_candidate),
+        "phases": phases,
+        "evaluated_unique_candidate_count": len(
+            {row.candidate_id for row in rows}
+        ),
+        "patient_candidate_results": [asdict(row) for row in rows],
+        "failures": [asdict(item) for item in failure_rows],
     }
 
     destination.parent.mkdir(parents=True, exist_ok=True)
@@ -564,7 +518,6 @@ def select_stage8_model_family(
             prefix=f".{destination.name}-",
         )
     )
-
     try:
         manifest_path = temporary / "stage8_model_selection.json"
         manifest_path.write_text(
