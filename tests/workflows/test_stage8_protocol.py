@@ -22,6 +22,9 @@ observation_model:
   enhancing_detection_threshold: 0.80
   infiltrative_detection_threshold: 0.16
   transition_width_mm: 4.0
+radiobiology:
+  alpha_beta_ratio_gy: 10.0
+  effective_alpha_candidates_per_gy: [0.01, 0.10, 0.12, 0.14]
 chemotherapy:
   enabled: false
 treatment_memory:
@@ -41,6 +44,13 @@ def test_load_stage8_protocol_config(tmp_path: Path) -> None:
     assert config.exposed_development_patient_ids == (8, 25)
     assert config.required_timepoints == ("t0", "t1", "t2")
     assert config.observation.enhancing_detection_threshold == pytest.approx(0.8)
+    assert config.radiobiology.alpha_beta_ratio_gy == pytest.approx(10.0)
+    assert config.radiobiology.effective_alpha_candidates_per_gy == (
+        0.01,
+        0.10,
+        0.12,
+        0.14,
+    )
     assert config.treatment_memory.proliferation_survival_candidates == (
         1.0,
         0.99,
