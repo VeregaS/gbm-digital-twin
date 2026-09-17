@@ -353,6 +353,41 @@ def _parse_patient(
     }
 
 
+def _parse_evaluation_kind(
+    root_payload: dict[str, object],
+) -> tuple[str, str]:
+    kind = _require_string(
+        root_payload,
+        "kind",
+    )
+
+    if kind == "v2_cohort_evaluation":
+        return (
+            kind,
+            "V2",
+        )
+
+    if kind == "v3_cohort_evaluation":
+        model_version = _require_string(
+            root_payload,
+            "model_version",
+        )
+
+        if model_version != "V3":
+            raise ValueError(
+                "V3 cohort evaluation model version is invalid"
+            )
+
+        return (
+            kind,
+            model_version,
+        )
+
+    raise ValueError(
+        "Artifact is not a supported cohort evaluation"
+    )
+
+
 def load_sealed_cohort_evaluation(
     directory: Path,
 ) -> CohortEvaluationResult:
@@ -434,17 +469,12 @@ def load_sealed_cohort_evaluation(
             "schema version"
         )
 
-    if (
-        _require_string(
-            root_payload,
-            "kind",
-        )
-        != "v2_cohort_evaluation"
-    ):
-        raise ValueError(
-            "Artifact is not a V2 "
-            "cohort evaluation"
-        )
+    (
+        evaluation_kind,
+        model_version,
+    ) = _parse_evaluation_kind(
+        root_payload
+    )
 
     if not _require_bool(
         root_payload,
@@ -559,7 +589,7 @@ def load_sealed_cohort_evaluation(
         "schema_version": (
             COHORT_EVALUATION_SCHEMA_VERSION
         ),
-        "kind": "v2_cohort_evaluation",
+        "kind": evaluation_kind,
         "sealed": True,
         "source_freeze_manifest_sha256": (
             _require_sha256(
@@ -578,6 +608,11 @@ def load_sealed_cohort_evaluation(
         ),
         "patients": patients,
     }
+
+    if model_version == "V3":
+        payload["model_version"] = (
+            model_version
+        )
 
     return CohortEvaluationResult(
         directory=root,
