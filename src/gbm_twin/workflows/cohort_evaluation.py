@@ -6,7 +6,7 @@ import shutil
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path
-from typing import TypedDict, cast
+from typing import Literal, NotRequired, TypedDict, cast
 
 from gbm_twin.evaluation.config import (
     CohortExperimentConfig,
@@ -15,21 +15,30 @@ from gbm_twin.evaluation.config import (
 from gbm_twin.evaluation.frozen_prediction import (
     FrozenV2EvaluationResult,
     evaluate_frozen_v2_prediction,
+    evaluate_frozen_v3_prediction,
 )
 from gbm_twin.workflows.cohort_freeze import (
     COHORT_FREEZE_SCHEMA_VERSION,
 )
 from gbm_twin.workflows.patients import (
+    PreparedPatientTimepoint,
     prepare_patient_timepoint,
 )
 from gbm_twin.workflows.prediction import (
+    FrozenPredictionArtifact,
     load_frozen_v2_prediction,
+    load_frozen_v3_prediction,
 )
 from gbm_twin.workflows.provenance import (
     sha256_file,
 )
 
 COHORT_EVALUATION_SCHEMA_VERSION = 1
+
+ModelVersion = Literal[
+    "V2",
+    "V3",
+]
 
 
 class MethodMetricsPayload(TypedDict):
@@ -75,6 +84,7 @@ class CohortEvaluationPayload(TypedDict):
     target_spacing: list[float]
     source_artifacts: list[SourceArtifactPayload]
     patients: list[PatientEvaluationPayload]
+    model_version: NotRequired[str]
 
 
 @dataclass(frozen=True)
@@ -88,7 +98,8 @@ class CohortEvaluationResult:
     ) -> tuple[int, ...]:
         return tuple(
             patient["patient_id"]
-            for patient in self.manifest["patients"]
+            for patient
+            in self.manifest["patients"]
         )
 
 
@@ -101,6 +112,7 @@ class _FrozenPatientReference:
 @dataclass(frozen=True)
 class _SourceFreeze:
     manifest_sha256: str
+    model_version: ModelVersion
 
     dataset_name: str
     dataset_version: int
@@ -135,9 +147,7 @@ def _require_mapping(
     mapping: dict[str, object],
     key: str,
 ) -> dict[str, object]:
-    value = mapping.get(
-        key
-    )
+    value = mapping.get(key)
 
     if not isinstance(
         value,
@@ -157,9 +167,7 @@ def _require_list(
     mapping: dict[str, object],
     key: str,
 ) -> list[object]:
-    value = mapping.get(
-        key
-    )
+    value = mapping.get(key)
 
     if not isinstance(
         value,
@@ -179,9 +187,7 @@ def _require_string(
     mapping: dict[str, object],
     key: str,
 ) -> str:
-    value = mapping.get(
-        key
-    )
+    value = mapping.get(key)
 
     if not isinstance(
         value,
@@ -205,9 +211,7 @@ def _require_int(
     mapping: dict[str, object],
     key: str,
 ) -> int:
-    value = mapping.get(
-        key
-    )
+    value = mapping.get(key)
 
     if type(value) is not int:
         raise ValueError(
@@ -224,9 +228,7 @@ def _require_bool(
     mapping: dict[str, object],
     key: str,
 ) -> bool:
-    value = mapping.get(
-        key
-    )
+    value = mapping.get(key)
 
     if type(value) is not bool:
         raise ValueError(
@@ -370,6 +372,20 @@ def _read_sealed_json(
     )
 
 
+def _model_version_from_kind(
+    kind: str,
+) -> ModelVersion:
+    if kind == "v2_cohort_freeze":
+        return "V2"
+
+    if kind == "v3_cohort_freeze":
+        return "V3"
+
+    raise ValueError(
+        "Artifact is not a supported cohort freeze"
+    )
+
+
 def _parse_source_freeze(
     cohort_dir: Path,
 ) -> _SourceFreeze:
@@ -401,16 +417,16 @@ def _parse_source_freeze(
             "Unsupported cohort freeze schema version"
         )
 
-    if (
-        _require_string(
-            manifest,
-            "kind",
+    kind = _require_string(
+        manifest,
+        "kind",
+    )
+
+    model_version = (
+        _model_version_from_kind(
+            kind
         )
-        != "v2_cohort_freeze"
-    ):
-        raise ValueError(
-            "Artifact is not a V2 cohort freeze"
-        )
+    )
 
     if not _require_bool(
         manifest,
@@ -434,6 +450,34 @@ def _parse_source_freeze(
         manifest,
         "experiment",
     )
+
+    if model_version == "V3":
+        model = _require_mapping(
+            manifest,
+            "model",
+        )
+
+        if (
+            _require_string(
+                model,
+                "version",
+            )
+            != "V3"
+        ):
+            raise ValueError(
+                "V3 cohort freeze model metadata is invalid"
+            )
+
+        if (
+            _require_string(
+                model,
+                "protocol_version",
+            )
+            != "v3-post-rt-1"
+        ):
+            raise ValueError(
+                "Unsupported V3 cohort protocol version"
+            )
 
     raw_patients = _require_list(
         manifest,
@@ -493,6 +537,7 @@ def _parse_source_freeze(
         manifest_sha256=(
             manifest_sha256
         ),
+        model_version=model_version,
         dataset_name=_require_string(
             dataset,
             "name",
@@ -570,6 +615,21 @@ def _resolve_artifact_dir(
     return resolved
 
 
+def _load_source_artifact(
+    *,
+    model_version: ModelVersion,
+    artifact_dir: Path,
+) -> FrozenPredictionArtifact:
+    if model_version == "V2":
+        return load_frozen_v2_prediction(
+            artifact_dir
+        )
+
+    return load_frozen_v3_prediction(
+        artifact_dir
+    )
+
+
 def _validate_all_artifacts(
     *,
     cohort_root: Path,
@@ -595,8 +655,13 @@ def _validate_all_artifacts(
         )
 
         artifact = (
-            load_frozen_v2_prediction(
-                artifact_dir
+            _load_source_artifact(
+                model_version=(
+                    source.model_version
+                ),
+                artifact_dir=(
+                    artifact_dir
+                ),
             )
         )
 
@@ -785,6 +850,24 @@ def _evaluation_payload(
     }
 
 
+def _evaluate_artifact(
+    *,
+    source: _SourceFreeze,
+    artifact_dir: Path,
+    observed_target: PreparedPatientTimepoint,
+) -> FrozenV2EvaluationResult:
+    if source.model_version == "V2":
+        return evaluate_frozen_v2_prediction(
+            artifact_dir=artifact_dir,
+            observed_target=observed_target,
+        )
+
+    return evaluate_frozen_v3_prediction(
+        artifact_dir=artifact_dir,
+        observed_target=observed_target,
+    )
+
+
 def evaluate_frozen_cohort(
     *,
     cohort_dir: Path,
@@ -823,9 +906,9 @@ def evaluate_frozen_cohort(
         ),
     )
 
-    # Important anti-leakage boundary:
-    # every frozen prediction is validated
-    # before the first t2 is loaded.
+    # Anti-leakage boundary: validate every
+    # frozen prediction before the first t2
+    # observation is loaded.
     validated_artifacts = (
         _validate_all_artifacts(
             cohort_root=cohort_root,
@@ -879,7 +962,8 @@ def evaluate_frozen_cohort(
         )
 
         evaluation = (
-            evaluate_frozen_v2_prediction(
+            _evaluate_artifact(
+                source=source,
                 artifact_dir=(
                     validated.artifact_dir
                 ),
@@ -895,15 +979,19 @@ def evaluate_frozen_cohort(
             )
         )
 
+    evaluation_kind = (
+        "v3_cohort_evaluation"
+        if source.model_version == "V3"
+        else "v2_cohort_evaluation"
+    )
+
     manifest: (
         CohortEvaluationPayload
     ) = {
         "schema_version": (
             COHORT_EVALUATION_SCHEMA_VERSION
         ),
-        "kind": (
-            "v2_cohort_evaluation"
-        ),
+        "kind": evaluation_kind,
         "sealed": True,
         "source_freeze_manifest_sha256": (
             source.manifest_sha256
@@ -933,6 +1021,11 @@ def evaluate_frozen_cohort(
             patient_results
         ),
     }
+
+    if source.model_version == "V3":
+        manifest["model_version"] = (
+            source.model_version
+        )
 
     destination.parent.mkdir(
         parents=True,
