@@ -27,13 +27,9 @@ function TwinQCTab({
   ) {
     return (
       <div
-        className={
-          "twin-tab-state error"
-        }
+        className="twin-tab-state error"
       >
-        QC unavailable:
-        {" "}
-        {error}
+        Контроль качества недоступен: {error}
       </div>
     );
   }
@@ -41,32 +37,22 @@ function TwinQCTab({
   if (qc === null) {
     return (
       <div
-        className={
-          "twin-tab-state"
-        }
+        className="twin-tab-state"
       >
-        Loading technical QC…
+        Загружаем технический контроль качества…
       </div>
     );
   }
 
   return (
     <div
-      className={
-        "twin-tab-stack"
-      }
+      className="twin-tab-stack"
     >
       <section
         className={
           qc.warnings.length === 0
-            ? (
-              "twin-qc-status "
-              + "clear"
-            )
-            : (
-              "twin-qc-status "
-              + "warning"
-            )
+            ? "twin-qc-status clear"
+            : "twin-qc-status warning"
         }
       >
         {qc.warnings.length === 0 ? (
@@ -82,38 +68,24 @@ function TwinQCTab({
         <div>
           <strong>
             {qc.warnings.length === 0
-              ? (
-                "No automated "
-                + "geometry warnings"
-              )
-              : (
-                `${qc.warnings.length} `
-                + "automated QC "
-                + "warning(s)"
-              )}
+              ? "Автоматические геометрические проверки не нашли предупреждений"
+              : `${qc.warnings.length} предупреждений технического контроля качества`}
           </strong>
 
           <span>
-            These checks describe
-            masks and geometry only.
-            They are not clinical
-            quality assessments.
+            Эти проверки описывают геометрию масок и их положение относительно маски мозга. Они не являются клинической оценкой качества данных.
           </span>
         </div>
       </section>
 
       {qc.warnings.length > 0 && (
         <section
-          className={
-            "twin-qc-warning-list"
-          }
+          className="twin-qc-warning-list"
         >
           {qc.warnings.map(
             (warning) => (
               <article
-                key={
-                  warning.code
-                }
+                key={warning.code}
               >
                 <AlertTriangle
                   size={16}
@@ -122,17 +94,18 @@ function TwinQCTab({
                 <div>
                   <strong>
                     {
-                      warning.code
-                      .replaceAll(
-                        "_",
-                        " ",
+                      warningTitle(
+                        warning.code,
                       )
                     }
                   </strong>
 
                   <span>
                     {
-                      warning.message
+                      warningMessage(
+                        warning.code,
+                        warning.message,
+                      )
                     }
                   </span>
                 </div>
@@ -143,27 +116,25 @@ function TwinQCTab({
       )}
 
       <section
-        className={
-          "twin-qc-grid"
-        }
+        className="twin-qc-grid"
       >
         <MaskCard
-          title="Observed t2"
+          title="Реальная t2"
           qc={qc.observed}
         />
 
         <MaskCard
-          title="Digital Twin"
+          title="Цифровой двойник"
           qc={qc.twin}
         />
 
         <MaskCard
-          title="Persistence"
+          title="Без изменений"
           qc={qc.persistence}
         />
 
         <MaskCard
-          title="Volume baseline"
+          title="Прогноз по объёму"
           qc={
             qc.volume_baseline
           }
@@ -186,9 +157,7 @@ function MaskCard({
 }: MaskCardProps) {
   return (
     <article
-      className={
-        "twin-qc-card"
-      }
+      className="twin-qc-card"
     >
       <header>
         <strong>
@@ -198,14 +167,14 @@ function MaskCard({
         <span>
           {qc.volume_cm3
           .toFixed(2)}
-          {" cm³"}
+          {" см³"}
         </span>
       </header>
 
       <dl>
         <div>
           <dt>
-            Components
+            Связные компоненты
           </dt>
 
           <dd>
@@ -215,7 +184,7 @@ function MaskCard({
 
         <div>
           <dt>
-            Largest component
+            Доля крупнейшей компоненты
           </dt>
 
           <dd>
@@ -238,7 +207,7 @@ function MaskCard({
 
         <div>
           <dt>
-            Outside brain
+            За пределами мозга
           </dt>
 
           <dd>
@@ -261,7 +230,7 @@ function MaskCard({
 
         <div>
           <dt>
-            Centroid in brain
+            Центр внутри мозга
           </dt>
 
           <dd>
@@ -272,14 +241,81 @@ function MaskCard({
                 ? "—"
                 : qc
                   .centroid_inside_brain
-                    ? "Yes"
-                    : "No"
+                    ? "Да"
+                    : "Нет"
             }
           </dd>
         </div>
       </dl>
     </article>
   );
+}
+
+
+function warningTitle(
+  code: string,
+): string {
+  switch (code) {
+    case "observed_empty":
+      return "Реальная сегментация t2 пуста";
+    case "observed_outside_brain":
+      return "Реальная t2 выходит за маску мозга";
+    case "observed_fragmented":
+      return "Реальная t2 фрагментирована";
+    case "twin_empty":
+      return "Прогноз двойника пуст";
+    case "twin_outside_brain":
+      return "Прогноз двойника выходит за маску мозга";
+    case "twin_fragmented":
+      return "Прогноз двойника фрагментирован";
+    case "persistence_outside_brain":
+      return "Baseline «без изменений» выходит за маску мозга";
+    case "volume_baseline_outside_brain":
+      return "Прогноз по объёму выходит за маску мозга";
+    default:
+      return code.replaceAll(
+        "_",
+        " ",
+      );
+  }
+}
+
+
+function warningMessage(
+  code: string,
+  fallback: string,
+): string {
+  if (
+    code.includes(
+      "outside_brain"
+    )
+  ) {
+    return (
+      "Часть маски лежит вне вычислительной маски мозга. "
+      + "Это может быть особенностью исходной сегментации, маски мозга, регистрации или ресемплинга."
+    );
+  }
+
+  if (
+    code.includes(
+      "fragmented"
+    )
+  ) {
+    return (
+      "Маска состоит из нескольких раздельных областей. "
+      + "Проверьте мелкие удалённые компоненты в режимах «Сравнение» и 3D."
+    );
+  }
+
+  if (
+    code.includes(
+      "empty"
+    )
+  ) {
+    return "Маска не содержит положительных вокселей.";
+  }
+
+  return fallback;
 }
 
 
