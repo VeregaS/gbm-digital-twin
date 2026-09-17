@@ -5,7 +5,7 @@ import shutil
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path
-from typing import TypedDict
+from typing import NotRequired, TypedDict
 
 from gbm_twin.data.dataset_manifest import (
     CFBDatasetManifest,
@@ -23,6 +23,10 @@ from gbm_twin.workflows.eligibility import (
 )
 from gbm_twin.workflows.patient_twin import (
     PatientTwinService,
+)
+from gbm_twin.workflows.post_rt_selection_artifact import (
+    SelectedPostRTCandidate,
+    load_selected_post_rt_candidate,
 )
 from gbm_twin.workflows.provenance import (
     sha256_file,
@@ -73,6 +77,16 @@ class ExperimentPayload(TypedDict):
     selected_patient_ids: list[int]
 
 
+class ModelPayload(TypedDict):
+    version: str
+    protocol_version: str
+    post_rt_candidate_id: str
+    post_rt_initial_kill_rate_per_day: float
+    post_rt_decay_time_days: float
+    post_rt_selection_manifest_sha256: str
+    post_rt_selection_config_sha256: str
+
+
 class CohortFreezeManifestPayload(TypedDict):
     schema_version: int
     kind: str
@@ -82,6 +96,7 @@ class CohortFreezeManifestPayload(TypedDict):
     experiment: ExperimentPayload
     frozen_patients: list[FrozenPatientPayload]
     excluded_patients: list[ExcludedPatientPayload]
+    model: NotRequired[ModelPayload]
 
 
 @dataclass(frozen=True)
@@ -140,6 +155,10 @@ def _build_service(
     dataset_manifest: CFBDatasetManifest,
     calibration_config: V2CalibrationConfig,
     repository_state: RepositoryState,
+    post_rt_selection: (
+        SelectedPostRTCandidate
+        | None
+    ),
 ) -> PatientTwinService:
     return PatientTwinService(
         metadata_root=(
@@ -165,25 +184,63 @@ def _build_service(
             .evaluation
             .target_spacing
         ),
+        post_rt_selection=(
+            post_rt_selection
+        ),
     )
 
 
-def freeze_cohort_from_configs(
+def _model_payload(
+    selection: SelectedPostRTCandidate,
+) -> ModelPayload:
+    return {
+        "version": "V3",
+        "protocol_version": (
+            "v3-post-rt-1"
+        ),
+        "post_rt_candidate_id": (
+            selection.candidate_id
+        ),
+        "post_rt_initial_kill_rate_per_day": (
+            selection
+            .initial_kill_rate_per_day
+        ),
+        "post_rt_decay_time_days": (
+            selection.decay_time_days
+        ),
+        "post_rt_selection_manifest_sha256": (
+            selection
+            .source_manifest_sha256
+        ),
+        "post_rt_selection_config_sha256": (
+            selection
+            .selection_config_sha256
+        ),
+    }
+
+
+def _freeze_cohort(
     *,
     experiment_config_path: Path,
     dataset_manifest_path: Path,
     repo_root: Path,
     cache_root: Path,
     output_root: Path,
-    workers: int = 1,
-    allow_dirty: bool = False,
+    workers: int,
+    allow_dirty: bool,
+    post_rt_selection: (
+        SelectedPostRTCandidate
+        | None
+    ),
 ) -> CohortFreezeResult:
     if workers < 1:
         raise ValueError(
             "workers must be at least 1"
         )
 
-    destination = output_root.resolve()
+    destination = (
+        output_root.resolve()
+    )
 
     if destination.exists():
         raise FileExistsError(
@@ -235,6 +292,25 @@ def freeze_cohort_from_configs(
         repository_state=(
             repository_state
         ),
+        post_rt_selection=(
+            post_rt_selection
+        ),
+    )
+
+    is_v3 = (
+        post_rt_selection is not None
+    )
+
+    cohort_kind = (
+        "v3_cohort_freeze"
+        if is_v3
+        else "v2_cohort_freeze"
+    )
+
+    artifact_leaf = (
+        "frozen-v3"
+        if is_v3
+        else "frozen-v2"
     )
 
     destination.parent.mkdir(
@@ -281,7 +357,7 @@ def freeze_cohort_from_configs(
             relative_artifact_dir = (
                 Path("patients")
                 / f"patient-{patient_id}"
-                / "frozen-v2"
+                / artifact_leaf
             )
 
             artifact_dir = (
@@ -321,9 +397,7 @@ def freeze_cohort_from_configs(
             "schema_version": (
                 COHORT_FREEZE_SCHEMA_VERSION
             ),
-            "kind": (
-                "v2_cohort_freeze"
-            ),
+            "kind": cohort_kind,
             "frozen": True,
             "dataset": {
                 "name": (
@@ -374,6 +448,13 @@ def freeze_cohort_from_configs(
             ),
         }
 
+        if post_rt_selection is not None:
+            manifest["model"] = (
+                _model_payload(
+                    post_rt_selection
+                )
+            )
+
         manifest_path = (
             temporary
             / "cohort_manifest.json"
@@ -416,4 +497,68 @@ def freeze_cohort_from_configs(
     return CohortFreezeResult(
         directory=destination,
         manifest=manifest,
+    )
+
+
+def freeze_cohort_from_configs(
+    *,
+    experiment_config_path: Path,
+    dataset_manifest_path: Path,
+    repo_root: Path,
+    cache_root: Path,
+    output_root: Path,
+    workers: int = 1,
+    allow_dirty: bool = False,
+) -> CohortFreezeResult:
+    return _freeze_cohort(
+        experiment_config_path=(
+            experiment_config_path
+        ),
+        dataset_manifest_path=(
+            dataset_manifest_path
+        ),
+        repo_root=repo_root,
+        cache_root=cache_root,
+        output_root=output_root,
+        workers=workers,
+        allow_dirty=allow_dirty,
+        post_rt_selection=None,
+    )
+
+
+def freeze_v3_cohort_from_configs(
+    *,
+    experiment_config_path: Path,
+    dataset_manifest_path: Path,
+    post_rt_selection_root: Path,
+    repo_root: Path,
+    cache_root: Path,
+    output_root: Path,
+    workers: int = 1,
+    allow_dirty: bool = False,
+) -> CohortFreezeResult:
+    selection = (
+        load_selected_post_rt_candidate(
+            selection_root=(
+                post_rt_selection_root
+            ),
+            experiment_config_path=(
+                experiment_config_path
+            ),
+        )
+    )
+
+    return _freeze_cohort(
+        experiment_config_path=(
+            experiment_config_path
+        ),
+        dataset_manifest_path=(
+            dataset_manifest_path
+        ),
+        repo_root=repo_root,
+        cache_root=cache_root,
+        output_root=output_root,
+        workers=workers,
+        allow_dirty=allow_dirty,
+        post_rt_selection=selection,
     )
