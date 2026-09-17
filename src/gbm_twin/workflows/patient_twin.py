@@ -6,11 +6,8 @@ from gbm_twin.data.cfb_metadata import CFBMetadata
 from gbm_twin.data.cfb_treatment import CFBTreatmentMetadata
 from gbm_twin.data.dataset_manifest import CFBDatasetManifest
 from gbm_twin.models.radiobiology import RadiobiologyParameters
-from gbm_twin.models.rt_schedule import (
-    build_pirt_radiotherapy,
-    reconstruct_weekday_like_schedule,
-)
-from gbm_twin.models.treatment import PIRTFractionatedRadiotherapy
+from gbm_twin.models.solver import TreatmentModel
+from gbm_twin.models.treatment import RadiotherapyProtocol
 from gbm_twin.workflows.calibration import (
     V2_ALPHA_BETA_RATIO_GY,
     V2_EFFECTIVE_ALPHA_PER_GY,
@@ -26,12 +23,20 @@ from gbm_twin.workflows.patients import (
     PreparedPatientTimepoint,
     prepare_patient_timepoint,
 )
+from gbm_twin.workflows.post_rt_selection_artifact import (
+    SelectedPostRTCandidate,
+)
 from gbm_twin.workflows.prediction import (
-    FrozenV2PredictionArtifact,
+    FrozenPredictionArtifact,
     freeze_v2_prediction,
+    freeze_v3_prediction,
 )
 from gbm_twin.workflows.provenance import (
     build_prediction_provenance,
+)
+from gbm_twin.workflows.treatment_protocol import (
+    PostRadiotherapyConfig,
+    reconstruct_patient_treatment,
 )
 
 
@@ -67,6 +72,10 @@ class PatientTwinService:
             float,
             float,
         ] = DEFAULT_TARGET_SPACING,
+        post_rt_selection: (
+            SelectedPostRTCandidate
+            | None
+        ) = None,
     ) -> None:
         self._metadata_root = metadata_root
         self._patients_root = patients_root
@@ -75,6 +84,9 @@ class PatientTwinService:
         self._git_commit_sha = git_commit_sha
         self._git_dirty = git_dirty
         self._target_spacing = target_spacing
+        self._post_rt_selection = (
+            post_rt_selection
+        )
 
         self._metadata = CFBMetadata(
             metadata_root
@@ -85,6 +97,13 @@ class PatientTwinService:
                 metadata_root
             )
         )
+
+    @property
+    def model_version(self) -> str:
+        if self._post_rt_selection is None:
+            return "V2"
+
+        return "V3"
 
     def assess_eligibility(
         self,
@@ -158,7 +177,7 @@ class PatientTwinService:
     def _treatment(
         self,
         patient_id: int,
-    ) -> PIRTFractionatedRadiotherapy:
+    ) -> TreatmentModel:
         record = (
             self._treatment_metadata
             .treatment(
@@ -173,41 +192,6 @@ class PatientTwinService:
                 "unavailable after eligibility"
             )
 
-        start_day = (
-            record.radiotherapy_start_day
-        )
-
-        total_dose_gy = (
-            record.dose_gy
-        )
-
-        fractions_number = (
-            record.fractions_number
-        )
-
-        if (
-            start_day is None
-            or total_dose_gy is None
-            or fractions_number is None
-        ):
-            raise RuntimeError(
-                f"Patient {patient_id}: "
-                "treatment schedule became "
-                "incomplete after eligibility"
-            )
-
-        schedule = (
-            reconstruct_weekday_like_schedule(
-                start_day=start_day,
-                total_dose_gy=(
-                    total_dose_gy
-                ),
-                fractions_number=(
-                    fractions_number
-                ),
-            )
-        )
-
         radiobiology = (
             RadiobiologyParameters(
                 alpha_per_gy=(
@@ -219,10 +203,39 @@ class PatientTwinService:
             )
         )
 
-        return build_pirt_radiotherapy(
-            schedule,
-            radiobiology,
-        )
+        post_rt: (
+            PostRadiotherapyConfig
+            | None
+        ) = None
+
+        if self._post_rt_selection is not None:
+            post_rt = PostRadiotherapyConfig(
+                initial_kill_rate_per_day=(
+                    self._post_rt_selection
+                    .initial_kill_rate_per_day
+                ),
+                decay_time_days=(
+                    self._post_rt_selection
+                    .decay_time_days
+                ),
+            )
+
+        try:
+            reconstructed = (
+                reconstruct_patient_treatment(
+                    record,
+                    radiobiology=radiobiology,
+                    post_rt=post_rt,
+                )
+            )
+        except ValueError as exc:
+            raise RuntimeError(
+                f"Patient {patient_id}: "
+                "treatment schedule became "
+                "incomplete after eligibility"
+            ) from exc
+
+        return reconstructed.model
 
     def freeze_patient(
         self,
@@ -231,7 +244,7 @@ class PatientTwinService:
         cache_dir: Path,
         output_dir: Path,
         workers: int = 1,
-    ) -> FrozenV2PredictionArtifact:
+    ) -> FrozenPredictionArtifact:
         eligibility = (
             self.assess_eligibility(
                 patient_id
@@ -282,12 +295,50 @@ class PatientTwinService:
             )
         )
 
-        return freeze_v2_prediction(
+        if self._post_rt_selection is None:
+            from gbm_twin.models.treatment import (
+                PIRTFractionatedRadiotherapy,
+            )
+
+            if not isinstance(
+                treatment,
+                PIRTFractionatedRadiotherapy,
+            ):
+                raise TypeError(
+                    "V2 treatment must be PIRT fractionated RT"
+                )
+
+            return freeze_v2_prediction(
+                start=start,
+                observed=observed,
+                target=target,
+                provenance=provenance,
+                treatment=treatment,
+                config=(
+                    self._calibration_config
+                ),
+                cache_dir=cache_dir,
+                output_dir=output_dir,
+                workers=workers,
+            )
+
+        if not isinstance(
+            treatment,
+            RadiotherapyProtocol,
+        ):
+            raise TypeError(
+                "V3 treatment must be a radiotherapy protocol"
+            )
+
+        return freeze_v3_prediction(
             start=start,
             observed=observed,
             target=target,
             provenance=provenance,
             treatment=treatment,
+            model_selection=(
+                self._post_rt_selection
+            ),
             config=(
                 self._calibration_config
             ),
