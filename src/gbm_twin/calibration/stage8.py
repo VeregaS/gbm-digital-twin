@@ -41,31 +41,22 @@ class Stage8CalibrationConfig:
     def __post_init__(self) -> None:
         if len(self.diffusion_values) < 2:
             raise ValueError("At least two diffusion values are required")
-
         if len(self.proliferation_values) < 2:
             raise ValueError("At least two proliferation values are required")
-
         if any(value < 0.0 for value in self.diffusion_values):
             raise ValueError("diffusion values must be non-negative")
-
         if any(value < 0.0 for value in self.proliferation_values):
             raise ValueError("proliferation values must be non-negative")
-
         if self.dt_days <= 0.0:
             raise ValueError("dt_days must be positive")
-
         if not 0.0 < self.observation_threshold < 1.0:
             raise ValueError("observation_threshold must be within (0, 1)")
-
         if self.soft_temperature <= 0.0:
             raise ValueError("soft_temperature must be positive")
-
         if self.volume_weight < 0.0:
             raise ValueError("volume_weight must be non-negative")
-
         if self.refinement_rounds < 1:
             raise ValueError("refinement_rounds must be at least 1")
-
         if self.upper_boundary_expansion_factor <= 0.0:
             raise ValueError(
                 "upper_boundary_expansion_factor must be positive"
@@ -95,6 +86,7 @@ _WORKER_OBSERVED_MASK: np.ndarray | None = None
 _WORKER_DOMAIN: np.ndarray | None = None
 _WORKER_SPACING: tuple[float, float, float] | None = None
 _WORKER_DURATION_DAYS: float | None = None
+_WORKER_START_TIME_DAY: float | None = None
 _WORKER_DT_DAYS: float | None = None
 _WORKER_EVENTS: tuple[FractionResponseEvent, ...] | None = None
 _WORKER_THRESHOLD: float | None = None
@@ -117,7 +109,6 @@ def _survival_payload(value: float | np.ndarray) -> object:
             "kind": "field",
             "sha256": _array_digest(value),
         }
-
     return {
         "kind": "scalar",
         "value": float(value),
@@ -131,17 +122,19 @@ def _cache_signature(
     domain_mask: np.ndarray,
     spacing: tuple[float, float, float],
     duration_days: float,
+    start_time_day: float,
     events: tuple[FractionResponseEvent, ...],
     config: Stage8CalibrationConfig,
 ) -> str:
     payload = {
-        "schema": "stage8-calibration-cache-v1",
+        "schema": "stage8-calibration-cache-v2",
         "field": _array_digest(initial_state.field),
         "modifier": _array_digest(initial_state.proliferation_modifier),
         "observed": _array_digest(np.asarray(observed_mask, dtype=np.uint8)),
         "domain": _array_digest(np.asarray(domain_mask, dtype=np.uint8)),
         "spacing": spacing,
         "duration_days": duration_days,
+        "start_time_day": start_time_day,
         "dt_days": config.dt_days,
         "threshold": config.observation_threshold,
         "soft_temperature": config.soft_temperature,
@@ -180,12 +173,7 @@ def _cache_path(
 ) -> Path | None:
     if cache_dir is None:
         return None
-
-    return (
-        cache_dir
-        / signature
-        / f"{_candidate_key(candidate)}.json"
-    )
+    return cache_dir / signature / f"{_candidate_key(candidate)}.json"
 
 
 def _load_cached_result(
@@ -196,7 +184,6 @@ def _load_cached_result(
         return None
 
     raw: object = json.loads(path.read_text(encoding="utf-8"))
-
     if not isinstance(raw, dict):
         return None
 
@@ -209,7 +196,6 @@ def _load_cached_result(
     dice = raw.get("dice")
     volume_error = raw.get("volume_error")
     loss = raw.get("loss")
-
     if not all(
         isinstance(value, (int, float)) and not isinstance(value, bool)
         for value in (dice, volume_error, loss)
@@ -254,6 +240,7 @@ def _initialize_worker(
     domain_mask: np.ndarray,
     spacing: tuple[float, float, float],
     duration_days: float,
+    start_time_day: float,
     dt_days: float,
     events: tuple[FractionResponseEvent, ...],
     threshold: float,
@@ -266,6 +253,7 @@ def _initialize_worker(
     global _WORKER_DOMAIN
     global _WORKER_SPACING
     global _WORKER_DURATION_DAYS
+    global _WORKER_START_TIME_DAY
     global _WORKER_DT_DAYS
     global _WORKER_EVENTS
     global _WORKER_THRESHOLD
@@ -278,6 +266,7 @@ def _initialize_worker(
     _WORKER_DOMAIN = domain_mask
     _WORKER_SPACING = spacing
     _WORKER_DURATION_DAYS = duration_days
+    _WORKER_START_TIME_DAY = start_time_day
     _WORKER_DT_DAYS = dt_days
     _WORKER_EVENTS = events
     _WORKER_THRESHOLD = threshold
@@ -293,13 +282,13 @@ def _run_candidate(candidate: _Candidate) -> CalibrationResult:
         _WORKER_DOMAIN,
         _WORKER_SPACING,
         _WORKER_DURATION_DAYS,
+        _WORKER_START_TIME_DAY,
         _WORKER_DT_DAYS,
         _WORKER_EVENTS,
         _WORKER_THRESHOLD,
         _WORKER_TEMPERATURE,
         _WORKER_VOLUME_WEIGHT,
     )
-
     if any(value is None for value in required):
         raise RuntimeError("Stage 8 calibration worker is not initialized")
 
@@ -309,6 +298,7 @@ def _run_candidate(candidate: _Candidate) -> CalibrationResult:
     domain = _WORKER_DOMAIN
     spacing = _WORKER_SPACING
     duration_days = _WORKER_DURATION_DAYS
+    start_time_day = _WORKER_START_TIME_DAY
     dt_days = _WORKER_DT_DAYS
     events = _WORKER_EVENTS
     threshold = _WORKER_THRESHOLD
@@ -321,6 +311,7 @@ def _run_candidate(candidate: _Candidate) -> CalibrationResult:
     assert domain is not None
     assert spacing is not None
     assert duration_days is not None
+    assert start_time_day is not None
     assert dt_days is not None
     assert events is not None
     assert threshold is not None
@@ -340,7 +331,7 @@ def _run_candidate(candidate: _Candidate) -> CalibrationResult:
         spacing=spacing,
         duration_days=duration_days,
         dt=dt_days,
-        start_time_day=0.0,
+        start_time_day=start_time_day,
         fraction_events=events,
         domain_mask=domain,
     )
@@ -367,17 +358,14 @@ def _deduplicate(
     results: list[CalibrationResult],
 ) -> list[CalibrationResult]:
     by_key: dict[tuple[float, float], CalibrationResult] = {}
-
     for result in results:
         key = (
             round(float(result.diffusion), 12),
             round(float(result.proliferation), 12),
         )
         existing = by_key.get(key)
-
         if existing is None or result.loss < existing.loss:
             by_key[key] = result
-
     return sorted(by_key.values(), key=lambda item: item.loss)
 
 
@@ -390,6 +378,7 @@ def _evaluate_grid(
     domain_mask: np.ndarray,
     spacing: tuple[float, float, float],
     duration_days: float,
+    start_time_day: float,
     events: tuple[FractionResponseEvent, ...],
     config: Stage8CalibrationConfig,
     signature: str,
@@ -397,7 +386,10 @@ def _evaluate_grid(
     workers: int,
 ) -> list[CalibrationResult]:
     candidates = [
-        _Candidate(diffusion=float(diffusion), proliferation=float(proliferation))
+        _Candidate(
+            diffusion=float(diffusion),
+            proliferation=float(proliferation),
+        )
         for diffusion in diffusion_values
         for proliferation in proliferation_values
     ]
@@ -409,7 +401,6 @@ def _evaluate_grid(
             _cache_path(cache_dir, signature, candidate),
             candidate,
         )
-
         if cached is None:
             pending.append(candidate)
         else:
@@ -423,6 +414,7 @@ def _evaluate_grid(
             np.asarray(domain_mask, dtype=bool),
             spacing,
             duration_days,
+            start_time_day,
             config.dt_days,
             events,
             config.observation_threshold,
@@ -461,21 +453,21 @@ def calibrate_stage8_interval(
     duration_days: float,
     fraction_events: tuple[FractionResponseEvent, ...],
     config: Stage8CalibrationConfig,
+    start_time_day: float = 0.0,
     cache_dir: Path | None = None,
     workers: int = 1,
 ) -> Stage8CalibrationRun:
     if duration_days <= 0.0:
         raise ValueError("duration_days must be positive")
-
+    if start_time_day < 0.0:
+        raise ValueError("start_time_day must be non-negative")
     if workers < 1:
         raise ValueError("workers must be at least 1")
 
     observed = np.asarray(observed_mask, dtype=bool)
     domain = np.asarray(domain_mask, dtype=bool)
-
     if observed.shape != initial_state.field.shape:
         raise ValueError("observed_mask must match initial state")
-
     if domain.shape != initial_state.field.shape:
         raise ValueError("domain_mask must match initial state")
 
@@ -485,22 +477,27 @@ def calibrate_stage8_interval(
         domain_mask=domain,
         spacing=spacing,
         duration_days=duration_days,
+        start_time_day=start_time_day,
         events=fraction_events,
         config=config,
     )
+    common = {
+        "initial_state": initial_state,
+        "observed_mask": observed,
+        "domain_mask": domain,
+        "spacing": spacing,
+        "duration_days": duration_days,
+        "start_time_day": start_time_day,
+        "events": fraction_events,
+        "config": config,
+        "signature": signature,
+        "cache_dir": cache_dir,
+        "workers": workers,
+    }
     coarse = _evaluate_grid(
         diffusion_values=list(config.diffusion_values),
         proliferation_values=list(config.proliferation_values),
-        initial_state=initial_state,
-        observed_mask=observed,
-        domain_mask=domain,
-        spacing=spacing,
-        duration_days=duration_days,
-        events=fraction_events,
-        config=config,
-        signature=signature,
-        cache_dir=cache_dir,
-        workers=workers,
+        **common,
     )
     coarse_best = coarse[0]
     all_results = list(coarse)
@@ -529,16 +526,7 @@ def calibrate_stage8_interval(
         round_results = _evaluate_grid(
             diffusion_values=refined_diffusion,
             proliferation_values=refined_proliferation,
-            initial_state=initial_state,
-            observed_mask=observed,
-            domain_mask=domain,
-            spacing=spacing,
-            duration_days=duration_days,
-            events=fraction_events,
-            config=config,
-            signature=signature,
-            cache_dir=cache_dir,
-            workers=workers,
+            **common,
         )
         refined_results.extend(round_results)
         all_results.extend(round_results)
