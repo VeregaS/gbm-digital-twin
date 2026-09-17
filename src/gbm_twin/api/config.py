@@ -18,6 +18,10 @@ DEFAULT_COHORT_EVALUATION_ROOT = Path(
     "results/cohort/v2-evaluation"
 )
 
+DEFAULT_COHORT_ANALYSIS_ROOT = Path(
+    "results/cohort/v2-analysis"
+)
+
 
 @dataclass(frozen=True)
 class ApiSettings:
@@ -33,6 +37,10 @@ class ApiSettings:
     ) = None
 
     cohort_evaluation_root: (
+        Path | None
+    ) = None
+
+    cohort_analysis_root: (
         Path | None
     ) = None
 
@@ -113,6 +121,15 @@ class ApiSettings:
             )
         )
 
+        cohort_analysis_root = Path(
+            os.environ.get(
+                "GBM_TWIN_COHORT_ANALYSIS_ROOT",
+                str(
+                    DEFAULT_COHORT_ANALYSIS_ROOT
+                ),
+            )
+        )
+
         return cls(
             dataset_root=dataset_root,
             metadata_root=metadata_root,
@@ -123,6 +140,9 @@ class ApiSettings:
             ),
             cohort_evaluation_root=(
                 cohort_evaluation_root
+            ),
+            cohort_analysis_root=(
+                cohort_analysis_root
             ),
         )
 
