@@ -96,8 +96,14 @@ def prepare_stage8_forecast_inputs(
     treatment: CFBTreatmentMetadata,
     observation_parameters: MRIDetectionObservationParameters,
     load_spatial_rtdose: bool = True,
+    require_spatial_rtdose: bool = False,
 ) -> Stage8ForecastInputs:
     """Load t0/t1 and reusable treatment inputs without opening t2."""
+
+    if require_spatial_rtdose and not load_spatial_rtdose:
+        raise ValueError(
+            "require_spatial_rtdose cannot be true when RTDOSE loading is disabled"
+        )
 
     start = prepare_patient_timepoint(
         metadata_root=metadata_root,
@@ -149,6 +155,12 @@ def prepare_stage8_forecast_inputs(
                 dtype=np.float32,
             )
             rtdose_source_path = prepared_dose.source_path
+
+    if require_spatial_rtdose and cumulative_rtdose is None:
+        raise FileNotFoundError(
+            f"Patient {patient_id}: audit requires RTDOSE but no local RTDOSE "
+            "NIfTI was materialized"
+        )
 
     return Stage8ForecastInputs(
         patient_id=patient_id,
