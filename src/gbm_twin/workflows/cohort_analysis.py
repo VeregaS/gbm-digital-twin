@@ -20,6 +20,10 @@ from gbm_twin.evaluation.error_analysis_config import (
     CohortErrorAnalysisConfig,
     load_cohort_error_analysis_config,
 )
+from gbm_twin.workflows.cohort_evaluation import (
+    CohortEvaluationPayload,
+    PatientEvaluationPayload,
+)
 from gbm_twin.workflows.cohort_results import (
     load_sealed_cohort_evaluation,
 )
@@ -204,24 +208,12 @@ def _patient_record(
     patients_root: Path,
     cohort_freeze_root: Path,
     cohort_evaluation_root: Path,
-    patient: dict[str, object],
-    evaluation_payload: dict[str, object],
+    patient: PatientEvaluationPayload,
+    evaluation_payload: CohortEvaluationPayload,
     spacing: tuple[float, float, float],
     config: CohortErrorAnalysisConfig,
 ) -> CohortPatientErrorRecord:
-    patient_id_raw = patient.get(
-        "patient_id"
-    )
-
-    if type(patient_id_raw) is not int:
-        raise ValueError(
-            "Evaluation patient_id must be an integer"
-        )
-
-    patient_id = cast(
-        int,
-        patient_id_raw,
-    )
+    patient_id = patient["patient_id"]
 
     catalog = get_patient_catalog_summary(
         metadata_root=metadata_root,
@@ -265,10 +257,7 @@ def _patient_record(
 
     artifact = load_frozen_patient_artifact(
         cohort_freeze_root=cohort_freeze_root,
-        payload=cast(
-            object,
-            evaluation_payload,
-        ),
+        payload=evaluation_payload,
         patient_id=patient_id,
     )
 
@@ -289,60 +278,19 @@ def _patient_record(
         patient_id=patient_id,
     )
 
-    def method(
-        name: str,
-    ) -> dict[str, object]:
-        raw = patient.get(name)
-
-        if not isinstance(raw, dict):
-            raise ValueError(
-                f"Evaluation method {name!r} must be a mapping"
-            )
-
-        return cast(
-            dict[str, object],
-            raw,
-        )
-
-    twin = method("twin")
-    persistence = method(
-        "persistence"
-    )
-    volume_baseline = method(
+    twin = patient["twin"]
+    persistence = patient["persistence"]
+    volume_baseline = patient[
         "volume_baseline"
+    ]
+
+    twin_dice = twin["dice"]
+    persistence_dice = persistence[
+        "dice"
+    ]
+    volume_baseline_dice = (
+        volume_baseline["dice"]
     )
-
-    target_day = _require_float(
-        patient,
-        "target_day",
-    )
-
-    twin_dice = _require_float(
-        twin,
-        "dice",
-    )
-
-    persistence_dice = _require_float(
-        persistence,
-        "dice",
-    )
-
-    volume_baseline_dice = _require_float(
-        volume_baseline,
-        "dice",
-    )
-
-    def optional_float(
-        mapping: dict[str, object],
-        key: str,
-    ) -> float | None:
-        if mapping.get(key) is None:
-            return None
-
-        return _require_float(
-            mapping,
-            key,
-        )
 
     return CohortPatientErrorRecord(
         patient_id=patient_id,
@@ -352,7 +300,7 @@ def _patient_record(
         forecast_horizon_days=(
             catalog.dt12_days
         ),
-        target_day=target_day,
+        target_day=patient["target_day"],
         rt_start_day=(
             catalog.treatment.rt_start_day
         ),
@@ -400,37 +348,34 @@ def _patient_record(
             calibration.proliferation_at_boundary
         ),
         twin_dice=twin_dice,
-        twin_volume_error=_require_float(
-            twin,
-            "relative_volume_error",
+        twin_volume_error=(
+            twin[
+                "relative_volume_error"
+            ]
         ),
-        twin_hd95_mm=optional_float(
-            twin,
-            "hd95_mm",
+        twin_hd95_mm=(
+            twin["hd95_mm"]
         ),
         twin_centroid_distance_mm=(
-            optional_float(
-                twin,
-                "centroid_distance_mm",
-            )
+            twin[
+                "centroid_distance_mm"
+            ]
         ),
         persistence_dice=(
             persistence_dice
         ),
         persistence_volume_error=(
-            _require_float(
-                persistence,
-                "relative_volume_error",
-            )
+            persistence[
+                "relative_volume_error"
+            ]
         ),
         volume_baseline_dice=(
             volume_baseline_dice
         ),
         volume_baseline_volume_error=(
-            _require_float(
-                volume_baseline,
-                "relative_volume_error",
-            )
+            volume_baseline[
+                "relative_volume_error"
+            ]
         ),
         twin_minus_persistence_dice=(
             twin_dice
@@ -540,7 +485,9 @@ def _write_csv(
 
 def _analysis_payload(
     *,
+    evaluation: CohortEvaluationPayload,
     source_evaluation_sha256: str,
+    analysis_config_sha256: str,
     config: CohortErrorAnalysisConfig,
     records: list[CohortPatientErrorRecord],
 ) -> dict[str, object]:
@@ -562,6 +509,20 @@ def _analysis_payload(
         "sealed": True,
         "source_evaluation_sha256": (
             source_evaluation_sha256
+        ),
+        "source_freeze_manifest_sha256": (
+            evaluation[
+                "source_freeze_manifest_sha256"
+            ]
+        ),
+        "analysis_config_sha256": (
+            analysis_config_sha256
+        ),
+        "dataset": dict(
+            evaluation["dataset"]
+        ),
+        "repository": dict(
+            evaluation["repository"]
         ),
         "analysis_config": {
             "stable_volume_change_fraction": (
@@ -611,11 +572,6 @@ def analyze_sealed_cohort(
         evaluation.manifest
     )
 
-    evaluation_payload = cast(
-        dict[str, object],
-        evaluation.manifest,
-    )
-
     records = [
         _patient_record(
             metadata_root=metadata_root,
@@ -626,12 +582,9 @@ def analyze_sealed_cohort(
             cohort_evaluation_root=(
                 cohort_evaluation_root
             ),
-            patient=cast(
-                dict[str, object],
-                patient,
-            ),
+            patient=patient,
             evaluation_payload=(
-                evaluation_payload
+                evaluation.manifest
             ),
             spacing=spacing,
             config=config,
@@ -648,8 +601,14 @@ def analyze_sealed_cohort(
     )
 
     payload = _analysis_payload(
+        evaluation=evaluation.manifest,
         source_evaluation_sha256=(
             source_evaluation_sha256
+        ),
+        analysis_config_sha256=(
+            sha256_file(
+                analysis_config_path.resolve()
+            )
         ),
         config=config,
         records=records,
