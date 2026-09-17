@@ -193,6 +193,18 @@
   box-sizing: border-box;
 }
 
+.twin-timepoint-card footer > div {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.twin-timepoint-card footer small {
+  color: var(--text-tertiary);
+  font-size: 8px;
+  line-height: 1.35;
+}
+
 .twin-side-by-side-wrap {
   position: relative;
   display: grid;
