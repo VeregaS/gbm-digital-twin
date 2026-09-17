@@ -25,11 +25,12 @@ required_timepoints:
   - t1
   - t2
 
-# Minimum contract for a future spatial forecast evaluation.
 required_modalities:
   - t1gd
 
-# These are audited and used to define richer model tiers when available.
+# Raw FLAIR/DWI are audited and prepared, but are not silently converted into
+# tumor masks/cell density. They become model inputs only through a validated
+# observation mapping with explicit provenance.
 preferred_modalities:
   - flair
   - dwi
@@ -37,21 +38,33 @@ preferred_modalities:
 require_complete_rt_schedule: true
 require_rtdose: true
 
-# Literature-backed MRI detection thresholds used by the Stage 8 observation
-# model. They are model assumptions and are versioned here explicitly.
+# Classic PI/PIRT-style MRI detection assumptions. These are hypotheses, not
+# measured cell-density values, so they remain explicit/versioned.
 observation_model:
   enhancing_detection_threshold: 0.80
   infiltrative_detection_threshold: 0.16
   transition_width_mm: 4.0
 
+# Keep alpha/beta fixed while selecting one cohort-level effective alpha on
+# development data. 0.01/Gy is retained as the legacy V2/V3 ablation; the
+# 0.10-0.14/Gy candidates cover the pooled clinical GBM estimate around
+# 0.12/Gy. Patient-specific alpha is deliberately not co-fitted with D/rho
+# from a single treated interval because that inverse problem is underidentified.
+radiobiology:
+  alpha_beta_ratio_gy: 10.0
+  effective_alpha_candidates_per_gy:
+    - 0.01
+    - 0.10
+    - 0.12
+    - 0.14
+
 # Stage 8 does not infer a patient-specific chemotherapy schedule because CFB
-# treatment metadata currently resolves RT timing/dose but not TMZ dose dates.
-# Chemotherapy can be added only when its timing/provenance is explicit.
+# treatment metadata resolves RT timing/dose but not TMZ dose dates.
 chemotherapy:
   enabled: false
 
-# Persistent post-RT proliferation response is represented as a model-family
-# parameter, not fitted to the already revealed V2/V3 t2 outcomes.
+# Long-term reduction of proliferative capacity per fraction. 1.0 is the
+# no-memory nested ablation; lower values are global development candidates.
 treatment_memory:
   enabled: true
   proliferation_survival_candidates:
