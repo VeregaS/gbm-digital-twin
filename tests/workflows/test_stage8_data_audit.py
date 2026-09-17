@@ -59,9 +59,7 @@ def _write_metadata(root: Path) -> None:
     ]
 
     for patient_id in (1, 2, 3, 4):
-        treatment_lines.append(
-            f"{patient_id}\t2\t60\t30"
-        )
+        treatment_lines.append(f"{patient_id}\t2\t60\t30")
 
     (root / "CFB-GBM_treatment_data_test.tsv").write_text(
         "\n".join(treatment_lines) + "\n",
@@ -73,9 +71,11 @@ def _write_metadata(root: Path) -> None:
     ]
 
     for patient_id in (1, 2, 3, 4):
-        imaging_lines.append(
-            f"{patient_id}\tt0\t1\tauto\t1\tmachine\ttps"
-        )
+        for timepoint in ("t0", "t1", "t2"):
+            rtdose = 1 if timepoint == "t0" else 0
+            imaging_lines.append(
+                f"{patient_id}\t{timepoint}\t1\tauto\t{rtdose}\tmachine\ttps"
+            )
 
     (root / "CFB-GBM_treatment_imaging_availability_test.tsv").write_text(
         "\n".join(imaging_lines) + "\n",
@@ -108,12 +108,18 @@ def test_stage8_audit_builds_deterministic_untouched_holdout(
 
     assert summary["patient_count"] == 4
     assert summary["core_eligible_count"] == 4
-    assert summary["untouched_holdout_count"] == 2
+    assert summary["gtv_complete_count"] == 4
+
+    # Patient 2 is the only mpMRI member, so it remains in development.
+    # One of the two non-exposed T1Gd-only patients is held out.
+    assert summary["untouched_holdout_count"] == 1
 
     holdout = split["untouched_holdout_patient_ids"]
     assert isinstance(holdout, list)
     assert 1 not in holdout
-    assert len(holdout) == 2
+    assert 2 not in holdout
+    assert len(holdout) == 1
+    assert split["method"] == "deterministic_stratified_hash_v1"
 
     leakage = result.manifest["leakage_control"]
     assert isinstance(leakage, dict)
