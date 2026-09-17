@@ -140,26 +140,16 @@ def test_adaptive_search_refines_around_coarse_best(
         ] = []
 
         for diffusion in diffusion_values:
-            for proliferation in (
-                proliferation_values
-            ):
+            for proliferation in proliferation_values:
                 loss = (
-                    abs(
-                        diffusion
-                        - 0.005
-                    )
-                    + abs(
-                        proliferation
-                        - 0.035
-                    )
+                    abs(diffusion - 0.005)
+                    + abs(proliferation - 0.035)
                 )
 
                 results.append(
                     CalibrationResult(
                         diffusion=diffusion,
-                        proliferation=(
-                            proliferation
-                        ),
+                        proliferation=proliferation,
                         dice=1.0 - loss,
                         volume_error=0.0,
                         loss=loss,
@@ -215,34 +205,20 @@ def test_adaptive_search_refines_around_coarse_best(
     )
 
     assert len(calls) == 2
+    assert result.coarse_best.diffusion == 0.005
+    assert result.coarse_best.proliferation == 0.035
 
-    assert (
-        result.coarse_best.diffusion
-        == 0.005
-    )
+    assert result.refined_diffusion_values == [
+        0.0025,
+        0.005,
+        0.01,
+    ]
 
-    assert (
-        result.coarse_best.proliferation
-        == 0.035
-    )
-
-    assert (
-        result.refined_diffusion_values
-        == [
-            0.0025,
-            0.005,
-            0.01,
-        ]
-    )
-
-    assert (
-        result.refined_proliferation_values
-        == [
-            0.025,
-            0.035,
-            0.045,
-        ]
-    )
+    assert result.refined_proliferation_values == [
+        0.025,
+        0.035,
+        0.045,
+    ]
 
 
 def test_iterative_search_can_move_beyond_single_upper_expansion(
@@ -373,8 +349,8 @@ def test_iterative_search_can_move_beyond_single_upper_expansion(
 
     evaluated_diffusion = {
         value
-        for diffusion_values, _ in calls
-        for value in diffusion_values
+        for diffusion_axis, _ in calls
+        for value in diffusion_axis
     }
 
     assert max(evaluated_diffusion) >= 0.060
@@ -396,14 +372,6 @@ def test_adaptive_search_rejects_invalid_refinement_controls() -> None:
         dtype=bool,
     )
 
-    common = {
-        "spacing": (2.0, 2.0, 2.0),
-        "duration_days": 10.0,
-        "dt": 1.0,
-        "diffusion_values": [0.0, 0.01],
-        "proliferation_values": [0.0, 0.01],
-    }
-
     with pytest.raises(
         ValueError,
         match="refinement_rounds",
@@ -412,7 +380,11 @@ def test_adaptive_search_rejects_invalid_refinement_controls() -> None:
             initial,
             observed,
             domain,
-            **common,
+            spacing=(2.0, 2.0, 2.0),
+            duration_days=10.0,
+            dt=1.0,
+            diffusion_values=[0.0, 0.01],
+            proliferation_values=[0.0, 0.01],
             refinement_rounds=0,
         )
 
@@ -424,6 +396,10 @@ def test_adaptive_search_rejects_invalid_refinement_controls() -> None:
             initial,
             observed,
             domain,
-            **common,
+            spacing=(2.0, 2.0, 2.0),
+            duration_days=10.0,
+            dt=1.0,
+            diffusion_values=[0.0, 0.01],
+            proliferation_values=[0.0, 0.01],
             upper_boundary_expansion_factor=0.0,
         )
