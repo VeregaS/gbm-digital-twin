@@ -28,6 +28,7 @@ import type {
   ViewerVolumeMetadata,
 } from "../../api/types";
 
+import TwinCohortAnalysisTab from "./TwinCohortAnalysisTab";
 import TwinCompareTab from "./TwinCompareTab";
 import TwinOverviewTab from "./TwinOverviewTab";
 import TwinQCTab from "./TwinQCTab";
@@ -38,7 +39,8 @@ type TwinTab =
   | "overview"
   | "timeline"
   | "compare"
-  | "qc";
+  | "qc"
+  | "cohort_analysis";
 
 
 type QCResult = {
@@ -271,7 +273,7 @@ function DigitalTwinPanel({
             className="twin-export-link"
             href={twinEvaluationJsonUrl}
             download
-            title="Скачать исходную оценку cohort в JSON"
+            title="Скачать исходную оценку когорты в JSON"
           >
             <Download
               size={14}
@@ -284,7 +286,7 @@ function DigitalTwinPanel({
             className="twin-export-link"
             href={twinEvaluationCsvUrl}
             download
-            title="Скачать таблицу оценки cohort в CSV"
+            title="Скачать таблицу оценки когорты в CSV"
           >
             <Download
               size={14}
@@ -333,6 +335,13 @@ function DigitalTwinPanel({
           active={tab}
           onChange={setTab}
         />
+
+        <TabButton
+          label="Анализ когорты"
+          value="cohort_analysis"
+          active={tab}
+          onChange={setTab}
+        />
       </nav>
 
       {tab === "overview" && (
@@ -373,6 +382,14 @@ function DigitalTwinPanel({
           qc={currentRequest.qc}
           error={
             currentRequest.qcError
+          }
+        />
+      )}
+
+      {tab === "cohort_analysis" && (
+        <TwinCohortAnalysisTab
+          selectedPatientId={
+            patient.patient_id
           }
         />
       )}
