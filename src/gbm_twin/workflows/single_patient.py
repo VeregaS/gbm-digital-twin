@@ -42,6 +42,12 @@ def calibration_config_from_experiment(
         volume_weight=(
             evaluation.volume_weight
         ),
+        refinement_rounds=(
+            evaluation.refinement_rounds
+        ),
+        upper_boundary_expansion_factor=(
+            evaluation.upper_boundary_expansion_factor
+        ),
     )
 
 
