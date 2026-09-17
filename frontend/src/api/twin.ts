@@ -3,6 +3,7 @@ import {
 } from "./client";
 
 import type {
+  SurfaceMesh,
   ViewerPlane,
   ViewerVolumeMetadata,
 } from "./types";
@@ -10,9 +11,15 @@ import type {
 
 export type TwinMethodMetrics = {
   dice: number;
-  relative_volume_error: number;
-  hd95_mm: number | null;
-  centroid_distance_mm: number | null;
+
+  relative_volume_error:
+    number;
+
+  hd95_mm:
+    number | null;
+
+  centroid_distance_mm:
+    number | null;
 };
 
 
@@ -23,20 +30,26 @@ export type TwinPatientEvaluation = {
   target_day: number;
 
   twin: TwinMethodMetrics;
-  persistence: TwinMethodMetrics;
-  volume_baseline: TwinMethodMetrics;
+
+  persistence:
+    TwinMethodMetrics;
+
+  volume_baseline:
+    TwinMethodMetrics;
 };
 
 
 export type TwinPatientListItem = {
   patient_id: number;
+
   target_timepoint: string;
   target_day: number;
 };
 
 
 export type TwinPatientListResponse = {
-  patients: TwinPatientListItem[];
+  patients:
+    TwinPatientListItem[];
 };
 
 
@@ -44,14 +57,18 @@ export type TwinMethodSummary = {
   patient_count: number;
 
   hd95_count: number;
-  centroid_distance_count: number;
 
-  mean_dice: number | null;
+  centroid_distance_count:
+    number;
+
+  mean_dice:
+    number | null;
 
   mean_relative_volume_error:
     number | null;
 
-  mean_hd95_mm: number | null;
+  mean_hd95_mm:
+    number | null;
 
   mean_centroid_distance_mm:
     number | null;
@@ -72,13 +89,19 @@ export type TwinCohort = {
     dirty: boolean;
   };
 
-  target_spacing: number[];
+  target_spacing:
+    number[];
 
   patient_count: number;
 
-  twin: TwinMethodSummary;
-  persistence: TwinMethodSummary;
-  volume_baseline: TwinMethodSummary;
+  twin:
+    TwinMethodSummary;
+
+  persistence:
+    TwinMethodSummary;
+
+  volume_baseline:
+    TwinMethodSummary;
 
   twin_better_than_persistence_count:
     number;
@@ -98,10 +121,49 @@ export type TwinOverlayLayer =
   | "observed";
 
 
+export type Twin3DScene = {
+  patient_id: number;
+  timepoint_name: string;
+
+  spacing: [
+    number,
+    number,
+    number,
+  ];
+
+  brain: SurfaceMesh;
+  observed: SurfaceMesh;
+
+  twin: SurfaceMesh;
+  persistence: SurfaceMesh;
+
+  volume_baseline:
+    SurfaceMesh;
+};
+
+
+export const twinEvaluationJsonUrl =
+  "/api/twin/export/evaluation.json";
+
+
+export const twinEvaluationCsvUrl =
+  "/api/twin/export/evaluation.csv";
+
+
 export function fetchTwinCohort():
 Promise<TwinCohort> {
   return requestJson<TwinCohort>(
     "/api/twin/cohort",
+  );
+}
+
+
+export function fetchTwinEvaluations():
+Promise<TwinPatientEvaluation[]> {
+  return requestJson<
+    TwinPatientEvaluation[]
+  >(
+    "/api/twin/evaluations",
   );
 }
 
@@ -141,19 +203,35 @@ export function fetchTwinViewerMetadata(
 }
 
 
+export function fetchTwin3DScene(
+  patientId: number,
+): Promise<Twin3DScene> {
+  return requestJson<
+    Twin3DScene
+  >(
+    (
+      `/api/twin/patients/${patientId}`
+      + "/scene3d"
+    ),
+  );
+}
+
+
 export function twinSliceUrl(
   patientId: number,
   layer: TwinOverlayLayer,
   plane: ViewerPlane,
   index: number,
 ): string {
-  const query = new URLSearchParams({
-    layer,
-    plane,
-    index: String(index),
-  });
+  const query =
+    new URLSearchParams({
+      layer,
+      plane,
+      index: String(index),
+    });
 
   return (
-    `/api/twin/patients/${patientId}/slice?${query.toString()}`
+    `/api/twin/patients/${patientId}`
+    + `/slice?${query.toString()}`
   );
 }

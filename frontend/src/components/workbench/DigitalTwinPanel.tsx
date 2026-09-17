@@ -6,14 +6,19 @@ import {
 
 import {
   Activity,
+  Box,
+  Download,
   ScanLine,
 } from "lucide-react";
 
 import {
   fetchTwinCohort,
+  fetchTwinEvaluations,
   fetchTwinPatient,
   fetchTwinPatients,
   fetchTwinViewerMetadata,
+  twinEvaluationCsvUrl,
+  twinEvaluationJsonUrl,
   twinSliceUrl,
 } from "../../api/twin";
 
@@ -30,19 +35,31 @@ import type {
   ViewerVolumeMetadata,
 } from "../../api/types";
 
+import TwinCohortChart from "./TwinCohortChart";
+import TwinThreeDViewer from "./TwinThreeDViewer";
+
 
 type TwinPatientRequestState =
   | {
       patientId: number;
       status: "success";
-      patient: TwinPatientEvaluation;
-      viewer: ViewerVolumeMetadata;
+
+      patient:
+        TwinPatientEvaluation;
+
+      viewer:
+        ViewerVolumeMetadata;
     }
   | {
       patientId: number;
       status: "error";
       error: string;
     };
+
+
+type ViewerMode =
+  | "2d"
+  | "3d";
 
 
 const layers: {
@@ -93,9 +110,9 @@ function DigitalTwinPanel() {
   const [
     cohort,
     setCohort,
-  ] = useState<TwinCohort | null>(
-    null,
-  );
+  ] = useState<
+    TwinCohort | null
+  >(null);
 
   const [
     patients,
@@ -105,11 +122,18 @@ function DigitalTwinPanel() {
   >([]);
 
   const [
+    cohortEvaluations,
+    setCohortEvaluations,
+  ] = useState<
+    TwinPatientEvaluation[]
+  >([]);
+
+  const [
     selectedPatientId,
     setSelectedPatientId,
-  ] = useState<number | null>(
-    null,
-  );
+  ] = useState<
+    number | null
+  >(null);
 
   const [
     patientRequest,
@@ -121,33 +145,48 @@ function DigitalTwinPanel() {
   const [
     loading,
     setLoading,
-  ] = useState(true);
+  ] = useState(
+    true,
+  );
 
   const [
     error,
     setError,
-  ] = useState<string | null>(
-    null,
+  ] = useState<
+    string | null
+  >(null);
+
+  const [
+    viewerMode,
+    setViewerMode,
+  ] = useState<
+    ViewerMode
+  >(
+    "2d",
   );
 
   const [
     layer,
     setLayer,
-  ] = useState<TwinOverlayLayer>(
+  ] = useState<
+    TwinOverlayLayer
+  >(
     "twin",
   );
 
   const [
     plane,
     setPlane,
-  ] = useState<ViewerPlane>(
+  ] = useState<
+    ViewerPlane
+  >(
     "axial",
   );
 
   const [
     sliceIndex,
     setSliceIndex,
-  ] = useState<number>(
+  ] = useState(
     0,
   );
 
@@ -157,11 +196,13 @@ function DigitalTwinPanel() {
     Promise.all([
       fetchTwinCohort(),
       fetchTwinPatients(),
+      fetchTwinEvaluations(),
     ])
       .then(
         ([
           cohortData,
           patientData,
+          evaluationsData,
         ]) => {
           if (cancelled) {
             return;
@@ -175,6 +216,10 @@ function DigitalTwinPanel() {
             patientData.patients,
           );
 
+          setCohortEvaluations(
+            evaluationsData,
+          );
+
           setError(
             null,
           );
@@ -185,13 +230,17 @@ function DigitalTwinPanel() {
 
           if (firstPatient) {
             setSelectedPatientId(
-              firstPatient.patient_id,
+              firstPatient
+              .patient_id,
             );
           }
         },
       )
       .catch(
-        (requestError: unknown) => {
+        (
+          requestError:
+            unknown,
+        ) => {
           if (cancelled) {
             return;
           }
@@ -199,11 +248,12 @@ function DigitalTwinPanel() {
           setError(
             requestError
               instanceof Error
-              ? requestError.message
-              : (
-                "Failed to load "
-                + "Digital Twin workspace"
-              ),
+                ? requestError.message
+                : (
+                  "Failed to load "
+                  + "Digital Twin "
+                  + "workspace"
+                ),
           );
         },
       )
@@ -271,13 +321,17 @@ function DigitalTwinPanel() {
           );
 
           setSliceIndex(
-            axial?.default_index
+            axial
+            ?.default_index
             ?? 0,
           );
         },
       )
       .catch(
-        (requestError: unknown) => {
+        (
+          requestError:
+            unknown,
+        ) => {
           if (cancelled) {
             return;
           }
@@ -288,7 +342,7 @@ function DigitalTwinPanel() {
             status: "error",
             error:
               requestError
-                instanceof Error
+              instanceof Error
                 ? requestError.message
                 : (
                   "Failed to load "
@@ -308,7 +362,8 @@ function DigitalTwinPanel() {
   const selectedPatientRequest =
     selectedPatientId !== null
     && (
-      patientRequest?.patientId
+      patientRequest
+      ?.patientId
       === selectedPatientId
     )
       ? patientRequest
@@ -317,31 +372,38 @@ function DigitalTwinPanel() {
   const patient =
     selectedPatientRequest?.status
     === "success"
-      ? selectedPatientRequest.patient
+      ? selectedPatientRequest
+        .patient
       : null;
 
   const viewer =
     selectedPatientRequest?.status
     === "success"
-      ? selectedPatientRequest.viewer
+      ? selectedPatientRequest
+        .viewer
       : null;
 
   const patientLoading =
     selectedPatientId !== null
-    && selectedPatientRequest === null;
+    && selectedPatientRequest
+    === null;
 
   const patientError =
     selectedPatientRequest?.status
     === "error"
-      ? selectedPatientRequest.error
+      ? selectedPatientRequest
+        .error
       : null;
 
   const planeMetadata =
     useMemo(
       () =>
-        viewer?.planes.find(
+        viewer
+        ?.planes
+        .find(
           (item) =>
-            item.name === plane,
+            item.name
+            === plane,
         )
         ?? null,
       [
@@ -353,7 +415,9 @@ function DigitalTwinPanel() {
   if (loading) {
     return (
       <section
-        className="workspace-state"
+        className={
+          "workspace-state"
+        }
       >
         <strong>
           Loading Digital Twin
@@ -393,19 +457,23 @@ function DigitalTwinPanel() {
   }
 
   const diceDelta =
-    cohort.twin.mean_dice !== null
+    cohort.twin.mean_dice
+    !== null
     && (
-      cohort.persistence.mean_dice
+      cohort.persistence
+      .mean_dice
       !== null
     )
       ? (
         cohort.twin.mean_dice
-        - cohort.persistence.mean_dice
+        - cohort.persistence
+        .mean_dice
       )
       : null;
 
   const imageUrl =
-    selectedPatientId !== null
+    selectedPatientId
+    !== null
     && viewer !== null
       ? twinSliceUrl(
         selectedPatientId,
@@ -423,28 +491,35 @@ function DigitalTwinPanel() {
     );
 
     const metadata =
-      viewer?.planes.find(
+      viewer
+      ?.planes
+      .find(
         (item) =>
           item.name
           === nextPlane,
       );
 
     setSliceIndex(
-      metadata?.default_index
+      metadata
+      ?.default_index
       ?? 0,
     );
   }
 
   return (
     <div
-      className="twin-workspace"
+      className={
+        "twin-workspace"
+      }
     >
       <section
         className="twin-hero"
       >
         <div>
           <div
-            className="twin-eyebrow"
+            className={
+              "twin-eyebrow"
+            }
           >
             <Activity
               size={15}
@@ -459,49 +534,66 @@ function DigitalTwinPanel() {
           </h2>
 
           <p>
-            Sealed t1 → t2 predictions.
-            Held-out t2 is used only
-            for post-freeze evaluation.
+            Sealed t1 → t2
+            predictions.
+            Held-out t2 is used
+            only after the cohort
+            freeze for evaluation.
           </p>
         </div>
 
         <div
-          className="twin-provenance"
+          className={
+            "twin-hero-actions"
+          }
         >
-          <span>
-            {cohort.dataset.name}
-            {" · "}v
-            {cohort.dataset.version}
-          </span>
-
-          <span>
-            {cohort.patient_count}
-            {" "}
-            evaluated patients
-          </span>
-
-          <span
+          <a
             className={
-              cohort.repository.dirty
-                ? "dirty"
-                : "clean"
+              "twin-export-link"
             }
+            href={
+              twinEvaluationJsonUrl
+            }
+            download
           >
-            {cohort.repository.dirty
-              ? "Dirty source tree"
-              : "Clean source tree"}
-          </span>
+            <Download
+              size={14}
+            />
+
+            JSON
+          </a>
+
+          <a
+            className={
+              "twin-export-link"
+            }
+            href={
+              twinEvaluationCsvUrl
+            }
+            download
+          >
+            <Download
+              size={14}
+            />
+
+            CSV
+          </a>
         </div>
       </section>
 
       <section
-        className="twin-summary-grid"
+        className={
+          "twin-summary-grid"
+        }
       >
         <MetricCard
-          label="Twin mean Dice"
+          label={
+            "Twin mean Dice"
+          }
           value={
             formatMetric(
-              cohort.twin.mean_dice,
+              cohort.twin
+              .mean_dice,
             )
           }
           emphasis
@@ -509,7 +601,8 @@ function DigitalTwinPanel() {
 
         <MetricCard
           label={
-            "Persistence mean Dice"
+            "Persistence "
+            + "mean Dice"
           }
           value={
             formatMetric(
@@ -522,7 +615,8 @@ function DigitalTwinPanel() {
 
         <MetricCard
           label={
-            "Dice Δ vs persistence"
+            "Dice Δ vs "
+            + "persistence"
           }
           value={
             diceDelta === null
@@ -541,16 +635,16 @@ function DigitalTwinPanel() {
         />
 
         <MetricCard
-          label="Twin mean HD95"
+          label={
+            "Twin mean HD95"
+          }
           value={
-            cohort
-            .twin
+            cohort.twin
             .mean_hd95_mm
             === null
               ? "—"
               : (
-                cohort
-                .twin
+                cohort.twin
                 .mean_hd95_mm
                 .toFixed(1)
                 + " mm"
@@ -560,7 +654,132 @@ function DigitalTwinPanel() {
       </section>
 
       <section
-        className="twin-main-grid"
+        className={
+          "twin-card"
+        }
+      >
+        <div
+          className={
+            "twin-panel-heading"
+          }
+        >
+          <div>
+            <strong>
+              Cohort Dice
+            </strong>
+
+            <span>
+              Per-patient comparison
+              across frozen methods
+            </span>
+          </div>
+        </div>
+
+        <TwinCohortChart
+          patients={
+            cohortEvaluations
+          }
+        />
+      </section>
+
+      <section
+        className={
+          "twin-card"
+        }
+      >
+        <div
+          className={
+            "twin-panel-heading"
+          }
+        >
+          <div>
+            <strong>
+              Provenance
+            </strong>
+
+            <span>
+              Scientific artifact
+              identity
+            </span>
+          </div>
+        </div>
+
+        <div
+          className={
+            "twin-provenance-grid"
+          }
+        >
+          <ProvenanceItem
+            label="Dataset"
+            value={
+              `${cohort.dataset.name} `
+              + (
+                `v${
+                  cohort.dataset.version
+                }`
+              )
+            }
+          />
+
+          <ProvenanceItem
+            label="DOI"
+            value={
+              cohort.dataset.doi
+            }
+          />
+
+          <ProvenanceItem
+            label="Git commit"
+            value={
+              cohort.repository
+              .commit_sha
+              .slice(
+                0,
+                12,
+              )
+            }
+          />
+
+          <ProvenanceItem
+            label="Source tree"
+            value={
+              cohort.repository
+              .dirty
+                ? "dirty"
+                : "clean"
+            }
+          />
+
+          <ProvenanceItem
+            label="Evaluation schema"
+            value={
+              String(
+                cohort.schema_version,
+              )
+            }
+          />
+
+          <ProvenanceItem
+            label="Grid spacing"
+            value={
+              (
+                cohort.target_spacing
+                .map(
+                  (value) =>
+                    value.toFixed(1),
+                )
+                .join(" × ")
+                + " mm"
+              )
+            }
+          />
+        </div>
+      </section>
+
+      <section
+        className={
+          "twin-main-grid"
+        }
       >
         <aside
           className={
@@ -627,7 +846,8 @@ function DigitalTwinPanel() {
                     }
                     {" · day "}
                     {
-                      item.target_day
+                      item
+                      .target_day
                       .toFixed(0)
                     }
                   </span>
@@ -683,16 +903,20 @@ function DigitalTwinPanel() {
         >
           {patientLoading && (
             <section
-              className="twin-card"
+              className={
+                "twin-card"
+              }
             >
               Loading patient twin…
             </section>
           )}
 
-          {patientError !== null && (
+          {patientError
+          !== null && (
             <section
               className={
-                "twin-card twin-error"
+                "twin-card "
+                + "twin-error"
               }
             >
               {patientError}
@@ -706,7 +930,9 @@ function DigitalTwinPanel() {
               />
 
               <section
-                className="twin-card"
+                className={
+                  "twin-card"
+                }
               >
                 <div
                   className={
@@ -719,163 +945,246 @@ function DigitalTwinPanel() {
                     </strong>
 
                     <span>
-                      t2 MRI with sealed
-                      spatial overlay
+                      Observed t2
+                      versus sealed
+                      prediction
                     </span>
                   </div>
 
-                  <ScanLine
-                    size={18}
-                  />
-                </div>
-
-                <div
-                  className={
-                    "twin-control-row"
-                  }
-                >
-                  {layers.map(
-                    (item) => (
-                      <button
-                        key={
-                          item.value
-                        }
-                        type="button"
-                        className={
-                          layer
-                          === item.value
-                            ? (
-                              "twin-chip "
-                              + "active"
-                            )
-                            : "twin-chip"
-                        }
-                        onClick={() =>
-                          setLayer(
-                            item.value,
+                  <div
+                    className={
+                      "twin-view-mode"
+                    }
+                  >
+                    <button
+                      type="button"
+                      className={
+                        viewerMode
+                        === "2d"
+                          ? (
+                            "twin-chip "
+                            + "active"
                           )
-                        }
-                      >
-                        {item.label}
-                      </button>
-                    ),
-                  )}
-                </div>
+                          : "twin-chip"
+                      }
+                      onClick={() =>
+                        setViewerMode(
+                          "2d",
+                        )
+                      }
+                    >
+                      <ScanLine
+                        size={13}
+                      />
 
-                <div
-                  className={
-                    "twin-control-row"
-                  }
-                >
-                  {planes.map(
-                    (item) => (
-                      <button
-                        key={item}
-                        type="button"
-                        className={
-                          plane === item
-                            ? (
-                              "twin-chip "
-                              + "active"
-                            )
-                            : "twin-chip"
-                        }
-                        onClick={() =>
-                          changePlane(
-                            item,
+                      2D
+                    </button>
+
+                    <button
+                      type="button"
+                      className={
+                        viewerMode
+                        === "3d"
+                          ? (
+                            "twin-chip "
+                            + "active"
                           )
-                        }
-                      >
-                        {item}
-                      </button>
-                    ),
-                  )}
+                          : "twin-chip"
+                      }
+                      onClick={() =>
+                        setViewerMode(
+                          "3d",
+                        )
+                      }
+                    >
+                      <Box
+                        size={13}
+                      />
+
+                      3D
+                    </button>
+                  </div>
                 </div>
 
-                {(
-                  imageUrl !== null
-                  && planeMetadata
-                  !== null
-                ) ? (
+                {viewerMode
+                === "3d" ? (
+                  <div
+                    className={
+                      "twin-3d-frame"
+                    }
+                  >
+                    <TwinThreeDViewer
+                      patientId={
+                        patient
+                        .patient_id
+                      }
+                    />
+                  </div>
+                ) : (
                   <>
                     <div
                       className={
-                        "twin-image-frame"
+                        "twin-control-row"
                       }
                     >
-                      <img
-                        src={imageUrl}
-                        alt={
-                          `${layer} `
-                          + `${plane} `
-                          + (
-                            `slice `
-                            + `${sliceIndex}`
-                          )
-                        }
-                      />
+                      {layers.map(
+                        (item) => (
+                          <button
+                            key={
+                              item.value
+                            }
+                            type="button"
+                            className={
+                              layer
+                              === item.value
+                                ? (
+                                  "twin-chip "
+                                  + "active"
+                                )
+                                : (
+                                  "twin-chip"
+                                )
+                            }
+                            onClick={() =>
+                              setLayer(
+                                item.value,
+                              )
+                            }
+                          >
+                            {item.label}
+                          </button>
+                        ),
+                      )}
                     </div>
 
                     <div
                       className={
-                        "twin-slider-row"
+                        "twin-control-row"
                       }
                     >
-                      <span>
-                        0
-                      </span>
-
-                      <input
-                        type="range"
-                        min={0}
-                        max={
-                          planeMetadata
-                          .max_index
-                        }
-                        value={
-                          sliceIndex
-                        }
-                        onChange={
-                          (event) =>
-                            setSliceIndex(
-                              Number(
-                                event
-                                .target
-                                .value,
-                              ),
-                            )
-                        }
-                      />
-
-                      <span>
-                        {
-                          planeMetadata
-                          .max_index
-                        }
-                      </span>
-
-                      <strong>
-                        slice
-                        {" "}
-                        {sliceIndex}
-                      </strong>
+                      {planes.map(
+                        (item) => (
+                          <button
+                            key={item}
+                            type="button"
+                            className={
+                              plane === item
+                                ? (
+                                  "twin-chip "
+                                  + "active"
+                                )
+                                : (
+                                  "twin-chip"
+                                )
+                            }
+                            onClick={() =>
+                              changePlane(
+                                item,
+                              )
+                            }
+                          >
+                            {item}
+                          </button>
+                        ),
+                      )}
                     </div>
+
+                    {(
+                      imageUrl !== null
+                      && planeMetadata
+                      !== null
+                    ) ? (
+                      <>
+                        <div
+                          className={
+                            "twin-image-frame"
+                          }
+                        >
+                          <img
+                            src={imageUrl}
+                            alt={
+                              `${layer} `
+                              + `${plane} `
+                              + (
+                                "slice "
+                                + `${sliceIndex}`
+                              )
+                            }
+                          />
+                        </div>
+
+                        <div
+                          className={
+                            "twin-slider-row"
+                          }
+                        >
+                          <span>
+                            0
+                          </span>
+
+                          <input
+                            type="range"
+                            min={0}
+                            max={
+                              planeMetadata
+                              .max_index
+                            }
+                            value={
+                              sliceIndex
+                            }
+                            onChange={
+                              (event) =>
+                                setSliceIndex(
+                                  Number(
+                                    event
+                                    .target
+                                    .value,
+                                  ),
+                                )
+                            }
+                          />
+
+                          <span>
+                            {
+                              planeMetadata
+                              .max_index
+                            }
+                          </span>
+
+                          <strong>
+                            slice
+                            {" "}
+                            {sliceIndex}
+                          </strong>
+                        </div>
+                      </>
+                    ) : (
+                      <div
+                        className={
+                          "twin-image-frame "
+                          + "empty"
+                        }
+                      >
+                        Viewer unavailable
+                      </div>
+                    )}
                   </>
-                ) : (
-                  <div
-                    className={
-                      "twin-image-frame "
-                      + "empty"
-                    }
-                  >
-                    Viewer unavailable
-                  </div>
                 )}
               </section>
             </>
           )}
         </div>
       </section>
+
+      <div
+        className={
+          "twin-research-note"
+        }
+      >
+        Research use only.
+        This interface is not
+        clinical decision support.
+      </div>
     </div>
   );
 }
@@ -916,8 +1225,37 @@ function MetricCard({
 }
 
 
+type ProvenanceItemProps = {
+  label: string;
+  value: string;
+};
+
+
+function ProvenanceItem({
+  label,
+  value,
+}: ProvenanceItemProps) {
+  return (
+    <div
+      className={
+        "twin-provenance-item"
+      }
+    >
+      <span>
+        {label}
+      </span>
+
+      <strong>
+        {value}
+      </strong>
+    </div>
+  );
+}
+
+
 type PatientComparisonProps = {
-  patient: TwinPatientEvaluation;
+  patient:
+    TwinPatientEvaluation;
 };
 
 
@@ -996,7 +1334,8 @@ function PatientComparison({
 
             <MetricRow
               label={
-                "Relative volume error"
+                "Relative "
+                + "volume error"
               }
               metric={
                 "relative_volume_error"
@@ -1035,8 +1374,13 @@ type NumericMetric =
 
 type MetricRowProps = {
   label: string;
-  metric: NumericMetric;
-  patient: TwinPatientEvaluation;
+
+  metric:
+    NumericMetric;
+
+  patient:
+    TwinPatientEvaluation;
+
   suffix?: string;
 };
 
@@ -1048,7 +1392,8 @@ function MetricRow({
   suffix = "",
 }: MetricRowProps) {
   function value(
-    method: TwinMethodMetrics,
+    method:
+      TwinMethodMetrics,
   ): string {
     const raw =
       method[metric];
@@ -1070,7 +1415,9 @@ function MetricRow({
       </td>
 
       <td
-        className="twin-value"
+        className={
+          "twin-value"
+        }
       >
         {value(
           patient.twin,
@@ -1085,7 +1432,8 @@ function MetricRow({
 
       <td>
         {value(
-          patient.volume_baseline,
+          patient
+          .volume_baseline,
         )}
       </td>
     </tr>
