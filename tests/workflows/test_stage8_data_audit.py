@@ -26,7 +26,9 @@ observation_model:
   transition_width_mm: 4.0
 radiobiology:
   alpha_beta_ratio_gy: 10.0
-  effective_alpha_candidates_per_gy: [0.01, 0.12]
+  legacy_alpha_per_gy: 0.01
+  reference_alpha_per_gy: 0.12
+  effective_alpha_candidates_per_gy: [0.01, 0.10, 0.12, 0.14]
 chemotherapy:
   enabled: false
 treatment_memory:
@@ -43,7 +45,6 @@ def _write_metadata(root: Path) -> None:
     mri_lines = [
         "id_patient\ttemporality\tt1gd\tflair\tdwi",
     ]
-
     for patient_id in (1, 2, 3, 4):
         for timepoint in ("t0", "t1", "t2"):
             flair = 1 if patient_id in (1, 2) else 0
@@ -60,7 +61,6 @@ def _write_metadata(root: Path) -> None:
     treatment_lines = [
         "id_patient\tdelay_t0_to_radiotherapy (weeks)\tdose (Gy)\tfractions_number",
     ]
-
     for patient_id in (1, 2, 3, 4):
         treatment_lines.append(f"{patient_id}\t2\t60\t30")
 
@@ -72,7 +72,6 @@ def _write_metadata(root: Path) -> None:
     imaging_lines = [
         "id_patient\ttemporality\tgtv\tgtv_type\trtdose\ttreatment_machine\ttps",
     ]
-
     for patient_id in (1, 2, 3, 4):
         for timepoint in ("t0", "t1", "t2"):
             rtdose = 1 if timepoint == "t0" else 0
@@ -96,7 +95,6 @@ def test_stage8_audit_builds_deterministic_untouched_holdout(
     _write_protocol(protocol_path)
 
     output = tmp_path / "audit"
-
     result = audit_stage8_cohort(
         metadata_root=metadata_root,
         protocol_config_path=protocol_path,
@@ -105,7 +103,6 @@ def test_stage8_audit_builds_deterministic_untouched_holdout(
 
     summary = result.manifest["summary"]
     split = result.manifest["split"]
-
     assert isinstance(summary, dict)
     assert isinstance(split, dict)
 
@@ -113,8 +110,8 @@ def test_stage8_audit_builds_deterministic_untouched_holdout(
     assert summary["core_eligible_count"] == 4
     assert summary["gtv_complete_count"] == 4
 
-    # Patient 2 is the only mpMRI member, so it remains in development.
-    # One of the two non-exposed T1Gd-only patients is held out.
+    # Patient 2 is the only mpMRI member, so the rare stratum is not consumed
+    # by the final holdout. One of the two non-exposed T1Gd-only patients is.
     assert summary["untouched_holdout_count"] == 1
 
     holdout = split["untouched_holdout_patient_ids"]
