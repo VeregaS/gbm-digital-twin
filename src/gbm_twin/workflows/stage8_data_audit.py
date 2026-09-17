@@ -41,10 +41,14 @@ class Stage8PatientAudit:
     core_eligible: bool
     complete_rt_schedule: bool
     rtdose_available: bool
+    gtv_complete: bool
     required_modalities_complete: bool
     flair_t0_t1_complete: bool
     dwi_t0_t1_complete: bool
+    rt_total_dose_gy: float | None
+    rt_fractions: int | None
     model_tier: str
+    split_stratum: str
     split: str
     missing_requirements: tuple[str, ...]
     availability: dict[str, bool]
@@ -54,6 +58,25 @@ class Stage8PatientAudit:
 class Stage8DataAuditResult:
     directory: Path
     manifest: dict[str, object]
+
+
+@dataclass(frozen=True)
+class _ProvisionalPatient:
+    patient_id: int
+    exposed: bool
+    core_eligible: bool
+    complete_rt: bool
+    rtdose: bool
+    gtv_complete: bool
+    required_complete: bool
+    flair_t0_t1: bool
+    dwi_t0_t1: bool
+    rt_total_dose_gy: float | None
+    rt_fractions: int | None
+    model_tier: str
+    split_stratum: str
+    missing: tuple[str, ...]
+    availability: dict[str, bool]
 
 
 def _latest_single(root: Path, pattern: str) -> Path:
@@ -141,22 +164,47 @@ def _split_rank(seed: int, patient_id: int) -> str:
     ).hexdigest()
 
 
-def _deterministic_holdout(
-    patient_ids: list[int],
+def _stratified_holdout(
+    patients: list[_ProvisionalPatient],
     *,
     fraction: float,
     seed: int,
 ) -> set[int]:
-    if not patient_ids:
-        return set()
+    by_stratum: dict[str, list[int]] = {}
 
-    ordered = sorted(
-        patient_ids,
-        key=lambda patient_id: _split_rank(seed, patient_id),
-    )
-    count = int(round(len(ordered) * fraction))
-    count = min(len(ordered), max(1, count))
-    return set(ordered[:count])
+    for patient in patients:
+        if not patient.core_eligible or patient.exposed:
+            continue
+
+        by_stratum.setdefault(patient.split_stratum, []).append(
+            patient.patient_id
+        )
+
+    selected: set[int] = set()
+
+    for stratum, patient_ids in sorted(by_stratum.items()):
+        ordered = sorted(
+            patient_ids,
+            key=lambda patient_id: hashlib.sha256(
+                (
+                    f"stage8:{seed}:{stratum}:{patient_id}"
+                ).encode("utf-8")
+            ).hexdigest(),
+        )
+        raw_count = len(ordered) * fraction
+        count = int(round(raw_count))
+
+        # Do not consume the only patient in a rare stratum. For strata with
+        # enough support, reserve at least one and leave at least one for
+        # development/model selection.
+        if len(ordered) >= 2:
+            count = min(len(ordered) - 1, max(1, count))
+        else:
+            count = 0
+
+        selected.update(ordered[:count])
+
+    return selected
 
 
 def _model_tier(
@@ -175,6 +223,16 @@ def _model_tier(
         return "t1gd-flair"
 
     return "t1gd-only"
+
+
+def _rt_regimen_label(fractions: int | None) -> str:
+    if fractions is None:
+        return "rt-unknown"
+
+    if fractions <= 20:
+        return "rt-hypofractionated"
+
+    return "rt-conventional"
 
 
 def _patient_rows(
@@ -205,21 +263,7 @@ def _patient_rows(
         for value in mri["id_patient"].dropna().unique().tolist()
     )
     exposed_ids = set(config.exposed_development_patient_ids)
-
-    provisional: list[
-        tuple[
-            int,
-            bool,
-            bool,
-            bool,
-            bool,
-            bool,
-            bool,
-            bool,
-            tuple[str, ...],
-            dict[str, bool],
-        ]
-    ] = []
+    provisional: list[_ProvisionalPatient] = []
 
     for patient_id in patient_ids:
         availability: dict[str, bool] = {}
@@ -234,10 +278,26 @@ def _patient_rows(
                     column=modality_columns[modality],
                 )
 
+        imaging_records = treatment.imaging_records(patient_id)
+        imaging_by_timepoint = {
+            record.temporality.lower(): record
+            for record in imaging_records
+        }
+
+        for timepoint in config.required_timepoints:
+            record = imaging_by_timepoint.get(timepoint.lower())
+            availability[f"{timepoint}_gtv"] = bool(
+                record is not None and record.gtv_available
+            )
+
         required_complete = all(
             availability[f"{timepoint}_{modality}"]
             for timepoint in config.required_timepoints
             for modality in config.required_modalities
+        )
+        gtv_complete = all(
+            availability[f"{timepoint}_gtv"]
+            for timepoint in config.required_timepoints
         )
         flair_t0_t1 = all(
             availability.get(f"{timepoint}_flair", False)
@@ -257,20 +317,27 @@ def _patient_rows(
             and treatment_record.dose_gy > 0.0
             and treatment_record.fractions_number > 0
         )
-        rtdose = any(
-            record.rtdose_available
-            for record in treatment.imaging_records(patient_id)
+        rt_total_dose_gy = (
+            None if treatment_record is None else treatment_record.dose_gy
         )
+        rt_fractions = (
+            None
+            if treatment_record is None
+            else treatment_record.fractions_number
+        )
+        rtdose = any(record.rtdose_available for record in imaging_records)
 
         missing: list[str] = []
 
-        if not required_complete:
-            for timepoint in config.required_timepoints:
-                for modality in config.required_modalities:
-                    key = f"{timepoint}_{modality}"
+        for timepoint in config.required_timepoints:
+            for modality in config.required_modalities:
+                key = f"{timepoint}_{modality}"
 
-                    if not availability[key]:
-                        missing.append(key)
+                if not availability[key]:
+                    missing.append(key)
+
+            if not availability[f"{timepoint}_gtv"]:
+                missing.append(f"{timepoint}_gtv")
 
         if config.require_complete_rt_schedule and not complete_rt:
             missing.append("complete_rt_schedule")
@@ -279,72 +346,68 @@ def _patient_rows(
             missing.append("rtdose")
 
         core_eligible = not missing
+        tier = _model_tier(
+            core_eligible=core_eligible,
+            flair_t0_t1_complete=flair_t0_t1,
+            dwi_t0_t1_complete=dwi_t0_t1,
+        )
+        stratum = f"{tier}:{_rt_regimen_label(rt_fractions)}"
+
         provisional.append(
-            (
-                patient_id,
-                patient_id in exposed_ids,
-                core_eligible,
-                complete_rt,
-                rtdose,
-                required_complete,
-                flair_t0_t1,
-                dwi_t0_t1,
-                tuple(missing),
-                availability,
+            _ProvisionalPatient(
+                patient_id=patient_id,
+                exposed=patient_id in exposed_ids,
+                core_eligible=core_eligible,
+                complete_rt=complete_rt,
+                rtdose=rtdose,
+                gtv_complete=gtv_complete,
+                required_complete=required_complete,
+                flair_t0_t1=flair_t0_t1,
+                dwi_t0_t1=dwi_t0_t1,
+                rt_total_dose_gy=rt_total_dose_gy,
+                rt_fractions=rt_fractions,
+                model_tier=tier,
+                split_stratum=stratum,
+                missing=tuple(missing),
+                availability=availability,
             )
         )
 
-    holdout_ids = _deterministic_holdout(
-        [
-            row[0]
-            for row in provisional
-            if row[2] and not row[1]
-        ],
+    holdout_ids = _stratified_holdout(
+        provisional,
         fraction=config.holdout_fraction,
         seed=config.split_seed,
     )
-
     rows: list[Stage8PatientAudit] = []
 
-    for (
-        patient_id,
-        exposed,
-        core_eligible,
-        complete_rt,
-        rtdose,
-        required_complete,
-        flair_t0_t1,
-        dwi_t0_t1,
-        missing,
-        availability,
-    ) in provisional:
-        if not core_eligible:
+    for patient in provisional:
+        if not patient.core_eligible:
             split = "ineligible"
-        elif exposed:
+        elif patient.exposed:
             split = "development-exposed"
-        elif patient_id in holdout_ids:
+        elif patient.patient_id in holdout_ids:
             split = "untouched-holdout"
         else:
             split = "development"
 
         rows.append(
             Stage8PatientAudit(
-                patient_id=patient_id,
-                exposed_development=exposed,
-                core_eligible=core_eligible,
-                complete_rt_schedule=complete_rt,
-                rtdose_available=rtdose,
-                required_modalities_complete=required_complete,
-                flair_t0_t1_complete=flair_t0_t1,
-                dwi_t0_t1_complete=dwi_t0_t1,
-                model_tier=_model_tier(
-                    core_eligible=core_eligible,
-                    flair_t0_t1_complete=flair_t0_t1,
-                    dwi_t0_t1_complete=dwi_t0_t1,
-                ),
+                patient_id=patient.patient_id,
+                exposed_development=patient.exposed,
+                core_eligible=patient.core_eligible,
+                complete_rt_schedule=patient.complete_rt,
+                rtdose_available=patient.rtdose,
+                gtv_complete=patient.gtv_complete,
+                required_modalities_complete=patient.required_complete,
+                flair_t0_t1_complete=patient.flair_t0_t1,
+                dwi_t0_t1_complete=patient.dwi_t0_t1,
+                rt_total_dose_gy=patient.rt_total_dose_gy,
+                rt_fractions=patient.rt_fractions,
+                model_tier=patient.model_tier,
+                split_stratum=patient.split_stratum,
                 split=split,
-                missing_requirements=missing,
-                availability=availability,
+                missing_requirements=patient.missing,
+                availability=patient.availability,
             )
         )
 
@@ -353,20 +416,20 @@ def _patient_rows(
 
 def _write_csv(path: Path, rows: list[Stage8PatientAudit]) -> None:
     availability_columns = sorted(
-        {
-            key
-            for row in rows
-            for key in row.availability
-        }
+        {key for row in rows for key in row.availability}
     )
     columns = [
         "patient_id",
         "split",
+        "split_stratum",
         "model_tier",
         "exposed_development",
         "core_eligible",
         "complete_rt_schedule",
+        "rt_total_dose_gy",
+        "rt_fractions",
         "rtdose_available",
+        "gtv_complete",
         "required_modalities_complete",
         "flair_t0_t1_complete",
         "dwi_t0_t1_complete",
@@ -387,11 +450,15 @@ def _write_csv(path: Path, rows: list[Stage8PatientAudit]) -> None:
                 {
                     "patient_id": row.patient_id,
                     "split": row.split,
+                    "split_stratum": row.split_stratum,
                     "model_tier": row.model_tier,
                     "exposed_development": row.exposed_development,
                     "core_eligible": row.core_eligible,
                     "complete_rt_schedule": row.complete_rt_schedule,
+                    "rt_total_dose_gy": row.rt_total_dose_gy,
+                    "rt_fractions": row.rt_fractions,
                     "rtdose_available": row.rtdose_available,
+                    "gtv_complete": row.gtv_complete,
                     "required_modalities_complete": (
                         row.required_modalities_complete
                     ),
@@ -455,9 +522,13 @@ def audit_stage8_cohort(
         if row.split == "untouched-holdout"
     ]
     tier_counts: dict[str, int] = {}
+    stratum_counts: dict[str, int] = {}
 
     for row in eligible:
         tier_counts[row.model_tier] = tier_counts.get(row.model_tier, 0) + 1
+        stratum_counts[row.split_stratum] = (
+            stratum_counts.get(row.split_stratum, 0) + 1
+        )
 
     manifest: dict[str, object] = {
         "schema_version": STAGE8_DATA_AUDIT_SCHEMA_VERSION,
@@ -480,6 +551,7 @@ def audit_stage8_cohort(
             "split_uses_outcomes": False,
             "split_inputs": [
                 "MRI availability metadata",
+                "GTV availability metadata",
                 "RT schedule completeness",
                 "RTDOSE availability",
                 "explicit exposed-development patient IDs",
@@ -496,6 +568,7 @@ def audit_stage8_cohort(
             "rtdose_available_count": sum(
                 row.rtdose_available for row in rows
             ),
+            "gtv_complete_count": sum(row.gtv_complete for row in rows),
             "flair_t0_t1_complete_count": sum(
                 row.flair_t0_t1_complete for row in rows
             ),
@@ -503,10 +576,13 @@ def audit_stage8_cohort(
                 row.dwi_t0_t1_complete for row in rows
             ),
             "model_tier_counts": tier_counts,
+            "split_stratum_counts": stratum_counts,
         },
         "split": {
+            "method": "deterministic_stratified_hash_v1",
             "seed": config.split_seed,
             "holdout_fraction": config.holdout_fraction,
+            "stratification": ["model_tier", "rt_regimen"],
             "development_patient_ids": sorted(development),
             "untouched_holdout_patient_ids": sorted(holdout),
         },
