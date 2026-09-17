@@ -96,11 +96,21 @@ def prepare_stage8_forecast_inputs(
     treatment: CFBTreatmentMetadata,
     observation_parameters: MRIDetectionObservationParameters,
     load_spatial_rtdose: bool = True,
-    require_spatial_rtdose: bool = False,
+    require_spatial_rtdose: bool | None = None,
 ) -> Stage8ForecastInputs:
-    """Load t0/t1 and reusable treatment inputs without opening t2."""
+    """Load t0/t1 and reusable treatment inputs without opening t2.
 
-    if require_spatial_rtdose and not load_spatial_rtdose:
+    By default a requested spatial dose is fail-closed: asking to load RTDOSE
+    also requires a local RTDOSE NIfTI. Callers that intentionally treat dose
+    as optional must opt out explicitly.
+    """
+
+    require_dose = (
+        load_spatial_rtdose
+        if require_spatial_rtdose is None
+        else require_spatial_rtdose
+    )
+    if require_dose and not load_spatial_rtdose:
         raise ValueError(
             "require_spatial_rtdose cannot be true when RTDOSE loading is disabled"
         )
@@ -156,7 +166,7 @@ def prepare_stage8_forecast_inputs(
             )
             rtdose_source_path = prepared_dose.source_path
 
-    if require_spatial_rtdose and cumulative_rtdose is None:
+    if require_dose and cumulative_rtdose is None:
         raise FileNotFoundError(
             f"Patient {patient_id}: audit requires RTDOSE but no local RTDOSE "
             "NIfTI was materialized"
