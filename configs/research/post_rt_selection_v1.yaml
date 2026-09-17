@@ -1,0 +1,19 @@
+schema_version: 1
+
+# Development-only treatment-response search.
+# Candidate selection is based only on t0 -> t1 calibration quality.
+# The selector does not load t2 observations.
+initial_kill_rates_per_day:
+  - 0.0025
+  - 0.0050
+  - 0.0100
+
+decay_times_days:
+  - 30.0
+  - 60.0
+  - 90.0
+
+# Keep the current fractionated-PIRT model in the candidate table so the
+# selected post-RT model must beat the existing treatment representation on
+# calibration loss rather than being preferred automatically.
+include_fractionated_only_baseline: true
