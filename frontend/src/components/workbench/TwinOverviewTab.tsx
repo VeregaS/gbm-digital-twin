@@ -32,78 +32,60 @@ function TwinOverviewTab({
   );
 
   const outcomeText =
-    Math.abs(diceDelta) < 1e-12
+    Math.abs(diceDelta) < 0.001
       ? (
-        "Twin and persistence "
-        + "have equal Dice."
+        "По Dice цифровой двойник практически не отличается от простого baseline «без изменений»."
       )
       : diceDelta > 0
         ? (
-          "Twin overlaps observed t2 "
-          + "more than persistence by "
+          "Цифровой двойник лучше совпадает с реальной опухолью на t2, чем baseline «без изменений»: преимущество по Dice "
           + diceDelta.toFixed(3)
-          + " Dice."
+          + "."
         )
         : (
-          "Persistence overlaps observed "
-          + "t2 more than Twin by "
+          "Baseline «без изменений» лучше совпадает с реальной опухолью на t2: его преимущество по Dice "
           + Math.abs(
             diceDelta
           ).toFixed(3)
-          + " Dice."
+          + "."
         );
 
   return (
     <div
-      className={
-        "twin-tab-stack"
-      }
+      className="twin-tab-stack"
     >
       <section
-        className={
-          "twin-explanation-card"
-        }
+        className="twin-explanation-card"
       >
         <div>
           <span>
-            What was predicted?
+            Что прогнозируется?
           </span>
 
           <strong>
-            t1 → t2 tumour extent
+            Распространение опухоли от t1 к t2
           </strong>
         </div>
 
         <p>
-          The model was calibrated
-          using observations before
-          the forecast target.
-          Observed t2 was held out
-          until the prediction had
-          been sealed.
+          Параметры модели калибруются по данным до момента прогноза. Реальная сегментация t2 не используется при построении прогноза: она открывается только после фиксации результата и служит для независимой оценки.
         </p>
       </section>
 
       <section
-        className={
-          "twin-patient-metric-grid"
-        }
+        className="twin-patient-metric-grid"
       >
         <Metric
-          title="Dice"
+          title="Совпадение (Dice)"
           value={
             evaluation.twin.dice
             .toFixed(3)
           }
-          help={
-            "Spatial overlap with "
-            + "observed t2. "
-            + "Higher is better."
-          }
+          help="Насколько предсказанная и реальная области опухоли перекрываются. 1.0 означает полное совпадение. Больше — лучше."
         />
 
         <Metric
-          title="Volume error"
+          title="Ошибка объёма"
           value={
             (
               evaluation.twin
@@ -112,16 +94,11 @@ function TwinOverviewTab({
             ).toFixed(1)
             + "%"
           }
-          help={
-            "Absolute tumour-volume "
-            + "error relative to "
-            + "observed t2. "
-            + "Lower is better."
-          }
+          help="Насколько объём прогноза отличается от реального объёма опухоли на t2. Меньше — лучше."
         />
 
         <Metric
-          title="HD95"
+          title="Ошибка границы (HD95)"
           value={
             evaluation.twin
             .hd95_mm === null
@@ -130,18 +107,14 @@ function TwinOverviewTab({
                 evaluation.twin
                 .hd95_mm
                 .toFixed(1)
-                + " mm"
+                + " мм"
               )
           }
-          help={
-            "95th-percentile surface "
-            + "distance. "
-            + "Lower is better."
-          }
+          help="Расхождение поверхностей опухоли без учёта небольшого числа крайних точек. Меньше — лучше."
         />
 
         <Metric
-          title="Centroid distance"
+          title="Смещение центра"
           value={
             evaluation.twin
             .centroid_distance_mm
@@ -151,24 +124,18 @@ function TwinOverviewTab({
                 evaluation.twin
                 .centroid_distance_mm
                 .toFixed(1)
-                + " mm"
+                + " мм"
               )
           }
-          help={
-            "Distance between predicted "
-            + "and observed lesion "
-            + "centres. Lower is better."
-          }
+          help="Расстояние между центрами предсказанной и реальной областей опухоли. Меньше — лучше."
         />
       </section>
 
       <section
-        className={
-          "twin-readable-summary"
-        }
+        className="twin-readable-summary"
       >
         <strong>
-          Result in plain language
+          Краткая интерпретация
         </strong>
 
         <p>
@@ -176,7 +143,7 @@ function TwinOverviewTab({
         </p>
 
         <span>
-          Cohort Twin mean Dice:
+          Средний Dice цифрового двойника по текущему cohort:
           {" "}
           {
             cohort.twin.mean_dice
@@ -187,36 +154,29 @@ function TwinOverviewTab({
       </section>
 
       <section
-        className={
-          "twin-method-card"
-        }
+        className="twin-method-card"
       >
         <div
-          className={
-            "twin-panel-heading"
-          }
+          className="twin-panel-heading"
         >
           <div>
             <strong>
-              Methods
+              Сравнение методов
             </strong>
 
             <span>
-              Same held-out observed
-              t2 target
+              Все методы оцениваются по одной и той же отложенной реальной сегментации t2
             </span>
           </div>
         </div>
 
         <table
-          className={
-            "twin-method-table"
-          }
+          className="twin-method-table"
         >
           <thead>
             <tr>
               <th>
-                Method
+                Метод
               </th>
 
               <th>
@@ -224,7 +184,7 @@ function TwinOverviewTab({
               </th>
 
               <th>
-                Volume error
+                Ошибка объёма
               </th>
 
               <th>
@@ -235,7 +195,7 @@ function TwinOverviewTab({
 
           <tbody>
             <MethodRow
-              name="Digital Twin"
+              name="Цифровой двойник"
               metrics={
                 evaluation.twin
               }
@@ -243,17 +203,16 @@ function TwinOverviewTab({
             />
 
             <MethodRow
-              name="Persistence"
+              name="Без изменений"
               metrics={
                 evaluation.persistence
               }
             />
 
             <MethodRow
-              name="Volume baseline"
+              name="Прогноз по объёму"
               metrics={
-                evaluation
-                .volume_baseline
+                evaluation.volume_baseline
               }
             />
           </tbody>
@@ -261,9 +220,7 @@ function TwinOverviewTab({
       </section>
 
       <section
-        className={
-          "twin-protocol-strip"
-        }
+        className="twin-protocol-strip"
       >
         <div>
           <strong>
@@ -271,12 +228,12 @@ function TwinOverviewTab({
           </strong>
 
           <span>
-            baseline observation
+            исходное наблюдение
           </span>
         </div>
 
         <b>
-          calibration
+          калибровка
         </b>
 
         <div>
@@ -285,12 +242,12 @@ function TwinOverviewTab({
           </strong>
 
           <span>
-            assimilation + forecast start
+            последнее наблюдение и старт прогноза
           </span>
         </div>
 
         <b>
-          sealed prediction
+          прогноз фиксируется
         </b>
 
         <div>
@@ -299,35 +256,23 @@ function TwinOverviewTab({
           </strong>
 
           <span>
-            held-out evaluation target
+            реальная отложенная цель для оценки
           </span>
         </div>
       </section>
 
       <div
-        className={
-          "twin-context-note"
-        }
+        className="twin-context-note"
       >
-        Patient
-        {" "}
-        {patient.patient_id}
+        Пациент {patient.patient_id}
         {" · "}
-        {
-          patient.timepoint_count
-        }
-        {" observations · "}
+        {patient.timepoint_count} наблюдения
+        {" · "}
         {
           patient.treatment
           .reconstructable
-            ? (
-              "RT schedule "
-              + "reconstructable"
-            )
-            : (
-              "RT metadata "
-              + "not reconstructable"
-            )
+            ? "схема лучевой терапии восстановлена"
+            : "данные о лучевой терапии не позволяют полностью восстановить схему"
         }
       </div>
     </div>
@@ -349,9 +294,7 @@ function Metric({
 }: MetricProps) {
   return (
     <article
-      className={
-        "twin-explained-metric"
-      }
+      className="twin-explained-metric"
     >
       <span>
         {title}
@@ -422,7 +365,7 @@ function MethodRow({
             : (
               metrics.hd95_mm
               .toFixed(1)
-              + " mm"
+              + " мм"
             )
         }
       </td>
