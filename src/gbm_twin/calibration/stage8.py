@@ -80,6 +80,21 @@ class _Candidate:
     proliferation: float
 
 
+@dataclass(frozen=True)
+class _GridContext:
+    initial_state: TreatmentMemoryState
+    observed_mask: np.ndarray
+    domain_mask: np.ndarray
+    spacing: tuple[float, float, float]
+    duration_days: float
+    start_time_day: float
+    events: tuple[FractionResponseEvent, ...]
+    config: Stage8CalibrationConfig
+    signature: str
+    cache_dir: Path | None
+    workers: int
+
+
 _WORKER_INITIAL_FIELD: np.ndarray | None = None
 _WORKER_INITIAL_MODIFIER: np.ndarray | None = None
 _WORKER_OBSERVED_MASK: np.ndarray | None = None
@@ -186,7 +201,6 @@ def _load_cached_result(
     raw: object = json.loads(path.read_text(encoding="utf-8"))
     if not isinstance(raw, dict):
         return None
-
     if (
         raw.get("diffusion") != candidate.diffusion
         or raw.get("proliferation") != candidate.proliferation
@@ -370,20 +384,10 @@ def _deduplicate(
 
 
 def _evaluate_grid(
+    context: _GridContext,
     *,
     diffusion_values: list[float],
     proliferation_values: list[float],
-    initial_state: TreatmentMemoryState,
-    observed_mask: np.ndarray,
-    domain_mask: np.ndarray,
-    spacing: tuple[float, float, float],
-    duration_days: float,
-    start_time_day: float,
-    events: tuple[FractionResponseEvent, ...],
-    config: Stage8CalibrationConfig,
-    signature: str,
-    cache_dir: Path | None,
-    workers: int,
 ) -> list[CalibrationResult]:
     candidates = [
         _Candidate(
@@ -398,7 +402,11 @@ def _evaluate_grid(
 
     for candidate in candidates:
         cached = _load_cached_result(
-            _cache_path(cache_dir, signature, candidate),
+            _cache_path(
+                context.cache_dir,
+                context.signature,
+                candidate,
+            ),
             candidate,
         )
         if cached is None:
@@ -408,20 +416,26 @@ def _evaluate_grid(
 
     if pending:
         initializer_args = (
-            np.asarray(initial_state.field, dtype=np.float32),
-            np.asarray(initial_state.proliferation_modifier, dtype=np.float32),
-            np.asarray(observed_mask, dtype=bool),
-            np.asarray(domain_mask, dtype=bool),
-            spacing,
-            duration_days,
-            start_time_day,
-            config.dt_days,
-            events,
-            config.observation_threshold,
-            config.soft_temperature,
-            config.volume_weight,
+            np.asarray(context.initial_state.field, dtype=np.float32),
+            np.asarray(
+                context.initial_state.proliferation_modifier,
+                dtype=np.float32,
+            ),
+            np.asarray(context.observed_mask, dtype=bool),
+            np.asarray(context.domain_mask, dtype=bool),
+            context.spacing,
+            context.duration_days,
+            context.start_time_day,
+            context.config.dt_days,
+            context.events,
+            context.config.observation_threshold,
+            context.config.soft_temperature,
+            context.config.volume_weight,
         )
-        effective_workers = min(max(1, workers), len(pending))
+        effective_workers = min(
+            max(1, context.workers),
+            len(pending),
+        )
 
         if effective_workers == 1:
             _initialize_worker(*initializer_args)
@@ -436,7 +450,11 @@ def _evaluate_grid(
 
         for candidate, result in zip(pending, computed, strict=True):
             _save_cached_result(
-                _cache_path(cache_dir, signature, candidate),
+                _cache_path(
+                    context.cache_dir,
+                    context.signature,
+                    candidate,
+                ),
                 result,
             )
             results.append(result)
@@ -481,28 +499,30 @@ def calibrate_stage8_interval(
         events=fraction_events,
         config=config,
     )
-    common = {
-        "initial_state": initial_state,
-        "observed_mask": observed,
-        "domain_mask": domain,
-        "spacing": spacing,
-        "duration_days": duration_days,
-        "start_time_day": start_time_day,
-        "events": fraction_events,
-        "config": config,
-        "signature": signature,
-        "cache_dir": cache_dir,
-        "workers": workers,
-    }
+    context = _GridContext(
+        initial_state=initial_state,
+        observed_mask=observed,
+        domain_mask=domain,
+        spacing=spacing,
+        duration_days=duration_days,
+        start_time_day=start_time_day,
+        events=fraction_events,
+        config=config,
+        signature=signature,
+        cache_dir=cache_dir,
+        workers=workers,
+    )
     coarse = _evaluate_grid(
+        context,
         diffusion_values=list(config.diffusion_values),
         proliferation_values=list(config.proliferation_values),
-        **common,
     )
     coarse_best = coarse[0]
     all_results = list(coarse)
     refined_results: list[CalibrationResult] = []
-    diffusion_axis = sorted(set(float(value) for value in config.diffusion_values))
+    diffusion_axis = sorted(
+        set(float(value) for value in config.diffusion_values)
+    )
     proliferation_axis = sorted(
         set(float(value) for value in config.proliferation_values)
     )
@@ -524,9 +544,9 @@ def calibrate_stage8_interval(
             ),
         )
         round_results = _evaluate_grid(
+            context,
             diffusion_values=refined_diffusion,
             proliferation_values=refined_proliferation,
-            **common,
         )
         refined_results.extend(round_results)
         all_results.extend(round_results)
