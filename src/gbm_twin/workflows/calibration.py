@@ -37,6 +37,9 @@ class V2CalibrationConfig:
     soft_temperature: float = V2_SOFT_TEMPERATURE
     volume_weight: float = 0.5
 
+    refinement_rounds: int = 1
+    upper_boundary_expansion_factor: float = 0.5
+
     def __post_init__(self) -> None:
         if not self.diffusion_values:
             raise ValueError(
@@ -91,6 +94,16 @@ class V2CalibrationConfig:
         if self.volume_weight < 0:
             raise ValueError(
                 "volume_weight must be non-negative"
+            )
+
+        if self.refinement_rounds < 1:
+            raise ValueError(
+                "refinement_rounds must be at least 1"
+            )
+
+        if self.upper_boundary_expansion_factor <= 0.0:
+            raise ValueError(
+                "upper_boundary_expansion_factor must be positive"
             )
 
 
@@ -238,6 +251,12 @@ def calibrate_v2_interval(
         objective="soft",
         soft_temperature=(
             config.soft_temperature
+        ),
+        refinement_rounds=(
+            config.refinement_rounds
+        ),
+        upper_boundary_expansion_factor=(
+            config.upper_boundary_expansion_factor
         ),
     )
 
