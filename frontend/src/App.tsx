@@ -4,6 +4,7 @@ import {
 } from "react";
 
 import "./App.css";
+import "./ux-russian.css";
 
 import {
   fetchHealth,
@@ -164,10 +165,7 @@ function App() {
           setCapabilitiesError(
             error instanceof Error
               ? error.message
-              : (
-                "Failed to load backend "
-                + "capabilities"
-              ),
+              : "Не удалось получить возможности сервера",
           );
         },
       );
@@ -187,9 +185,7 @@ function App() {
           setPatientsError(
             error instanceof Error
               ? error.message
-              : (
-                "Failed to load patients"
-              ),
+              : "Не удалось загрузить список пациентов",
           );
         },
       )
@@ -238,10 +234,7 @@ function App() {
           setTwinPatientsError(
             error instanceof Error
               ? error.message
-              : (
-                "Failed to load "
-                + "Twin patient list"
-              ),
+              : "Не удалось загрузить список пациентов с цифровым двойником",
           );
         },
       );
@@ -292,9 +285,7 @@ function App() {
             error:
               error instanceof Error
                 ? error.message
-                : (
-                  "Failed to load patient"
-                ),
+                : "Не удалось загрузить данные пациента",
           });
         },
       );
@@ -398,9 +389,7 @@ function App() {
         />
 
         <div
-          className={
-            "workspace-content"
-          }
+          className="workspace-content"
         >
           <WorkbenchContent
             section={
