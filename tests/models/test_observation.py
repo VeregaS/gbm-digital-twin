@@ -28,11 +28,15 @@ def test_enhancing_detection_builds_bounded_latent_density() -> None:
 
 
 def test_infiltrative_detection_raises_density_outside_enhancing_core() -> None:
-    enhancing = np.zeros((11, 11, 11), dtype=bool)
-    enhancing[5, 5, 5] = True
+    # The infiltrative surface represents a lower-density observation farther
+    # from the enhancing core. With the default 4 mm transition width it must
+    # be spatially separated enough to add information beyond the enhancing
+    # profile's own tail.
+    enhancing = np.zeros((31, 31, 31), dtype=bool)
+    enhancing[15, 15, 15] = True
 
     infiltrative = np.zeros_like(enhancing)
-    infiltrative[3:8, 3:8, 3:8] = True
+    infiltrative[2:29, 2:29, 2:29] = True
 
     brain = np.ones_like(enhancing)
 
@@ -48,13 +52,13 @@ def test_infiltrative_detection_raises_density_outside_enhancing_core() -> None:
         infiltrative_mask=infiltrative,
     )
 
-    shell_voxel = (3, 5, 5)
+    shell_voxel = (2, 15, 15)
 
     assert (
         with_infiltrative[shell_voxel]
         > without_infiltrative[shell_voxel]
     )
-    assert with_infiltrative[5, 5, 5] >= 0.8
+    assert with_infiltrative[15, 15, 15] >= 0.8
 
 
 def test_enhancing_region_must_be_inside_infiltrative_region() -> None:
