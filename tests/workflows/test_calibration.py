@@ -32,6 +32,8 @@ class CapturedCalibrationCall:
     start_time_day: float | None = None
     objective: CalibrationObjective | None = None
     soft_temperature: float | None = None
+    refinement_rounds: int | None = None
+    upper_boundary_expansion_factor: float | None = None
 
 
 def make_volume(
@@ -216,6 +218,8 @@ def test_calibrate_v2_interval_uses_only_interval(
         workers: int,
         objective: CalibrationObjective,
         soft_temperature: float,
+        refinement_rounds: int,
+        upper_boundary_expansion_factor: float,
     ) -> AdaptiveCalibrationResult:
         captured.duration_days = (
             duration_days
@@ -229,6 +233,14 @@ def test_calibrate_v2_interval_uses_only_interval(
 
         captured.soft_temperature = (
             soft_temperature
+        )
+
+        captured.refinement_rounds = (
+            refinement_rounds
+        )
+
+        captured.upper_boundary_expansion_factor = (
+            upper_boundary_expansion_factor
         )
 
         assert initial_field.shape == (
@@ -274,6 +286,8 @@ def test_calibrate_v2_interval_uses_only_interval(
         assert treatment is None
         assert cache_dir == tmp_path
         assert workers == 2
+        assert refinement_rounds == 1
+        assert upper_boundary_expansion_factor == 0.5
 
         return AdaptiveCalibrationResult(
             best=expected,
@@ -388,6 +402,16 @@ def test_calibrate_v2_interval_uses_only_interval(
     assert (
         captured.soft_temperature
         == 0.05
+    )
+
+    assert (
+        captured.refinement_rounds
+        == 1
+    )
+
+    assert (
+        captured.upper_boundary_expansion_factor
+        == 0.5
     )
 
 
