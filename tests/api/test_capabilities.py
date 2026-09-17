@@ -22,6 +22,14 @@ def make_settings(
         atlas_root=(
             tmp_path / "atlas"
         ),
+        cohort_freeze_root=(
+            tmp_path
+            / "freeze"
+        ),
+        cohort_evaluation_root=(
+            tmp_path
+            / "evaluation"
+        ),
     )
 
 
@@ -99,6 +107,30 @@ def test_capabilities_report_available_features(
             settings.atlas_root
             / filename
         ).touch()
+        
+        assert (
+        settings.cohort_freeze_root
+        is not None
+    )
+
+    assert (
+        settings.cohort_evaluation_root
+        is not None
+    )
+
+    settings.cohort_freeze_root.mkdir()
+
+    settings.cohort_evaluation_root.mkdir()
+
+    (
+        settings.cohort_evaluation_root
+        / "cohort_evaluation.json"
+    ).touch()
+
+    (
+        settings.cohort_evaluation_root
+        / "cohort_evaluation.sha256"
+    ).touch()
 
     client = TestClient(
         create_app(settings)
@@ -133,8 +165,14 @@ def test_capabilities_report_available_features(
         "reason": None,
     }
 
+    assert payload[
+        "digital_twin"
+    ] == {
+        "available": True,
+        "reason": None,
+    }
+
     for feature in (
-        "digital_twin",
         "runs",
         "tools",
         "research",

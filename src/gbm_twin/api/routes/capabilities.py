@@ -103,16 +103,49 @@ def capabilities(
         )
     else:
         anatomy = _yes()
+        
+    freeze_root = (
+        settings.cohort_freeze_root
+    )
+
+    evaluation_root = (
+        settings
+        .cohort_evaluation_root
+    )
+
+    twin_ready = (
+        dataset_ready
+        and freeze_root is not None
+        and freeze_root.is_dir()
+        and evaluation_root is not None
+        and (
+            evaluation_root
+            / "cohort_evaluation.json"
+        ).is_file()
+        and (
+            evaluation_root
+            / "cohort_evaluation.sha256"
+        ).is_file()
+    )
+
+    if not dataset_ready:
+        digital_twin = _no(
+            "CFB-GBM dataset is not configured."
+        )
+    elif not twin_ready:
+        digital_twin = _no(
+            "Sealed V2 cohort evaluation "
+            "is not available."
+        )
+    else:
+        digital_twin = _yes()
 
     return CapabilitiesResponse(
         patients=patients,
         viewer=viewer,
         anatomy=anatomy,
 
-        digital_twin=_no(
-            "PatientTwin API is not "
-            "exposed yet."
-        ),
+        digital_twin=digital_twin,
 
         runs=_no(
             "Run management is not "

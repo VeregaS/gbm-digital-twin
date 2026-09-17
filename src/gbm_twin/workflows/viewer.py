@@ -581,3 +581,154 @@ def render_viewer_slice_png(
     )
 
     return buffer.getvalue()
+
+def render_viewer_mask_slice_png(
+    *,
+    metadata_root: Path,
+    patients_root: Path,
+    patient_id: int,
+    timepoint_name: str,
+    overlay_mask: np.ndarray,
+    plane: ViewerPlane,
+    index: int | None = None,
+    overlay_color: tuple[
+        float,
+        float,
+        float,
+    ] = (
+        37.0,
+        99.0,
+        235.0,
+    ),
+    overlay_alpha: float = 0.50,
+    target_spacing: tuple[
+        float,
+        float,
+        float,
+    ] = DEFAULT_TARGET_SPACING,
+) -> bytes:
+    if not (
+        0.0
+        <= overlay_alpha
+        <= 1.0
+    ):
+        raise ValueError(
+            "overlay_alpha must be "
+            "within [0, 1]"
+        )
+
+    cached = _load_viewer_volume(
+        metadata_root=metadata_root,
+        patients_root=patients_root,
+        patient_id=patient_id,
+        timepoint_name=timepoint_name,
+        target_spacing=target_spacing,
+    )
+
+    prepared = cached.prepared
+
+    mask_volume = np.asarray(
+        overlay_mask
+    )
+
+    if (
+        mask_volume.shape
+        != prepared.t1gd.data.shape
+    ):
+        raise ValueError(
+            "Overlay mask shape does not "
+            "match MRI geometry: "
+            f"{mask_volume.shape} vs "
+            f"{prepared.t1gd.data.shape}"
+        )
+
+    metadata = (
+        get_viewer_volume_metadata(
+            metadata_root=metadata_root,
+            patients_root=patients_root,
+            patient_id=patient_id,
+            timepoint_name=timepoint_name,
+            target_spacing=target_spacing,
+        )
+    )
+
+    plane_metadata = next(
+        item
+        for item in metadata.planes
+        if item.name == plane
+    )
+
+    slice_index = (
+        plane_metadata.default_index
+        if index is None
+        else index
+    )
+
+    image_slice = _extract_plane(
+        prepared.t1gd.data,
+        plane=plane,
+        index=slice_index,
+    )
+
+    grayscale = _normalize_mri_slice(
+        image_slice,
+        low=cached.intensity_low,
+        high=cached.intensity_high,
+    )
+
+    rgb = np.repeat(
+        grayscale[
+            :,
+            :,
+            np.newaxis,
+        ],
+        3,
+        axis=2,
+    ).astype(
+        np.float32
+    )
+
+    mask_slice = _extract_plane(
+        mask_volume,
+        plane=plane,
+        index=slice_index,
+    )
+
+    mask = (
+        mask_slice
+        > 0.5
+    )
+
+    if np.any(mask):
+        color = np.asarray(
+            overlay_color,
+            dtype=np.float32,
+        )
+
+        rgb[mask] = (
+            (1.0 - overlay_alpha)
+            * rgb[mask]
+            + overlay_alpha
+            * color
+        )
+
+    rgb_uint8 = np.clip(
+        rgb,
+        0.0,
+        255.0,
+    ).astype(
+        np.uint8
+    )
+
+    image = Image.fromarray(
+        rgb_uint8
+    )
+
+    buffer = BytesIO()
+
+    image.save(
+        buffer,
+        format="PNG",
+    )
+
+    return buffer.getvalue()

@@ -8,6 +8,7 @@ from fastapi.testclient import (
     TestClient,
 )
 
+import gbm_twin.api.routes.twin as twin_routes
 from gbm_twin.api.app import (
     create_app,
 )
@@ -19,6 +20,10 @@ from gbm_twin.api.schemas.twin import (
 )
 from gbm_twin.workflows.provenance import (
     sha256_file,
+)
+from gbm_twin.workflows.viewer import (
+    ViewerPlaneMetadata,
+    ViewerVolumeMetadata,
 )
 
 GIT_SHA = (
@@ -560,4 +565,185 @@ def test_tampered_evaluation_returns_503(
     assert (
         "checksum mismatch"
         in response.json()["detail"]
+    )
+    
+def test_get_twin_viewer_metadata(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    settings = make_settings(
+        tmp_path
+    )
+
+    assert (
+        settings.cohort_evaluation_root
+        is not None
+    )
+
+    write_evaluation(
+        settings
+        .cohort_evaluation_root
+    )
+
+    def fake_metadata(
+        *,
+        metadata_root: Path,
+        patients_root: Path,
+        cohort_evaluation_root: Path,
+        patient_id: int,
+    ) -> ViewerVolumeMetadata:
+        assert patient_id == 42
+
+        return ViewerVolumeMetadata(
+            patient_id=42,
+            timepoint_name="t2",
+            shape=(
+                32,
+                40,
+                48,
+            ),
+            spacing=(
+                2.0,
+                2.0,
+                2.0,
+            ),
+            intensity_low=0.0,
+            intensity_high=1.0,
+            gtv_voxels=100,
+            gtv_volume_cm3=0.8,
+            planes=(
+                ViewerPlaneMetadata(
+                    name="axial",
+                    size=48,
+                    max_index=47,
+                    default_index=24,
+                    image_width=32,
+                    image_height=40,
+                ),
+                ViewerPlaneMetadata(
+                    name="coronal",
+                    size=40,
+                    max_index=39,
+                    default_index=20,
+                    image_width=32,
+                    image_height=48,
+                ),
+                ViewerPlaneMetadata(
+                    name="sagittal",
+                    size=32,
+                    max_index=31,
+                    default_index=16,
+                    image_width=40,
+                    image_height=48,
+                ),
+            ),
+        )
+
+    monkeypatch.setattr(
+        twin_routes,
+        "get_twin_viewer_volume_metadata",
+        fake_metadata,
+    )
+
+    client = TestClient(
+        create_app(
+            settings
+        )
+    )
+
+    response = client.get(
+        "/api/twin/patients/42/viewer"
+    )
+
+    assert response.status_code == 200
+
+    payload = response.json()
+
+    assert payload[
+        "patient_id"
+    ] == 42
+
+    assert payload[
+        "timepoint_name"
+    ] == "t2"
+
+    assert payload[
+        "shape"
+    ] == [
+        32,
+        40,
+        48,
+    ]
+
+
+def test_get_twin_slice(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    settings = make_settings(
+        tmp_path
+    )
+
+    assert (
+        settings.cohort_evaluation_root
+        is not None
+    )
+
+    write_evaluation(
+        settings
+        .cohort_evaluation_root
+    )
+
+    expected_png = (
+        b"\x89PNG\r\n\x1a\n"
+        b"synthetic"
+    )
+
+    def fake_render(
+        *,
+        metadata_root: Path,
+        patients_root: Path,
+        cohort_freeze_root: Path,
+        cohort_evaluation_root: Path,
+        patient_id: int,
+        layer: str,
+        plane: str,
+        index: int | None = None,
+    ) -> bytes:
+        assert patient_id == 42
+        assert layer == "twin"
+        assert plane == "axial"
+        assert index == 12
+
+        return expected_png
+
+    monkeypatch.setattr(
+        twin_routes,
+        "render_twin_viewer_slice_png",
+        fake_render,
+    )
+
+    client = TestClient(
+        create_app(
+            settings
+        )
+    )
+
+    response = client.get(
+        
+            "/api/twin/patients/42/slice"
+            "?layer=twin"
+            "&plane=axial"
+            "&index=12"
+        
+    )
+
+    assert response.status_code == 200
+
+    assert response.headers[
+        "content-type"
+    ] == "image/png"
+
+    assert response.content == (
+        expected_png
     )
