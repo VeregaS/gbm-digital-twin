@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import csv
+from io import StringIO
 from pathlib import Path
 from typing import Annotated, Literal
 
@@ -21,6 +23,9 @@ from gbm_twin.api.schemas.twin import (
     TwinPatientListItemResponse,
     TwinPatientListResponse,
 )
+from gbm_twin.api.schemas.twin_scene3d import (
+    TwinViewer3DSceneResponse,
+)
 from gbm_twin.api.schemas.viewer import (
     ViewerVolumeResponse,
 )
@@ -31,6 +36,9 @@ from gbm_twin.workflows.cohort_evaluation import (
 from gbm_twin.workflows.cohort_results import (
     load_sealed_cohort_evaluation,
     summarize_cohort_evaluation,
+)
+from gbm_twin.workflows.twin_scene3d import (
+    get_twin_viewer_3d_scene,
 )
 from gbm_twin.workflows.twin_viewer import (
     TwinOverlayLayer,
@@ -72,13 +80,17 @@ LayerParameter = Annotated[
 
 def _require_twin_roots(
     settings: ApiSettings,
-) -> tuple[Path, Path]:
+) -> tuple[
+    Path,
+    Path,
+]:
     freeze_root = (
         settings.cohort_freeze_root
     )
 
     evaluation_root = (
-        settings.cohort_evaluation_root
+        settings
+        .cohort_evaluation_root
     )
 
     if freeze_root is None:
@@ -135,7 +147,8 @@ def _find_patient(
     patient_id: int,
 ) -> PatientEvaluationPayload:
     for patient in (
-        evaluation.manifest["patients"]
+        evaluation
+        .manifest["patients"]
     ):
         if (
             patient["patient_id"]
@@ -173,11 +186,41 @@ def get_twin_cohort(
     )
 
     return (
-        TwinCohortResponse.from_payload(
+        TwinCohortResponse
+        .from_payload(
             evaluation.manifest,
             summary,
         )
     )
+
+
+@router.get(
+    "/evaluations",
+    response_model=list[
+        TwinPatientEvaluationResponse
+    ],
+)
+def list_twin_evaluations(
+    settings: SettingsDependency,
+) -> list[
+    TwinPatientEvaluationResponse
+]:
+    evaluation = (
+        _load_evaluation(
+            settings
+        )
+    )
+
+    return [
+        TwinPatientEvaluationResponse
+        .from_payload(
+            patient
+        )
+        for patient
+        in evaluation.manifest[
+            "patients"
+        ]
+    ]
 
 
 @router.get(
@@ -199,7 +242,9 @@ def list_twin_patients(
         patients=[
             TwinPatientListItemResponse(
                 patient_id=(
-                    patient["patient_id"]
+                    patient[
+                        "patient_id"
+                    ]
                 ),
                 target_timepoint=(
                     patient[
@@ -207,11 +252,15 @@ def list_twin_patients(
                     ]
                 ),
                 target_day=(
-                    patient["target_day"]
+                    patient[
+                        "target_day"
+                    ]
                 ),
             )
             for patient
-            in evaluation.manifest["patients"]
+            in evaluation.manifest[
+                "patients"
+            ]
         ]
     )
 
@@ -412,6 +461,235 @@ def get_twin_slice(
         headers={
             "Cache-Control": (
                 "private, max-age=60"
+            ),
+        },
+    )
+
+
+@router.get(
+    "/patients/{patient_id}/scene3d",
+    response_model=(
+        TwinViewer3DSceneResponse
+    ),
+)
+def get_twin_scene_3d(
+    patient_id: int,
+    settings: SettingsDependency,
+) -> TwinViewer3DSceneResponse:
+    if patient_id <= 0:
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                "patient_id must be positive"
+            ),
+        )
+
+    evaluation = (
+        _load_evaluation(
+            settings
+        )
+    )
+
+    _find_patient(
+        evaluation,
+        patient_id,
+    )
+
+    (
+        freeze_root,
+        evaluation_root,
+    ) = _require_twin_roots(
+        settings
+    )
+
+    try:
+        scene = (
+            get_twin_viewer_3d_scene(
+                metadata_root=(
+                    settings.metadata_root
+                ),
+                patients_root=(
+                    settings.patients_root
+                ),
+                cohort_freeze_root=(
+                    freeze_root
+                ),
+                cohort_evaluation_root=(
+                    evaluation_root
+                ),
+                patient_id=patient_id,
+            )
+        )
+
+    except FileNotFoundError as exc:
+        raise HTTPException(
+            status_code=404,
+            detail=str(exc),
+        ) from exc
+
+    except (
+        KeyError,
+        ValueError,
+        RuntimeError,
+    ) as exc:
+        raise HTTPException(
+            status_code=400,
+            detail=str(exc),
+        ) from exc
+
+    return (
+        TwinViewer3DSceneResponse
+        .from_scene(
+            scene
+        )
+    )
+
+
+@router.get(
+    "/export/evaluation.json",
+)
+def export_twin_evaluation_json(
+    settings: SettingsDependency,
+) -> Response:
+    _load_evaluation(
+        settings
+    )
+
+    _, evaluation_root = (
+        _require_twin_roots(
+            settings
+        )
+    )
+
+    manifest_path = (
+        evaluation_root.resolve()
+        / "cohort_evaluation.json"
+    )
+
+    content = (
+        manifest_path.read_bytes()
+    )
+
+    return Response(
+        content=content,
+        media_type="application/json",
+        headers={
+            "Content-Disposition": (
+                "attachment; "
+                'filename="'
+                "cohort_evaluation.json"
+                '"'
+            ),
+        },
+    )
+
+
+@router.get(
+    "/export/evaluation.csv",
+)
+def export_twin_evaluation_csv(
+    settings: SettingsDependency,
+) -> Response:
+    evaluation = (
+        _load_evaluation(
+            settings
+        )
+    )
+
+    buffer = StringIO(
+        newline=""
+    )
+
+    writer = csv.writer(
+        buffer,
+        lineterminator="\n",
+    )
+
+    writer.writerow(
+        [
+            "patient_id",
+            "target_timepoint",
+            "target_day",
+            "twin_dice",
+            "twin_relative_volume_error",
+            "twin_hd95_mm",
+            "twin_centroid_distance_mm",
+            "persistence_dice",
+            "persistence_relative_volume_error",
+            "persistence_hd95_mm",
+            "persistence_centroid_distance_mm",
+            "volume_baseline_dice",
+            "volume_baseline_relative_volume_error",
+            "volume_baseline_hd95_mm",
+            "volume_baseline_centroid_distance_mm",
+        ]
+    )
+
+    for patient in (
+        evaluation
+        .manifest["patients"]
+    ):
+        twin = patient["twin"]
+
+        persistence = (
+            patient["persistence"]
+        )
+
+        volume_baseline = (
+            patient[
+                "volume_baseline"
+            ]
+        )
+
+        writer.writerow(
+            [
+                patient["patient_id"],
+                patient[
+                    "target_timepoint"
+                ],
+                patient["target_day"],
+                twin["dice"],
+                twin[
+                    "relative_volume_error"
+                ],
+                twin["hd95_mm"],
+                twin[
+                    "centroid_distance_mm"
+                ],
+                persistence["dice"],
+                persistence[
+                    "relative_volume_error"
+                ],
+                persistence[
+                    "hd95_mm"
+                ],
+                persistence[
+                    "centroid_distance_mm"
+                ],
+                volume_baseline[
+                    "dice"
+                ],
+                volume_baseline[
+                    "relative_volume_error"
+                ],
+                volume_baseline[
+                    "hd95_mm"
+                ],
+                volume_baseline[
+                    "centroid_distance_mm"
+                ],
+            ]
+        )
+
+    return Response(
+        content=buffer.getvalue(),
+        media_type="text/csv",
+        headers={
+            "Content-Disposition": (
+                "attachment; "
+                'filename="'
+                "cohort_evaluation.csv"
+                '"'
             ),
         },
     )
