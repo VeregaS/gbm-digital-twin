@@ -42,24 +42,24 @@ function PatientToolbar({
   onOpenViewer,
 }: PatientToolbarProps) {
   const title = patientLoading
-    ? "Loading patient…"
+    ? "Загрузка пациента…"
     : patient
-      ? `Patient ${patient.patient_id}`
-      : "No patient selected";
+      ? `Пациент ${patient.patient_id}`
+      : "Пациент не выбран";
 
   const status = error
-    ? "Data error"
+    ? "Ошибка данных"
     : patient
-      ? `${patient.timepoint_count} timepoints`
+      ? `${patient.timepoint_count} временные точки`
       : patientsLoading
-        ? "Loading dataset"
-        : `${patients.length} patients available`;
+        ? "Загрузка набора данных"
+        : `${patients.length} пациентов доступно`;
 
   return (
     <section className="patient-toolbar">
       <div>
         <div className="section-eyebrow">
-          Active patient
+          Выбранный пациент
         </div>
 
         <div className="patient-row">
@@ -78,10 +78,10 @@ function PatientToolbar({
                   patient,
                 )
               : (
-                "Select a longitudinal "
-                + "CFB-GBM patient to inspect "
-                + "MRI, tumor segmentation "
-                + "and digital twin predictions."
+                "Выберите пациента CFB-GBM, "
+                + "чтобы изучить динамику МРТ, "
+                + "сегментацию опухоли, лечение "
+                + "и прогноз цифрового двойника."
               )}
         </p>
       </div>
@@ -89,7 +89,7 @@ function PatientToolbar({
       <div className="patient-actions">
         <select
           className="secondary-button patient-select"
-          aria-label="Select patient"
+          aria-label="Выбор пациента"
           disabled={
             patientsLoading
             || patients.length === 0
@@ -111,8 +111,8 @@ function PatientToolbar({
         >
           <option value="">
             {patientsLoading
-              ? "Loading patients…"
-              : "Select patient"}
+              ? "Загрузка пациентов…"
+              : "Выберите пациента"}
           </option>
 
           {patients.map(
@@ -142,7 +142,7 @@ function PatientToolbar({
             onClick={onOpenViewer}
           >
             <Play size={16} />
-            Open viewer
+            Открыть МРТ
           </button>
         )}
       </div>
@@ -174,16 +174,16 @@ function patientDescription(
 
   const treatment = (
     patient.treatment.reconstructable
-      ? "RT schedule reconstructable"
+      ? "схема лучевой терапии восстановлена"
       : patient.treatment.has_record
-        ? "RT metadata incomplete"
-        : "RT metadata unavailable"
+        ? "данные о лучевой терапии неполные"
+        : "данные о лучевой терапии отсутствуют"
   );
 
   const intervalText =
     intervals.length > 0
       ? intervals.join(" · ")
-      : "Longitudinal intervals unavailable";
+      : "интервалы наблюдения недоступны";
 
   return `${intervalText} · ${treatment}`;
 }
