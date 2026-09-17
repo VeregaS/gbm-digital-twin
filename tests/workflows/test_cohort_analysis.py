@@ -118,10 +118,16 @@ def _volume(
 def _prepared(
     name: str,
 ) -> PreparedPatientTimepoint:
-    voxels_by_name = {
+    voxels_by_name: dict[str, int] = {
         "t0": 10,
         "t1": 12,
         "t2": 18,
+    }
+
+    day_by_name: dict[str, float] = {
+        "t0": 0.0,
+        "t1": 60.0,
+        "t2": 150.0,
     }
 
     gtv = _volume(
@@ -138,12 +144,6 @@ def _prepared(
         f"{name}_t1gd.nii.gz",
         32,
     )
-
-    day_by_name = {
-        "t0": 0.0,
-        "t1": 60.0,
-        "t2": 150.0,
-    }
 
     return PreparedPatientTimepoint(
         patient_id=42,
@@ -262,6 +262,122 @@ def _qc() -> TwinPatientQC:
     )
 
 
+def _patch_analysis_dependencies(
+    *,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    evaluation_payload: CohortEvaluationPayload,
+) -> None:
+    artifact = _artifact(
+        tmp_path
+    )
+
+    def fake_load_evaluation(
+        directory: Path,
+    ) -> CohortEvaluationResult:
+        return CohortEvaluationResult(
+            directory=directory,
+            manifest=evaluation_payload,
+        )
+
+    def fake_catalog(
+        *,
+        metadata_root: Path,
+        patient_id: int,
+    ) -> PatientCatalogSummary:
+        assert metadata_root.name == "metadata"
+        assert patient_id == 42
+        return _catalog()
+
+    def fake_prepare(
+        *,
+        metadata_root: Path,
+        patients_root: Path,
+        patient_id: int,
+        timepoint_name: str,
+        target_spacing: tuple[
+            float,
+            float,
+            float,
+        ],
+    ) -> PreparedPatientTimepoint:
+        assert metadata_root.name == "metadata"
+        assert patients_root.name == "patients"
+        assert patient_id == 42
+        assert target_spacing == (
+            2.0,
+            2.0,
+            2.0,
+        )
+        return _prepared(
+            timepoint_name
+        )
+
+    def fake_load_artifact(
+        *,
+        cohort_freeze_root: Path,
+        payload: CohortEvaluationPayload,
+        patient_id: int,
+    ) -> FrozenV2PredictionArtifact:
+        assert cohort_freeze_root.name == "freeze"
+        assert payload is evaluation_payload
+        assert patient_id == 42
+        return artifact
+
+    def fake_qc(
+        *,
+        metadata_root: Path,
+        patients_root: Path,
+        cohort_freeze_root: Path,
+        cohort_evaluation_root: Path,
+        patient_id: int,
+    ) -> TwinPatientQC:
+        assert metadata_root.name == "metadata"
+        assert patients_root.name == "patients"
+        assert cohort_freeze_root.name == "freeze"
+        assert cohort_evaluation_root.name == "evaluation"
+        assert patient_id == 42
+        return _qc()
+
+    monkeypatch.setattr(
+        analysis_module,
+        "load_sealed_cohort_evaluation",
+        fake_load_evaluation,
+    )
+    monkeypatch.setattr(
+        analysis_module,
+        "get_patient_catalog_summary",
+        fake_catalog,
+    )
+    monkeypatch.setattr(
+        analysis_module,
+        "prepare_patient_timepoint",
+        fake_prepare,
+    )
+    monkeypatch.setattr(
+        analysis_module,
+        "load_frozen_patient_artifact",
+        fake_load_artifact,
+    )
+    monkeypatch.setattr(
+        analysis_module,
+        "get_twin_patient_qc",
+        fake_qc,
+    )
+
+
+def _write_analysis_config(
+    path: Path,
+) -> None:
+    path.write_text(
+        "schema_version: 1\n"
+        "stable_volume_change_fraction: 0.10\n"
+        "worst_patient_count: 5\n"
+        "min_correlation_patients: 3\n",
+        encoding="utf-8",
+    )
+
+
 def test_analyze_sealed_cohort_writes_reproducible_artifact(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
@@ -286,51 +402,16 @@ def test_analyze_sealed_cohort_writes_reproducible_artifact(
         tmp_path
         / "analysis.yaml"
     )
-    config_path.write_text(
-        "schema_version: 1\n"
-        "stable_volume_change_fraction: 0.10\n"
-        "worst_patient_count: 5\n"
-        "min_correlation_patients: 3\n",
-        encoding="utf-8",
+    _write_analysis_config(
+        config_path
     )
 
-    monkeypatch.setattr(
-        analysis_module,
-        "load_sealed_cohort_evaluation",
-        lambda directory: CohortEvaluationResult(
-            directory=directory,
-            manifest=evaluation_payload,
+    _patch_analysis_dependencies(
+        monkeypatch=monkeypatch,
+        tmp_path=tmp_path,
+        evaluation_payload=(
+            evaluation_payload
         ),
-    )
-
-    monkeypatch.setattr(
-        analysis_module,
-        "get_patient_catalog_summary",
-        lambda **kwargs: _catalog(),
-    )
-
-    monkeypatch.setattr(
-        analysis_module,
-        "prepare_patient_timepoint",
-        lambda **kwargs: _prepared(
-            str(kwargs["timepoint_name"])
-        ),
-    )
-
-    artifact = _artifact(
-        tmp_path
-    )
-
-    monkeypatch.setattr(
-        analysis_module,
-        "load_frozen_patient_artifact",
-        lambda **kwargs: artifact,
-    )
-
-    monkeypatch.setattr(
-        analysis_module,
-        "get_twin_patient_qc",
-        lambda **kwargs: _qc(),
     )
 
     output_dir = (
@@ -413,43 +494,16 @@ def test_load_sealed_cohort_analysis_rejects_tampering(
     )
 
     config_path = tmp_path / "analysis.yaml"
-    config_path.write_text(
-        "schema_version: 1\n"
-        "stable_volume_change_fraction: 0.10\n"
-        "worst_patient_count: 5\n"
-        "min_correlation_patients: 3\n",
-        encoding="utf-8",
+    _write_analysis_config(
+        config_path
     )
 
-    monkeypatch.setattr(
-        analysis_module,
-        "load_sealed_cohort_evaluation",
-        lambda directory: CohortEvaluationResult(
-            directory=directory,
-            manifest=evaluation_payload,
+    _patch_analysis_dependencies(
+        monkeypatch=monkeypatch,
+        tmp_path=tmp_path,
+        evaluation_payload=(
+            evaluation_payload
         ),
-    )
-    monkeypatch.setattr(
-        analysis_module,
-        "get_patient_catalog_summary",
-        lambda **kwargs: _catalog(),
-    )
-    monkeypatch.setattr(
-        analysis_module,
-        "prepare_patient_timepoint",
-        lambda **kwargs: _prepared(
-            str(kwargs["timepoint_name"])
-        ),
-    )
-    monkeypatch.setattr(
-        analysis_module,
-        "load_frozen_patient_artifact",
-        lambda **kwargs: _artifact(tmp_path),
-    )
-    monkeypatch.setattr(
-        analysis_module,
-        "get_twin_patient_qc",
-        lambda **kwargs: _qc(),
     )
 
     output_dir = tmp_path / "analysis"
