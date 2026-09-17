@@ -86,7 +86,7 @@ function Sidebar({
               "brand-description"
             }
           >
-            Research Workbench
+            Исследовательская среда
           </div>
         </div>
       </div>
@@ -96,7 +96,7 @@ function Sidebar({
           "sidebar-section-label"
         }
       >
-        Workspace
+        Рабочее пространство
       </div>
 
       <FunctionalNavigation
@@ -131,11 +131,11 @@ function Sidebar({
             }
           >
             <span>
-              Active patient
+              Выбранный пациент
             </span>
 
             <strong>
-              Patient
+              Пациент
               {" "}
               {selectedPatientId}
             </strong>
@@ -171,7 +171,7 @@ function Sidebar({
                 "system-card-title"
               }
             >
-              Backend
+              Сервер
             </span>
           </div>
 
@@ -181,13 +181,13 @@ function Sidebar({
             }
           >
             {backendError
-              ? "Connection unavailable"
+              ? "Нет соединения"
               : health
                 ? (
-                  `Connected · `
+                  `Подключено · `
                   + `v${health.version}`
                 )
-                : "Connecting…"}
+                : "Подключение…"}
           </div>
         </div>
       </div>
