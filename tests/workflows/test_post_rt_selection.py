@@ -10,8 +10,12 @@ from gbm_twin.data.cfb_treatment import TreatmentRecord
 from gbm_twin.data.nifti import NiftiVolume
 from gbm_twin.evaluation.cohort import EvaluationConfig
 from gbm_twin.evaluation.config import CohortExperimentConfig
+from gbm_twin.models.solver import TreatmentModel
 from gbm_twin.models.treatment import RadiotherapyProtocol
-from gbm_twin.workflows.calibration import V2CalibrationRun
+from gbm_twin.workflows.calibration import (
+    V2CalibrationConfig,
+    V2CalibrationRun,
+)
 from gbm_twin.workflows.patients import PreparedPatientTimepoint
 from gbm_twin.workflows.post_rt_selection import (
     select_post_rt_parameters,
@@ -181,20 +185,32 @@ include_fractionated_only_baseline: true
         encoding="utf-8",
     )
 
+    def fake_load_experiment(
+        path: Path,
+    ) -> CohortExperimentConfig:
+        assert path == experiment_config
+        return make_experiment(
+            tmp_path
+        )
+
+    def fake_repository_state(
+        path: Path,
+    ) -> RepositoryState:
+        assert path == tmp_path
+        return RepositoryState(
+            commit_sha="a" * 40,
+            dirty=False,
+        )
+
     monkeypatch.setattr(
         selection_module,
         "load_cohort_experiment_config",
-        lambda path: make_experiment(
-            tmp_path
-        ),
+        fake_load_experiment,
     )
     monkeypatch.setattr(
         selection_module,
         "read_repository_state",
-        lambda path: RepositoryState(
-            commit_sha="a" * 40,
-            dirty=False,
-        ),
+        fake_repository_state,
     )
     monkeypatch.setattr(
         selection_module,
@@ -253,13 +269,16 @@ include_fractionated_only_baseline: true
         *,
         start: PreparedPatientTimepoint,
         observed: PreparedPatientTimepoint,
-        treatment: object,
-        config: object,
+        treatment: TreatmentModel | None,
+        config: V2CalibrationConfig,
         cache_dir: Path,
         workers: int = 1,
     ) -> V2CalibrationRun:
         assert start.name == "t0"
         assert observed.name == "t1"
+        assert workers == 2
+        assert config.refinement_rounds == 1
+        assert cache_dir.name == "patient-42"
 
         loss = (
             0.1
