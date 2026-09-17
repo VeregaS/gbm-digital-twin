@@ -1,0 +1,10 @@
+schema_version: 1
+
+# Relative GTV-volume change within +/- this fraction is classified as stable.
+stable_volume_change_fraction: 0.10
+
+# Number of worst patients retained in ranked diagnostic summaries.
+worst_patient_count: 5
+
+# Correlations are reported only when at least this many finite pairs exist.
+min_correlation_patients: 3
