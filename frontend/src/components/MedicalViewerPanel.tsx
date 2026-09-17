@@ -150,7 +150,6 @@ function MedicalViewerPanel({
       ? modeSelection.mode
       : "workstation";
 
-
   useEffect(() => {
     if (
       patient === null
@@ -181,8 +180,7 @@ function MedicalViewerPanel({
           const axial =
             result.planes.find(
               (item) =>
-                item.name
-                === "axial",
+                item.name === "axial",
             );
 
           if (axial) {
@@ -193,10 +191,7 @@ function MedicalViewerPanel({
         },
       )
       .catch(
-        (
-          requestError:
-            unknown,
-        ) => {
+        (requestError: unknown) => {
           if (cancelled) {
             return;
           }
@@ -207,12 +202,9 @@ function MedicalViewerPanel({
             status: "error",
             error:
               requestError
-                instanceof Error
+              instanceof Error
                 ? requestError.message
-                : (
-                  "Failed to load "
-                  + "viewer metadata"
-                ),
+                : "Не удалось загрузить метаданные МРТ",
           });
         },
       );
@@ -224,7 +216,6 @@ function MedicalViewerPanel({
     patient,
     timepointName,
   ]);
-
 
   const currentMetadataRequest =
     patient !== null
@@ -252,14 +243,12 @@ function MedicalViewerPanel({
     && Boolean(timepointName)
     && currentMetadataRequest === null;
 
-
   const activePlane =
     isViewerPlane(
       mode,
     )
       ? mode
       : "axial";
-
 
   const planeMetadata =
     useMemo<
@@ -278,18 +267,14 @@ function MedicalViewerPanel({
       ],
     );
 
-
   const imageUrl =
     useMemo(
       () => {
         if (
           patient === null
           || metadata === null
-          || planeMetadata
-            === null
-          || !isViewerPlane(
-            mode,
-          )
+          || planeMetadata === null
+          || !isViewerPlane(mode)
         ) {
           return null;
         }
@@ -314,7 +299,6 @@ function MedicalViewerPanel({
       ],
     );
 
-
   function changePlane(
     plane: ViewerPlane,
   ) {
@@ -330,8 +314,7 @@ function MedicalViewerPanel({
     const target =
       metadata?.planes.find(
         (item) =>
-          item.name
-          === plane,
+          item.name === plane,
       );
 
     if (target) {
@@ -341,31 +324,22 @@ function MedicalViewerPanel({
     }
   }
 
-
   return (
     <section className="panel viewer-panel">
       <div className="panel-heading viewer-panel-heading">
         <div>
           <div className="section-eyebrow">
             {showAnatomy
-              ? "Experimental anatomy"
-              : "Imaging"}
+              ? "Экспериментальная анатомия"
+              : "МРТ"}
           </div>
 
           <h3>
-            {
-              patient
-                ? (
-                  `Patient ${patient.patient_id} `
-                  + "Imaging Workstation"
-                )
-                : (
-                  "Imaging Workstation"
-                )
-            }
+            {patient
+              ? `МРТ пациента ${patient.patient_id}`
+              : "Просмотр МРТ"}
           </h3>
         </div>
-
 
         <div className="viewer-heading-controls">
           <select
@@ -373,9 +347,8 @@ function MedicalViewerPanel({
             disabled={
               patient === null
             }
-            value={
-              timepointName
-            }
+            value={timepointName}
+            aria-label="Временная точка"
             onChange={
               (event) => {
                 if (patient === null) {
@@ -390,35 +363,23 @@ function MedicalViewerPanel({
               }
             }
           >
-            {
-              patient?.timepoints.map(
-                (timepoint) => (
-                  <option
-                    key={
-                      timepoint.name
-                    }
-                    value={
-                      timepoint.name
-                    }
-                  >
-                    {
-                      timepoint
-                        .name
-                        .toUpperCase()
-                    }
-                  </option>
-                ),
-              )
-            }
+            {patient?.timepoints.map(
+              (timepoint) => (
+                <option
+                  key={timepoint.name}
+                  value={timepoint.name}
+                >
+                  {timepoint.name.toUpperCase()}
+                </option>
+              ),
+            )}
           </select>
-
 
           <div className="viewer-tabs">
             <button
               type="button"
               className={
-                mode
-                === "workstation"
+                mode === "workstation"
                   ? "viewer-tab active"
                   : "viewer-tab"
               }
@@ -436,7 +397,7 @@ function MedicalViewerPanel({
                 });
               }}
             >
-              Workstation
+              Три плоскости
             </button>
 
             <button
@@ -463,131 +424,71 @@ function MedicalViewerPanel({
               3D
             </button>
 
-            {
-              planes.map(
-                (plane) => (
-                  <button
-                    key={plane}
-                    type="button"
-                    className={
-                      mode === plane
-                        ? "viewer-tab active"
-                        : "viewer-tab"
-                    }
-                    disabled={
-                      patient === null
-                    }
-                    onClick={() =>
-                      changePlane(
-                        plane,
-                      )
-                    }
-                  >
-                    {
-                      capitalize(
-                        plane,
-                      )
-                    }
-                  </button>
-                ),
-              )
-            }
+            {planes.map(
+              (plane) => (
+                <button
+                  key={plane}
+                  type="button"
+                  className={
+                    mode === plane
+                      ? "viewer-tab active"
+                      : "viewer-tab"
+                  }
+                  disabled={
+                    patient === null
+                  }
+                  onClick={() =>
+                    changePlane(
+                      plane,
+                    )
+                  }
+                >
+                  {planeLabel(plane)}
+                </button>
+              ),
+            )}
           </div>
         </div>
       </div>
 
-
-      {
-        patient === null
-        || !timepointName
-          ? (
-            <div className="medical-viewer-stage">
-              <ViewerEmptyState />
-            </div>
-          )
-          : mode === "workstation"
-            ? (
-              <WorkstationMode
-                patientId={
-                  patient.patient_id
-                }
-                timepointName={
-                  timepointName
-                }
-                metadata={
-                  metadata
-                }
-                loading={
-                  loading
-                }
-                error={
-                  error
-                }
-                overlayGtv={
-                  overlayGtv
-                }
-                onOverlayChange={
-                  setOverlayGtv
-                }
-                showAnatomy={
-                  showAnatomy
-                }
-              />
-            )
-            : mode === "3d"
-              ? (
-                <div className="medical-viewer-stage">
-                  <ThreeDViewer
-                    patientId={
-                      patient.patient_id
-                    }
-                    timepointName={
-                      timepointName
-                    }
-                  />
-                </div>
-              )
-              : (
-                <SinglePlaneMode
-                  patientId={
-                    patient.patient_id
-                  }
-                  timepointName={
-                    timepointName
-                  }
-                  plane={
-                    activePlane
-                  }
-                  planeMetadata={
-                    planeMetadata
-                  }
-                  metadata={
-                    metadata
-                  }
-                  loading={
-                    loading
-                  }
-                  error={
-                    error
-                  }
-                  imageUrl={
-                    imageUrl
-                  }
-                  sliceIndex={
-                    sliceIndex
-                  }
-                  overlayGtv={
-                    overlayGtv
-                  }
-                  onSliceChange={
-                    setSliceIndex
-                  }
-                  onOverlayChange={
-                    setOverlayGtv
-                  }
-                />
-              )
-      }
+      {patient === null
+      || !timepointName ? (
+        <div className="medical-viewer-stage">
+          <ViewerEmptyState />
+        </div>
+      ) : mode === "workstation" ? (
+        <WorkstationMode
+          patientId={patient.patient_id}
+          timepointName={timepointName}
+          metadata={metadata}
+          loading={loading}
+          error={error}
+          overlayGtv={overlayGtv}
+          onOverlayChange={setOverlayGtv}
+          showAnatomy={showAnatomy}
+        />
+      ) : mode === "3d" ? (
+        <div className="medical-viewer-stage">
+          <ThreeDViewer
+            patientId={patient.patient_id}
+            timepointName={timepointName}
+          />
+        </div>
+      ) : (
+        <SinglePlaneMode
+          timepointName={timepointName}
+          plane={activePlane}
+          planeMetadata={planeMetadata}
+          metadata={metadata}
+          loading={loading}
+          error={error}
+          imageUrl={imageUrl}
+          sliceIndex={sliceIndex}
+          overlayGtv={overlayGtv}
+          onSliceChange={setSliceIndex}
+          onOverlayChange={setOverlayGtv}
+        />
+      )}
     </section>
   );
 }
@@ -596,19 +497,13 @@ function MedicalViewerPanel({
 type WorkstationModeProps = {
   patientId: number;
   timepointName: string;
-
-  metadata:
-    ViewerVolumeMetadata | null;
-
+  metadata: ViewerVolumeMetadata | null;
   loading: boolean;
   error: string | null;
-
   overlayGtv: boolean;
-
   onOverlayChange: (
     value: boolean,
   ) => void;
-
   showAnatomy: boolean;
 };
 
@@ -626,7 +521,7 @@ function WorkstationMode({
   if (loading) {
     return (
       <div className="workstation-loading">
-        Loading MRI workstation…
+        Загружаем МРТ…
       </div>
     );
   }
@@ -642,7 +537,7 @@ function WorkstationMode({
   if (!metadata) {
     return (
       <div className="workstation-loading">
-        Viewer metadata unavailable.
+        Метаданные МРТ недоступны.
       </div>
     );
   }
@@ -653,15 +548,11 @@ function WorkstationMode({
         <label className="viewer-overlay-toggle">
           <input
             type="checkbox"
-            checked={
-              overlayGtv
-            }
+            checked={overlayGtv}
             onChange={
               (event) =>
                 onOverlayChange(
-                  event
-                    .target
-                    .checked,
+                  event.target.checked,
                 )
             }
           />
@@ -669,73 +560,50 @@ function WorkstationMode({
           <span className="overlay-indicator" />
 
           <span>
-            GTV overlay
+            Показывать GTV
           </span>
         </label>
 
         <div className="workstation-meta">
           <span>
-            Spacing{" "}
+            Размер вокселя{" "}
             <strong>
-              {
-                formatSpacing(
-                  metadata.spacing,
-                )
-              }
+              {formatSpacing(
+                metadata.spacing,
+              )}
             </strong>
           </span>
 
           <span>
-            GTV{" "}
+            Объём GTV{" "}
             <strong>
-              {
-                metadata
-                  .gtv_volume_cm3
-                  .toFixed(2)
-              }
-              {" cm³"}
+              {metadata.gtv_volume_cm3.toFixed(2)} см³
             </strong>
           </span>
         </div>
       </div>
 
-
       <div
         className={
           showAnatomy
             ? "medical-workstation-grid"
-            : (
-              "medical-workstation-grid "
-              + "imaging-only"
-            )
+            : "medical-workstation-grid imaging-only"
         }
       >
         <TriPlanarViewer
           key={
             `${patientId}:${timepointName}`
           }
-          patientId={
-            patientId
-          }
-          timepointName={
-            timepointName
-          }
-          metadata={
-            metadata
-          }
-          overlayGtv={
-            overlayGtv
-          }
+          patientId={patientId}
+          timepointName={timepointName}
+          metadata={metadata}
+          overlayGtv={overlayGtv}
         />
 
         {showAnatomy && (
           <AnatomicalWarningsPanel
-            patientId={
-              patientId
-            }
-            timepointName={
-              timepointName
-            }
+            patientId={patientId}
+            timepointName={timepointName}
           />
         )}
       </div>
@@ -745,29 +613,20 @@ function WorkstationMode({
 
 
 type SinglePlaneModeProps = {
-  patientId: number;
   timepointName: string;
-
   plane: ViewerPlane;
-
   planeMetadata:
     ViewerPlaneMetadata | null;
-
   metadata:
     ViewerVolumeMetadata | null;
-
   loading: boolean;
   error: string | null;
-
   imageUrl: string | null;
-
   sliceIndex: number;
   overlayGtv: boolean;
-
   onSliceChange: (
     value: number,
   ) => void;
-
   onOverlayChange: (
     value: boolean,
   ) => void;
@@ -790,170 +649,123 @@ function SinglePlaneMode({
   return (
     <>
       <div className="medical-viewer-stage">
-        {
-          loading
-            ? (
-              <div className="viewer-loading">
-                Loading MRI volume…
-              </div>
-            )
-            : error
-              ? (
-                <div className="viewer-error">
-                  <strong>
-                    Unable to load MRI
-                  </strong>
+        {loading ? (
+          <div className="viewer-loading">
+            Загружаем МРТ…
+          </div>
+        ) : error ? (
+          <div className="viewer-error">
+            <strong>
+              Не удалось загрузить МРТ
+            </strong>
 
-                  <span>
-                    {error}
-                  </span>
-                </div>
-              )
-              : imageUrl
-                ? (
-                  <>
-                    <img
-                      className="medical-viewer-image"
-                      src={
-                        imageUrl
-                      }
-                      alt={
-                        `${timepointName} `
-                        + `${plane} MRI `
-                        + `slice ${sliceIndex}`
-                      }
-                      draggable={
-                        false
-                      }
-                    />
+            <span>
+              {error}
+            </span>
+          </div>
+        ) : imageUrl ? (
+          <>
+            <img
+              className="medical-viewer-image"
+              src={imageUrl}
+              alt={
+                `${timepointName} ${planeLabel(plane)}, срез ${sliceIndex}`
+              }
+              draggable={false}
+            />
 
-                    <div className="viewer-image-badge">
-                      <strong>
-                        {
-                          timepointName
-                            .toUpperCase()
-                        }
-                      </strong>
-
-                      <span>
-                        {
-                          capitalize(
-                            plane,
-                          )
-                        }
-                      </span>
-                    </div>
-                  </>
-                )
-                : (
-                  <ViewerEmptyState />
-                )
-        }
-      </div>
-
-
-      {
-        metadata
-        && planeMetadata
-        && (
-          <div className="viewer-controls">
-            <div className="slice-control">
-              <div className="slice-control-header">
-                <span>
-                  Slice
-                </span>
-
-                <strong>
-                  {sliceIndex}
-                  {" / "}
-                  {
-                    planeMetadata
-                      .max_index
-                  }
-                </strong>
-              </div>
-
-              <input
-                type="range"
-                min={0}
-                max={
-                  planeMetadata
-                    .max_index
-                }
-                value={
-                  sliceIndex
-                }
-                onChange={
-                  (event) =>
-                    onSliceChange(
-                      Number(
-                        event
-                          .target
-                          .value,
-                      ),
-                    )
-                }
-              />
-            </div>
-
-
-            <label className="viewer-overlay-toggle">
-              <input
-                type="checkbox"
-                checked={
-                  overlayGtv
-                }
-                onChange={
-                  (event) =>
-                    onOverlayChange(
-                      event
-                        .target
-                        .checked,
-                    )
-                }
-              />
-
-              <span className="overlay-indicator" />
+            <div className="viewer-image-badge">
+              <strong>
+                {timepointName.toUpperCase()}
+              </strong>
 
               <span>
-                GTV overlay
+                {planeLabel(plane)}
               </span>
-            </label>
+            </div>
+          </>
+        ) : (
+          <ViewerEmptyState />
+        )}
+      </div>
 
+      {metadata
+      && planeMetadata
+      && (
+        <div className="viewer-controls">
+          <div className="slice-control">
+            <div className="slice-control-header">
+              <span>
+                Срез
+              </span>
 
-            <div className="viewer-volume-info">
-              <div>
-                <span>
-                  Spacing
-                </span>
+              <strong>
+                {sliceIndex}
+                {" / "}
+                {planeMetadata.max_index}
+              </strong>
+            </div>
 
-                <strong>
-                  {
-                    formatSpacing(
-                      metadata.spacing,
-                    )
-                  }
-                </strong>
-              </div>
+            <input
+              type="range"
+              min={0}
+              max={planeMetadata.max_index}
+              value={sliceIndex}
+              onChange={
+                (event) =>
+                  onSliceChange(
+                    Number(
+                      event.target.value,
+                    ),
+                  )
+              }
+            />
+          </div>
 
-              <div>
-                <span>
-                  GTV volume
-                </span>
+          <label className="viewer-overlay-toggle">
+            <input
+              type="checkbox"
+              checked={overlayGtv}
+              onChange={
+                (event) =>
+                  onOverlayChange(
+                    event.target.checked,
+                  )
+              }
+            />
 
-                <strong>
-                  {
-                    metadata
-                      .gtv_volume_cm3
-                      .toFixed(2)
-                  }
-                  {" cm³"}
-                </strong>
-              </div>
+            <span className="overlay-indicator" />
+
+            <span>
+              Показывать GTV
+            </span>
+          </label>
+
+          <div className="viewer-volume-info">
+            <div>
+              <span>
+                Размер вокселя
+              </span>
+
+              <strong>
+                {formatSpacing(
+                  metadata.spacing,
+                )}
+              </strong>
+            </div>
+
+            <div>
+              <span>
+                Объём GTV
+              </span>
+
+              <strong>
+                {metadata.gtv_volume_cm3.toFixed(2)} см³
+              </strong>
             </div>
           </div>
-        )
-      }
+        </div>
+      )}
     </>
   );
 }
@@ -965,41 +777,38 @@ function ViewerEmptyState() {
       <div className="medical-viewer-empty-icon">
         <Brain
           size={52}
-          strokeWidth={
-            1.3
-          }
+          strokeWidth={1.3}
         />
 
         <Layers3
           size={20}
-          strokeWidth={
-            1.5
-          }
+          strokeWidth={1.5}
         />
       </div>
 
       <strong>
-        Select a patient
+        Выберите пациента
       </strong>
 
       <span>
-        MRI, GTV, latent tumor state
-        and anatomical analysis will
-        appear here.
+        Здесь появятся МРТ, GTV, латентное состояние опухоли и доступный анатомический анализ.
       </span>
     </div>
   );
 }
 
 
-function capitalize(
-  value: string,
+function planeLabel(
+  value: ViewerPlane,
 ): string {
-  return (
-    value.charAt(0)
-      .toUpperCase()
-    + value.slice(1)
-  );
+  switch (value) {
+    case "axial":
+      return "Аксиальная";
+    case "coronal":
+      return "Корональная";
+    case "sagittal":
+      return "Сагиттальная";
+  }
 }
 
 
@@ -1017,7 +826,7 @@ function formatSpacing(
           value.toFixed(1),
       )
       .join(" × ")
-    + " mm"
+    + " мм"
   );
 }
 
