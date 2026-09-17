@@ -2371,3 +2371,379 @@ input[type="range"] {
   font-size: 10px;
   color: #8a97a4;
 }
+
+.twin-workspace {
+  display: grid;
+  gap: 18px;
+}
+
+.twin-hero {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 32px;
+  padding: 24px 26px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.twin-hero h2 {
+  margin: 9px 0 7px;
+  max-width: 720px;
+  font-size: 22px;
+  line-height: 1.2;
+  letter-spacing: -0.025em;
+}
+
+.twin-hero p {
+  max-width: 680px;
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.twin-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.twin-provenance {
+  display: grid;
+  justify-items: end;
+  gap: 7px;
+  flex-shrink: 0;
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.twin-provenance .clean {
+  padding: 4px 8px;
+  border-radius: 999px;
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.twin-provenance .dirty {
+  padding: 4px 8px;
+  border-radius: 999px;
+  color: var(--red);
+  background: #fef2f2;
+}
+
+.twin-summary-grid {
+  display: grid;
+  grid-template-columns:
+    repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.twin-summary-card {
+  min-height: 104px;
+  padding: 17px 18px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+}
+
+.twin-summary-card.emphasis {
+  border-color: var(--accent-border);
+  background:
+    linear-gradient(
+      145deg,
+      var(--surface) 0%,
+      var(--accent-soft) 100%
+    );
+}
+
+.twin-summary-card span {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.twin-summary-card strong {
+  font-size: 25px;
+  letter-spacing: -0.025em;
+}
+
+.twin-main-grid {
+  display: grid;
+  grid-template-columns:
+    250px minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.twin-patient-list,
+.twin-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+}
+
+.twin-patient-list {
+  overflow: hidden;
+}
+
+.twin-panel-heading {
+  min-height: 64px;
+  padding: 15px 17px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.twin-panel-heading > div {
+  display: grid;
+  gap: 3px;
+}
+
+.twin-panel-heading strong {
+  font-size: 13px;
+}
+
+.twin-panel-heading span {
+  color: var(--text-tertiary);
+  font-size: 11px;
+}
+
+.twin-patient-scroll {
+  max-height: 430px;
+  padding: 7px;
+  overflow-y: auto;
+}
+
+.twin-patient-row {
+  width: 100%;
+  padding: 10px 11px;
+  display: grid;
+  gap: 3px;
+  text-align: left;
+  color: var(--text-primary);
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.twin-patient-row:hover {
+  background: var(--surface-subtle);
+}
+
+.twin-patient-row.active {
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.twin-patient-row strong {
+  font-size: 12px;
+}
+
+.twin-patient-row span {
+  font-size: 10px;
+  color: var(--text-tertiary);
+}
+
+.twin-outcome-strip {
+  padding: 12px;
+  display: grid;
+  grid-template-columns:
+    repeat(3, 1fr);
+  gap: 5px;
+  border-top: 1px solid var(--border);
+  background: var(--surface-subtle);
+}
+
+.twin-outcome-strip span {
+  display: grid;
+  gap: 2px;
+  text-align: center;
+  font-size: 9px;
+  color: var(--text-tertiary);
+}
+
+.twin-outcome-strip strong {
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+.twin-detail-stack {
+  display: grid;
+  gap: 16px;
+}
+
+.twin-card {
+  overflow: hidden;
+}
+
+.twin-error {
+  padding: 18px;
+  color: var(--red);
+}
+
+.twin-table-wrap {
+  overflow-x: auto;
+}
+
+.twin-metric-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.twin-metric-table th,
+.twin-metric-table td {
+  padding: 12px 16px;
+  text-align: right;
+  border-bottom: 1px solid var(--border);
+}
+
+.twin-metric-table th:first-child,
+.twin-metric-table td:first-child {
+  text-align: left;
+}
+
+.twin-metric-table th {
+  color: var(--text-tertiary);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background: var(--surface-subtle);
+}
+
+.twin-metric-table tr:last-child td {
+  border-bottom: 0;
+}
+
+.twin-metric-table .twin-value {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.twin-control-row {
+  padding: 11px 16px 0;
+  display: flex;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+
+.twin-chip {
+  padding: 6px 10px;
+  color: var(--text-secondary);
+  background: var(--surface-subtle);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.twin-chip:hover {
+  border-color: var(--border-strong);
+}
+
+.twin-chip.active {
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-color: var(--accent-border);
+}
+
+.twin-image-frame {
+  min-height: 420px;
+  margin: 14px 16px 0;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background: #080c11;
+  border: 1px solid #1e293b;
+  border-radius: var(--radius-md);
+}
+
+.twin-image-frame img {
+  display: block;
+  max-width: 100%;
+  max-height: 520px;
+  object-fit: contain;
+  image-rendering: auto;
+}
+
+.twin-image-frame.empty {
+  color: var(--text-tertiary);
+  font-size: 12px;
+}
+
+.twin-slider-row {
+  padding: 14px 17px 18px;
+  display: grid;
+  grid-template-columns:
+    auto minmax(120px, 1fr) auto auto;
+  align-items: center;
+  gap: 10px;
+  color: var(--text-tertiary);
+  font-size: 10px;
+}
+
+.twin-slider-row input {
+  width: 100%;
+  accent-color: var(--accent);
+}
+
+.twin-slider-row strong {
+  min-width: 68px;
+  text-align: right;
+  color: var(--text-secondary);
+}
+
+@media (
+  max-width: 1100px
+) {
+  .twin-summary-grid {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+  }
+
+  .twin-main-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .twin-patient-scroll {
+    max-height: 240px;
+  }
+}
+
+@media (
+  max-width: 760px
+) {
+  .twin-hero {
+    flex-direction: column;
+  }
+
+  .twin-provenance {
+    justify-items: start;
+  }
+
+  .twin-summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .twin-image-frame {
+    min-height: 280px;
+  }
+}

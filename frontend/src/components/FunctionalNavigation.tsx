@@ -1,4 +1,5 @@
 import {
+  Activity,
   Brain,
   Images,
   Users,
@@ -54,6 +55,19 @@ function FunctionalNavigation({
       />
 
       <NavigationButton
+        section="digital_twin"
+        label="Digital Twin"
+        icon={Activity}
+        active={active}
+        capability={
+          capabilities?.digital_twin
+          ?? null
+        }
+        fallbackReason={fallbackReason}
+        onChange={onChange}
+      />
+
+      <NavigationButton
         section="viewer"
         label="Imaging"
         icon={Images}
@@ -91,7 +105,8 @@ type NavigationButtonProps = {
   icon: typeof Brain;
 
   active: WorkbenchSection;
-  capability: FeatureCapability | null;
+  capability:
+    FeatureCapability | null;
   fallbackReason: string;
 
   onChange: (
@@ -129,7 +144,10 @@ function NavigationButton({
       }
       className={
         active === section
-          ? "functional-nav-item active"
+          ? (
+            "functional-nav-item "
+            + "active"
+          )
           : "functional-nav-item"
       }
       onClick={() =>

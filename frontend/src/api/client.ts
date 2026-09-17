@@ -9,7 +9,7 @@ import type {
 } from "./types";
 
 
-async function requestJson<T>(
+export async function requestJson<T>(
   path: string,
 ): Promise<T> {
   const response = await fetch(

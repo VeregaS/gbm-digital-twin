@@ -14,6 +14,7 @@ import type {
   WorkbenchSection,
 } from "../layout/navigation";
 
+import DigitalTwinPanel from "./DigitalTwinPanel";
 import PatientMetrics from "./PatientMetrics";
 import PatientToolbar from "./PatientToolbar";
 import TimelinePanel from "./TimelinePanel";
@@ -54,7 +55,9 @@ function WorkbenchContent({
   onSelectPatient,
   onOpenViewer,
 }: WorkbenchContentProps) {
-  if (capabilitiesError !== null) {
+  if (
+    capabilitiesError !== null
+  ) {
     return (
       <WorkspaceState
         title="Capabilities unavailable"
@@ -76,11 +79,12 @@ function WorkbenchContent({
     );
   }
 
-  const capability =
+  const capability = (
     sectionCapability(
       capabilities,
       section,
-    );
+    )
+  );
 
   if (!capability.available) {
     return (
@@ -88,9 +92,20 @@ function WorkbenchContent({
         title="Workspace unavailable"
         message={
           capability.reason
-          ?? "This feature is not configured."
+          ?? (
+            "This feature "
+            + "is not configured."
+          )
         }
       />
+    );
+  }
+
+  if (
+    section === "digital_twin"
+  ) {
+    return (
+      <DigitalTwinPanel />
     );
   }
 
@@ -132,14 +147,18 @@ function WorkbenchContent({
       ) : (
         <>
           {section === "anatomy" && (
-            <div className="experimental-banner">
+            <div
+              className={
+                "experimental-banner"
+              }
+            >
               <strong>
                 Experimental research feature
               </strong>
 
               <span>
-                Atlas-derived warnings are not
-                validated for clinical use.
+                Atlas-derived warnings are
+                not validated for clinical use.
               </span>
             </div>
           )}
@@ -161,11 +180,23 @@ function sectionCapability(
   capabilities: Capabilities,
   section: WorkbenchSection,
 ): FeatureCapability {
-  if (section === "patients") {
+  if (
+    section === "patients"
+  ) {
     return capabilities.patients;
   }
 
-  if (section === "viewer") {
+  if (
+    section === "digital_twin"
+  ) {
+    return (
+      capabilities.digital_twin
+    );
+  }
+
+  if (
+    section === "viewer"
+  ) {
     return capabilities.viewer;
   }
 
@@ -193,8 +224,13 @@ function WorkspaceState({
           : "workspace-state"
       }
     >
-      <strong>{title}</strong>
-      <span>{message}</span>
+      <strong>
+        {title}
+      </strong>
+
+      <span>
+        {message}
+      </span>
     </section>
   );
 }
