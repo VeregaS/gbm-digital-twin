@@ -209,7 +209,8 @@ function TwinCohortAnalysisTab({
     );
   }
 
-  const summary = analysis.summary;
+  const loadedAnalysis = request.analysis;
+  const summary = loadedAnalysis.summary;
 
   return (
     <div
@@ -349,7 +350,7 @@ function TwinCohortAnalysisTab({
         </header>
 
         <CohortScatterPlot
-          patients={analysis.patients}
+          patients={loadedAnalysis.patients}
           mode={scatterMode}
           selectedPatientId={selectedPatientId}
         />
@@ -358,7 +359,7 @@ function TwinCohortAnalysisTab({
           mode={scatterMode}
           correlation={
             correlationForMode(
-              analysis,
+              loadedAnalysis,
               scatterMode,
             )
           }
@@ -551,14 +552,14 @@ function TwinCohortAnalysisTab({
         className="twin-analysis-provenance"
       >
         <span>
-          Analysis config SHA: {analysis.analysis_config_sha256.slice(0, 12)}
+          Analysis config SHA: {loadedAnalysis.analysis_config_sha256.slice(0, 12)}
         </span>
         <span>
-          Evaluation SHA: {analysis.source_evaluation_sha256.slice(0, 12)}
+          Evaluation SHA: {loadedAnalysis.source_evaluation_sha256.slice(0, 12)}
         </span>
         <span>
-          Repo: {analysis.repository.commit_sha.slice(0, 12)}
-          {analysis.repository.dirty ? " · dirty" : " · clean"}
+          Repo: {loadedAnalysis.repository.commit_sha.slice(0, 12)}
+          {loadedAnalysis.repository.dirty ? " · dirty" : " · clean"}
         </span>
       </div>
     </div>
