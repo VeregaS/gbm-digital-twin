@@ -3,7 +3,6 @@ from __future__ import annotations
 import csv
 import hashlib
 import json
-import math
 import re
 import shutil
 import tempfile
@@ -23,17 +22,8 @@ from gbm_twin.workflows.stage8_protocol import (
 STAGE8_DATA_AUDIT_SCHEMA_VERSION = 1
 
 _MODALITY_ALIASES: dict[str, tuple[str, ...]] = {
-    "t1gd": (
-        "t1gd",
-        "t1ce",
-        "t1c",
-        "t1post",
-        "t1contrast",
-    ),
-    "flair": (
-        "flair",
-        "t2flair",
-    ),
+    "t1gd": ("t1gd", "t1ce", "t1c", "t1post", "t1contrast"),
+    "flair": ("flair", "t2flair"),
     "dwi": (
         "dwi",
         "diffusion",
@@ -90,12 +80,7 @@ def _find_modality_column(
         for column in columns
     }
 
-    aliases = _MODALITY_ALIASES.get(
-        modality,
-        (modality,),
-    )
-
-    for alias in aliases:
+    for alias in _MODALITY_ALIASES.get(modality, (modality,)):
         match = normalized.get(_normalize_column(alias))
 
         if match is not None:
@@ -114,8 +99,13 @@ def _availability_value(value: object) -> bool:
     if isinstance(value, (int, float)):
         return float(value) == 1.0
 
-    text = str(value).strip().lower()
-    return text in {"1", "true", "yes", "y", "available"}
+    return str(value).strip().lower() in {
+        "1",
+        "true",
+        "yes",
+        "y",
+        "available",
+    }
 
 
 def _modality_available(
@@ -130,7 +120,10 @@ def _modality_available(
 
     rows = mri[
         (mri["id_patient"] == patient_id)
-        & (mri["temporality"].astype(str).str.lower() == timepoint.lower())
+        & (
+            mri["temporality"].astype(str).str.lower()
+            == timepoint.lower()
+        )
     ]
 
     if rows.empty:
@@ -139,26 +132,6 @@ def _modality_available(
     return any(
         _availability_value(value)
         for value in rows[column].tolist()
-    )
-
-
-def _rtdose_available(
-    treatment_imaging: pd.DataFrame,
-    patient_id: int,
-) -> bool:
-    if "rtdose" not in treatment_imaging.columns:
-        return False
-
-    rows = treatment_imaging[
-        treatment_imaging["id_patient"] == patient_id
-    ]
-
-    if rows.empty:
-        return False
-
-    return any(
-        _availability_value(value)
-        for value in rows["rtdose"].tolist()
     )
 
 
@@ -181,10 +154,8 @@ def _deterministic_holdout(
         patient_ids,
         key=lambda patient_id: _split_rank(seed, patient_id),
     )
-
     count = int(round(len(ordered) * fraction))
     count = min(len(ordered), max(1, count))
-
     return set(ordered[:count])
 
 
@@ -206,13 +177,6 @@ def _model_tier(
     return "t1gd-only"
 
 
-def _metadata_sha256_payload(paths: tuple[Path, ...]) -> dict[str, str]:
-    return {
-        path.name: sha256_file(path)
-        for path in paths
-    }
-
-
 def _patient_rows(
     *,
     mri: pd.DataFrame,
@@ -229,7 +193,6 @@ def _patient_rows(
             (*config.required_modalities, *config.preferred_modalities)
         )
     )
-
     modality_columns = {
         modality: _find_modality_column(
             [str(column) for column in mri.columns],
@@ -237,16 +200,16 @@ def _patient_rows(
         )
         for modality in modalities
     }
-
     patient_ids = sorted(
         int(value)
         for value in mri["id_patient"].dropna().unique().tolist()
     )
-
     exposed_ids = set(config.exposed_development_patient_ids)
+
     provisional: list[
         tuple[
             int,
+            bool,
             bool,
             bool,
             bool,
@@ -276,7 +239,6 @@ def _patient_rows(
             for timepoint in config.required_timepoints
             for modality in config.required_modalities
         )
-
         flair_t0_t1 = all(
             availability.get(f"{timepoint}_flair", False)
             for timepoint in ("t0", "t1")
@@ -286,19 +248,18 @@ def _patient_rows(
             for timepoint in ("t0", "t1")
         )
 
-        record = treatment.treatment(patient_id)
+        treatment_record = treatment.treatment(patient_id)
         complete_rt = bool(
-            record is not None
-            and record.radiotherapy_start_day is not None
-            and record.dose_gy is not None
-            and record.fractions_number is not None
-            and record.dose_gy > 0.0
-            and record.fractions_number > 0
+            treatment_record is not None
+            and treatment_record.radiotherapy_start_day is not None
+            and treatment_record.dose_gy is not None
+            and treatment_record.fractions_number is not None
+            and treatment_record.dose_gy > 0.0
+            and treatment_record.fractions_number > 0
         )
-
-        rtdose = _rtdose_available(
-            treatment._imaging,  # noqa: SLF001 - internal metadata table, audit only
-            patient_id,
+        rtdose = any(
+            record.rtdose_available
+            for record in treatment.imaging_records(patient_id)
         )
 
         missing: list[str] = []
@@ -318,7 +279,6 @@ def _patient_rows(
             missing.append("rtdose")
 
         core_eligible = not missing
-
         provisional.append(
             (
                 patient_id,
@@ -334,13 +294,12 @@ def _patient_rows(
             )
         )
 
-    untouched_candidates = [
-        row[0]
-        for row in provisional
-        if row[2] and not row[1]
-    ]
     holdout_ids = _deterministic_holdout(
-        untouched_candidates,
+        [
+            row[0]
+            for row in provisional
+            if row[2] and not row[1]
+        ],
         fraction=config.holdout_fraction,
         seed=config.split_seed,
     )
@@ -400,7 +359,6 @@ def _write_csv(path: Path, rows: list[Stage8PatientAudit]) -> None:
             for key in row.availability
         }
     )
-
     columns = [
         "patient_id",
         "split",
@@ -425,23 +383,26 @@ def _write_csv(path: Path, rows: list[Stage8PatientAudit]) -> None:
         writer.writeheader()
 
         for row in rows:
-            payload: dict[str, object] = {
-                "patient_id": row.patient_id,
-                "split": row.split,
-                "model_tier": row.model_tier,
-                "exposed_development": row.exposed_development,
-                "core_eligible": row.core_eligible,
-                "complete_rt_schedule": row.complete_rt_schedule,
-                "rtdose_available": row.rtdose_available,
-                "required_modalities_complete": (
-                    row.required_modalities_complete
-                ),
-                "flair_t0_t1_complete": row.flair_t0_t1_complete,
-                "dwi_t0_t1_complete": row.dwi_t0_t1_complete,
-                "missing_requirements": ";".join(row.missing_requirements),
-                **row.availability,
-            }
-            writer.writerow(payload)
+            writer.writerow(
+                {
+                    "patient_id": row.patient_id,
+                    "split": row.split,
+                    "model_tier": row.model_tier,
+                    "exposed_development": row.exposed_development,
+                    "core_eligible": row.core_eligible,
+                    "complete_rt_schedule": row.complete_rt_schedule,
+                    "rtdose_available": row.rtdose_available,
+                    "required_modalities_complete": (
+                        row.required_modalities_complete
+                    ),
+                    "flair_t0_t1_complete": row.flair_t0_t1_complete,
+                    "dwi_t0_t1_complete": row.dwi_t0_t1_complete,
+                    "missing_requirements": ";".join(
+                        row.missing_requirements
+                    ),
+                    **row.availability,
+                }
+            )
 
 
 def audit_stage8_cohort(
@@ -459,7 +420,6 @@ def audit_stage8_cohort(
 
     config = load_stage8_protocol_config(protocol_config_path)
     metadata_root = metadata_root.resolve()
-
     mri_path = _latest_single(
         metadata_root,
         "CFB-GBM_mri_availability_*.tsv",
@@ -473,11 +433,10 @@ def audit_stage8_cohort(
         "CFB-GBM_treatment_imaging_availability_*.tsv",
     )
 
-    # Intentionally do not open RANO metadata here. Split assignment is based
-    # only on imaging availability and treatment-plan metadata.
+    # Deliberately do not open RANO metadata. Split assignment uses only
+    # availability and treatment-plan metadata, never outcome values.
     mri = pd.read_csv(mri_path, sep="\t")
     treatment = CFBTreatmentMetadata(metadata_root)
-
     rows = _patient_rows(
         mri=mri,
         treatment=treatment,
@@ -485,13 +444,16 @@ def audit_stage8_cohort(
     )
 
     eligible = [row for row in rows if row.core_eligible]
-    holdout = [row.patient_id for row in rows if row.split == "untouched-holdout"]
     development = [
         row.patient_id
         for row in rows
         if row.split in {"development", "development-exposed"}
     ]
-
+    holdout = [
+        row.patient_id
+        for row in rows
+        if row.split == "untouched-holdout"
+    ]
     tier_counts: dict[str, int] = {}
 
     for row in eligible:
@@ -504,9 +466,14 @@ def audit_stage8_cohort(
         "protocol_config_sha256": sha256_file(
             protocol_config_path.resolve()
         ),
-        "metadata_sha256": _metadata_sha256_payload(
-            (mri_path, treatment_path, treatment_imaging_path)
-        ),
+        "metadata_sha256": {
+            path.name: sha256_file(path)
+            for path in (
+                mri_path,
+                treatment_path,
+                treatment_imaging_path,
+            )
+        },
         "leakage_control": {
             "rano_metadata_loaded": False,
             "t2_image_content_loaded": False,
@@ -566,22 +533,17 @@ def audit_stage8_cohort(
             + "\n",
             encoding="utf-8",
         )
-
         (temporary / "stage8_data_audit.sha256").write_text(
             sha256_file(manifest_path) + "  stage8_data_audit.json\n",
             encoding="ascii",
         )
-
         _write_csv(temporary / "stage8_data_audit.csv", rows)
         temporary.rename(destination)
     except BaseException:
         shutil.rmtree(temporary, ignore_errors=True)
         raise
 
-    return Stage8DataAuditResult(
-        directory=destination,
-        manifest=manifest,
-    )
+    return load_sealed_stage8_data_audit(destination)
 
 
 def load_sealed_stage8_data_audit(directory: Path) -> Stage8DataAuditResult:
