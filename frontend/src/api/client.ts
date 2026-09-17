@@ -4,6 +4,7 @@ import type {
   PatientListResponse,
   PatientSummary,
   Viewer3DScene,
+  ViewerFocusMetadata,
   ViewerPlane,
   ViewerVolumeMetadata,
 } from "./types";
@@ -99,6 +100,21 @@ export function fetchViewerMetadata(
     (
       `/api/patients/${patientId}`
       + `/viewer/${timepointName}`
+    ),
+  );
+}
+
+
+export function fetchViewerFocus(
+  patientId: number,
+  timepointName: string,
+): Promise<ViewerFocusMetadata> {
+  return requestJson<
+    ViewerFocusMetadata
+  >(
+    (
+      `/api/patients/${patientId}`
+      + `/viewer/${timepointName}/focus`
     ),
   );
 }
