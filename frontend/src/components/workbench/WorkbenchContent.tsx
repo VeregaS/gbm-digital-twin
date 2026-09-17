@@ -15,6 +15,7 @@ import type {
 
 import DigitalTwinPanel from "./DigitalTwinPanel";
 import PatientContextBar from "./PatientContextBar";
+import PatientDetails from "./PatientDetails";
 import PatientMetrics from "./PatientMetrics";
 import PatientToolbar from "./PatientToolbar";
 import TimelinePanel from "./TimelinePanel";
@@ -87,12 +88,8 @@ function WorkbenchContent({
   ) {
     return (
       <WorkspaceState
-        title={
-          "Capabilities unavailable"
-        }
-        message={
-          capabilitiesError
-        }
+        title="Не удалось получить возможности сервера"
+        message={capabilitiesError}
         error
       />
     );
@@ -103,13 +100,8 @@ function WorkbenchContent({
   ) {
     return (
       <WorkspaceState
-        title={
-          "Checking workspace"
-        }
-        message={
-          "Reading available "
-          + "features from backend…"
-        }
+        title="Проверяем рабочее пространство"
+        message="Получаем доступные функции от сервера…"
       />
     );
   }
@@ -124,17 +116,12 @@ function WorkbenchContent({
     ) {
       return (
         <WorkspaceState
-          title={
-            "Patients unavailable"
-          }
+          title="Пациенты недоступны"
           message={
             capabilities
             .patients
             .reason
-            ?? (
-              "Patient dataset "
-              + "is unavailable."
-            )
+            ?? "Набор данных пациентов недоступен."
           }
         />
       );
@@ -169,6 +156,13 @@ function WorkbenchContent({
           patient={patient}
         />
 
+        <PatientDetails
+          patient={patient}
+          hasTwin={
+            selectedPatientHasTwin
+          }
+        />
+
         <TimelinePanel
           patient={patient}
         />
@@ -181,14 +175,10 @@ function WorkbenchContent({
   ) {
     return (
       <WorkspaceState
-        title={
-          "Select a patient first"
-        }
+        title="Сначала выберите пациента"
         message={
-          "Digital Twin and Imaging "
-          + "are patient-specific. "
-          + "Choose a patient on "
-          + "the Patients page."
+          "Разделы «Цифровой двойник» и «МРТ» работают для конкретного пациента. "
+          + "Выберите пациента в разделе «Пациенты»."
         }
       />
     );
@@ -198,13 +188,9 @@ function WorkbenchContent({
     return (
       <WorkspaceState
         title={
-          `Loading Patient `
-          + `${selectedPatientId}`
+          `Загрузка пациента ${selectedPatientId}`
         }
-        message={
-          "Reading longitudinal "
-          + "patient data…"
-        }
+        message="Читаем продольные данные пациента…"
       />
     );
   }
@@ -214,12 +200,8 @@ function WorkbenchContent({
   ) {
     return (
       <WorkspaceState
-        title={
-          "Patient unavailable"
-        }
-        message={
-          patientError
-        }
+        title="Данные пациента недоступны"
+        message={patientError}
         error
       />
     );
@@ -228,13 +210,8 @@ function WorkbenchContent({
   if (patient === null) {
     return (
       <WorkspaceState
-        title={
-          "Patient unavailable"
-        }
-        message={
-          "Patient data could "
-          + "not be loaded."
-        }
+        title="Данные пациента недоступны"
+        message="Не удалось загрузить данные выбранного пациента."
       />
     );
   }
@@ -249,17 +226,12 @@ function WorkbenchContent({
     ) {
       return (
         <WorkspaceState
-          title={
-            "Digital Twin unavailable"
-          }
+          title="Цифровой двойник недоступен"
           message={
             capabilities
             .digital_twin
             .reason
-            ?? (
-              "Digital Twin "
-              + "is unavailable."
-            )
+            ?? "Цифровой двойник недоступен."
           }
         />
       );
@@ -270,12 +242,8 @@ function WorkbenchContent({
     ) {
       return (
         <WorkspaceState
-          title={
-            "Digital Twin unavailable"
-          }
-          message={
-            twinPatientsError
-          }
+          title="Цифровой двойник недоступен"
+          message={twinPatientsError}
           error
         />
       );
@@ -287,14 +255,8 @@ function WorkbenchContent({
     ) {
       return (
         <WorkspaceState
-          title={
-            "Checking Digital Twin"
-          }
-          message={
-            "Checking whether this "
-            + "patient has a sealed "
-            + "V2 prediction…"
-          }
+          title="Проверяем цифровой двойник"
+          message="Проверяем наличие зафиксированного прогноза V2 для пациента…"
         />
       );
     }
@@ -304,15 +266,9 @@ function WorkbenchContent({
     ) {
       return (
         <WorkspaceState
-          title={
-            "No sealed prediction"
-          }
+          title="Зафиксированный прогноз отсутствует"
           message={
-            `Patient ${
-              patient.patient_id
-            } is not present in `
-            + "the sealed V2 "
-            + "evaluation cohort."
+            `Пациент ${patient.patient_id} не входит в sealed V2 cohort и не имеет доступной оценки прогноза.`
           }
         />
       );
@@ -344,17 +300,12 @@ function WorkbenchContent({
     ) {
       return (
         <WorkspaceState
-          title={
-            "Imaging unavailable"
-          }
+          title="МРТ недоступно"
           message={
             capabilities
             .viewer
             .reason
-            ?? (
-              "Imaging is "
-              + "unavailable."
-            )
+            ?? "Просмотр МРТ недоступен."
           }
         />
       );
@@ -383,17 +334,12 @@ function WorkbenchContent({
   ) {
     return (
       <WorkspaceState
-        title={
-          "Anatomy unavailable"
-        }
+        title="Анатомический анализ недоступен"
         message={
           capabilities
           .anatomy
           .reason
-          ?? (
-            "Anatomy is "
-            + "unavailable."
-          )
+          ?? "Анатомический анализ недоступен."
         }
       />
     );
@@ -409,18 +355,14 @@ function WorkbenchContent({
       />
 
       <div
-        className={
-          "experimental-banner"
-        }
+        className="experimental-banner"
       >
         <strong>
-          Experimental research feature
+          Экспериментальная исследовательская функция
         </strong>
 
         <span>
-          Atlas-derived warnings
-          are not validated for
-          clinical use.
+          Предупреждения на основе атласа не валидированы для клинического использования.
         </span>
       </div>
 
