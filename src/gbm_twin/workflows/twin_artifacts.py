@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from functools import lru_cache
 from pathlib import Path
-from typing import cast
+from typing import Literal, cast
 
 from gbm_twin.workflows.cohort_evaluation import (
     CohortEvaluationPayload,
@@ -10,12 +10,37 @@ from gbm_twin.workflows.cohort_evaluation import (
     SourceArtifactPayload,
 )
 from gbm_twin.workflows.prediction import (
-    FrozenV2PredictionArtifact,
+    FrozenPredictionArtifact,
     load_frozen_v2_prediction,
+    load_frozen_v3_prediction,
 )
 from gbm_twin.workflows.provenance import (
     sha256_file,
 )
+
+ModelVersion = Literal[
+    "V2",
+    "V3",
+]
+
+
+def _model_version(
+    payload: CohortEvaluationPayload,
+) -> ModelVersion:
+    raw = payload.get(
+        "model_version",
+        "V2",
+    )
+
+    if raw == "V2":
+        return "V2"
+
+    if raw == "V3":
+        return "V3"
+
+    raise ValueError(
+        f"Unsupported twin model version: {raw!r}"
+    )
 
 
 def find_evaluated_patient(
@@ -28,7 +53,7 @@ def find_evaluated_patient(
 
     raise KeyError(
         f"Patient {patient_id} is not "
-        "present in the sealed V2 evaluation"
+        "present in the sealed cohort evaluation"
     )
 
 
@@ -154,7 +179,7 @@ def _resolve_artifact_dir(
 
 
 def _validate_artifact_patient_id(
-    artifact: FrozenV2PredictionArtifact,
+    artifact: FrozenPredictionArtifact,
     patient_id: int,
 ) -> None:
     manifest = cast(
@@ -184,13 +209,29 @@ def _validate_artifact_patient_id(
         )
 
 
+def _load_prediction_artifact(
+    *,
+    model_version: ModelVersion,
+    artifact_dir: Path,
+) -> FrozenPredictionArtifact:
+    if model_version == "V2":
+        return load_frozen_v2_prediction(
+            artifact_dir
+        )
+
+    return load_frozen_v3_prediction(
+        artifact_dir
+    )
+
+
 @lru_cache(maxsize=32)
 def _load_verified_artifact_cached(
     cohort_freeze_root_text: str,
     relative_path: str,
     expected_manifest_sha256: str,
     patient_id: int,
-) -> FrozenV2PredictionArtifact:
+    model_version: ModelVersion,
+) -> FrozenPredictionArtifact:
     artifact_dir = _resolve_artifact_dir(
         cohort_freeze_root=Path(
             cohort_freeze_root_text
@@ -223,8 +264,9 @@ def _load_verified_artifact_cached(
             "cohort evaluation"
         )
 
-    artifact = load_frozen_v2_prediction(
-        artifact_dir
+    artifact = _load_prediction_artifact(
+        model_version=model_version,
+        artifact_dir=artifact_dir,
     )
 
     _validate_artifact_patient_id(
@@ -244,7 +286,7 @@ def load_frozen_patient_artifact(
     cohort_freeze_root: Path,
     payload: CohortEvaluationPayload,
     patient_id: int,
-) -> FrozenV2PredictionArtifact:
+) -> FrozenPredictionArtifact:
     validate_source_freeze(
         cohort_freeze_root=(
             cohort_freeze_root
@@ -264,4 +306,5 @@ def load_frozen_patient_artifact(
         reference["artifact_dir"],
         reference["manifest_sha256"],
         patient_id,
+        _model_version(payload),
     )
