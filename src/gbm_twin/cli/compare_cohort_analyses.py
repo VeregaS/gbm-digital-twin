@@ -19,11 +19,9 @@ from gbm_twin.workflows.cohort_analysis import (
 DEFAULT_BASELINE_ANALYSIS = Path(
     "results/cohort/v2-analysis"
 )
-
 DEFAULT_CANDIDATE_ANALYSIS = Path(
     "results/cohort/v2-accuracy-v1-analysis"
 )
-
 DEFAULT_OUTPUT_CSV = Path(
     "results/cohort/v2-accuracy-v1-comparison.csv"
 )
@@ -40,34 +38,29 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description=(
             "Compare two sealed cohort scientific-analysis artifacts "
-            "patient by patient."
+            "patient by patient, including different model versions."
         )
     )
-
     parser.add_argument(
         "--repo-root",
         type=Path,
         default=Path("."),
     )
-
     parser.add_argument(
         "--baseline-analysis",
         type=Path,
         default=DEFAULT_BASELINE_ANALYSIS,
     )
-
     parser.add_argument(
         "--candidate-analysis",
         type=Path,
         default=DEFAULT_CANDIDATE_ANALYSIS,
     )
-
     parser.add_argument(
         "--output-csv",
         type=Path,
         default=DEFAULT_OUTPUT_CSV,
     )
-
     return parser
 
 
@@ -83,13 +76,9 @@ def parse_arguments(
     )
 
 
-def _resolve(
-    repo_root: Path,
-    path: Path,
-) -> Path:
+def _resolve(repo_root: Path, path: Path) -> Path:
     if path.is_absolute():
         return path
-
     return repo_root / path
 
 
@@ -97,11 +86,7 @@ def _write_csv(
     path: Path,
     comparison: AccuracyExperimentComparison,
 ) -> None:
-    path.parent.mkdir(
-        parents=True,
-        exist_ok=True,
-    )
-
+    path.parent.mkdir(parents=True, exist_ok=True)
     fieldnames = [
         "patient_id",
         "baseline_twin_dice",
@@ -135,78 +120,56 @@ def _write_csv(
             fieldnames=fieldnames,
             lineterminator="\n",
         )
-
         writer.writeheader()
-
         for patient in comparison.patients:
-            row = asdict(
-                patient
-            )
-
+            row = asdict(patient)
             writer.writerow(
-                {
-                    field: row[field]
-                    for field in fieldnames
-                }
+                {field: row[field] for field in fieldnames}
             )
 
 
-def main(
-    argv: Sequence[str] | None = None,
-) -> int:
-    args = parse_arguments(
-        argv
-    )
+def _analysis_label(manifest: dict[str, object]) -> str:
+    model = manifest.get("model_version")
+    if model == "V3":
+        return "V3"
 
+    kind = manifest.get("kind")
+    if kind == "v2_cohort_error_analysis":
+        return "V2"
+
+    return str(kind)
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    args = parse_arguments(argv)
     repo_root = args.repo_root.resolve()
 
     try:
         baseline = load_sealed_cohort_analysis(
-            _resolve(
-                repo_root,
-                args.baseline_analysis,
-            )
+            _resolve(repo_root, args.baseline_analysis)
         )
-
         candidate = load_sealed_cohort_analysis(
-            _resolve(
-                repo_root,
-                args.candidate_analysis,
-            )
+            _resolve(repo_root, args.candidate_analysis)
         )
-
         comparison = compare_cohort_analyses(
             baseline.manifest,
             candidate.manifest,
         )
-
         output_csv = _resolve(
             repo_root,
             args.output_csv,
         )
-
-        _write_csv(
-            output_csv,
-            comparison,
-        )
-
-    except (
-        OSError,
-        ValueError,
-    ) as exc:
-        print(
-            f"Error: {exc}",
-            file=sys.stderr,
-        )
+        _write_csv(output_csv, comparison)
+    except (OSError, ValueError) as exc:
+        print(f"Error: {exc}", file=sys.stderr)
         return 1
 
     print(
-        "Calibration accuracy comparison"
+        "Cohort accuracy comparison: "
+        f"{_analysis_label(baseline.manifest)} -> "
+        f"{_analysis_label(candidate.manifest)}"
     )
-    print(
-        "Patients: "
-        f"{comparison.patient_count}"
-    )
+    print(f"Patients: {comparison.patient_count}")
     print(
         "Mean Twin Dice change: "
         f"{comparison.mean_twin_dice_delta:+.4f}"
@@ -235,10 +198,7 @@ def main(
         f"{comparison.baseline_non_identifiable_count} -> "
         f"{comparison.candidate_non_identifiable_count}"
     )
-    print(
-        "Patient deltas:"
-    )
-
+    print("Patient deltas:")
     for patient in comparison.patients:
         print(
             "  "
@@ -251,9 +211,5 @@ def main(
             f"rho {patient.baseline_proliferation:.5f} -> "
             f"{patient.candidate_proliferation:.5f}"
         )
-
-    print(
-        f"CSV: {output_csv}"
-    )
-
+    print(f"CSV: {output_csv}")
     return 0
