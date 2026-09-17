@@ -1,0 +1,61 @@
+schema_version: 1
+
+# Stage 8 starts a new development cycle. These patients have already been
+# inspected through V2/V3 t2 evaluation and are therefore development-only.
+exposed_development_patient_ids:
+  - 8
+  - 18
+  - 25
+  - 42
+  - 65
+  - 99
+  - 108
+  - 112
+  - 214
+  - 251
+
+# The untouched CFB holdout is selected deterministically from eligible
+# patients using only availability/treatment metadata. No RANO outcome or t2
+# image content is used to assign the split.
+holdout_fraction: 0.25
+split_seed: 20260918
+
+required_timepoints:
+  - t0
+  - t1
+  - t2
+
+# Minimum contract for a future spatial forecast evaluation.
+required_modalities:
+  - t1gd
+
+# These are audited and used to define richer model tiers when available.
+preferred_modalities:
+  - flair
+  - dwi
+
+require_complete_rt_schedule: true
+require_rtdose: true
+
+# Literature-backed MRI detection thresholds used by the Stage 8 observation
+# model. They are model assumptions and are versioned here explicitly.
+observation_model:
+  enhancing_detection_threshold: 0.80
+  infiltrative_detection_threshold: 0.16
+  transition_width_mm: 4.0
+
+# Stage 8 does not infer a patient-specific chemotherapy schedule because CFB
+# treatment metadata currently resolves RT timing/dose but not TMZ dose dates.
+# Chemotherapy can be added only when its timing/provenance is explicit.
+chemotherapy:
+  enabled: false
+
+# Persistent post-RT proliferation response is represented as a model-family
+# parameter, not fitted to the already revealed V2/V3 t2 outcomes.
+treatment_memory:
+  enabled: true
+  proliferation_survival_candidates:
+    - 1.00
+    - 0.995
+    - 0.990
+    - 0.980
