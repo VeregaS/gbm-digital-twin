@@ -41,6 +41,8 @@ class V2CalibrationConfigPayload(TypedDict):
     observation_threshold: float
     soft_temperature: float
     volume_weight: float
+    refinement_rounds: int
+    upper_boundary_expansion_factor: float
 
 
 @dataclass(frozen=True)
@@ -217,6 +219,10 @@ def v2_calibration_config_payload(
         ),
         "soft_temperature": config.soft_temperature,
         "volume_weight": config.volume_weight,
+        "refinement_rounds": config.refinement_rounds,
+        "upper_boundary_expansion_factor": (
+            config.upper_boundary_expansion_factor
+        ),
     }
 
 
