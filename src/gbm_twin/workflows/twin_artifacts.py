@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from functools import lru_cache
 from pathlib import Path
 from typing import cast
 
@@ -152,77 +153,17 @@ def _resolve_artifact_dir(
     return resolved
 
 
-def load_frozen_patient_artifact(
-    *,
-    cohort_freeze_root: Path,
-    payload: CohortEvaluationPayload,
+def _validate_artifact_patient_id(
+    artifact: FrozenV2PredictionArtifact,
     patient_id: int,
-) -> FrozenV2PredictionArtifact:
-    validate_source_freeze(
-        cohort_freeze_root=(
-            cohort_freeze_root
-        ),
-        payload=payload,
-    )
-
-    reference = find_source_artifact(
-        payload,
-        patient_id,
-    )
-
-    artifact_dir = (
-        _resolve_artifact_dir(
-            cohort_freeze_root=(
-                cohort_freeze_root
-            ),
-            relative_path=(
-                reference["artifact_dir"]
-            ),
-        )
-    )
-
-    manifest_path = (
-        artifact_dir
-        / "manifest.json"
-    )
-
-    if not manifest_path.is_file():
-        raise FileNotFoundError(
-            "Frozen prediction manifest "
-            f"not found: {manifest_path}"
-        )
-
-    actual_sha256 = sha256_file(
-        manifest_path
-    )
-
-    if (
-        actual_sha256
-        != reference[
-            "manifest_sha256"
-        ]
-    ):
-        raise ValueError(
-            "Frozen prediction manifest "
-            "does not match sealed "
-            "cohort evaluation"
-        )
-
-    artifact = (
-        load_frozen_v2_prediction(
-            artifact_dir
-        )
-    )
-
+) -> None:
     manifest = cast(
         dict[str, object],
         artifact.manifest,
     )
 
-    raw_patient_id = (
-        manifest.get(
-            "patient_id"
-        )
+    raw_patient_id = manifest.get(
+        "patient_id"
     )
 
     if type(raw_patient_id) is not int:
@@ -242,4 +183,85 @@ def load_frozen_patient_artifact(
             "does not match requested patient"
         )
 
+
+@lru_cache(maxsize=32)
+def _load_verified_artifact_cached(
+    cohort_freeze_root_text: str,
+    relative_path: str,
+    expected_manifest_sha256: str,
+    patient_id: int,
+) -> FrozenV2PredictionArtifact:
+    artifact_dir = _resolve_artifact_dir(
+        cohort_freeze_root=Path(
+            cohort_freeze_root_text
+        ),
+        relative_path=relative_path,
+    )
+
+    manifest_path = (
+        artifact_dir
+        / "manifest.json"
+    )
+
+    if not manifest_path.is_file():
+        raise FileNotFoundError(
+            "Frozen prediction manifest "
+            f"not found: {manifest_path}"
+        )
+
+    actual_sha256 = sha256_file(
+        manifest_path
+    )
+
+    if (
+        actual_sha256
+        != expected_manifest_sha256
+    ):
+        raise ValueError(
+            "Frozen prediction manifest "
+            "does not match sealed "
+            "cohort evaluation"
+        )
+
+    artifact = load_frozen_v2_prediction(
+        artifact_dir
+    )
+
+    _validate_artifact_patient_id(
+        artifact,
+        patient_id,
+    )
+
     return artifact
+
+
+def clear_frozen_patient_artifact_cache() -> None:
+    _load_verified_artifact_cached.cache_clear()
+
+
+def load_frozen_patient_artifact(
+    *,
+    cohort_freeze_root: Path,
+    payload: CohortEvaluationPayload,
+    patient_id: int,
+) -> FrozenV2PredictionArtifact:
+    validate_source_freeze(
+        cohort_freeze_root=(
+            cohort_freeze_root
+        ),
+        payload=payload,
+    )
+
+    reference = find_source_artifact(
+        payload,
+        patient_id,
+    )
+
+    return _load_verified_artifact_cached(
+        str(
+            cohort_freeze_root.resolve()
+        ),
+        reference["artifact_dir"],
+        reference["manifest_sha256"],
+        patient_id,
+    )
