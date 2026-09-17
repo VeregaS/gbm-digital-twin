@@ -668,9 +668,8 @@ def analyze_sealed_cohort(
         )
         raise
 
-    return CohortErrorAnalysisResult(
-        directory=destination,
-        manifest=payload,
+    return load_sealed_cohort_analysis(
+        destination
     )
 
 
