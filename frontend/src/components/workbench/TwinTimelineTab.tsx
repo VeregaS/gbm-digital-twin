@@ -4,6 +4,7 @@ import {
 } from "react";
 
 import {
+  fetchViewerFocus,
   fetchViewerMetadata,
   viewerSliceUrl,
 } from "../../api/client";
@@ -11,6 +12,7 @@ import {
 import type {
   PatientSummary,
   PatientTimepoint,
+  ViewerFocusMetadata,
   ViewerVolumeMetadata,
 } from "../../api/types";
 
@@ -21,6 +23,9 @@ type TimelineItem = {
 
   metadata:
     ViewerVolumeMetadata | null;
+
+  focus:
+    ViewerFocusMetadata | null;
 
   error:
     string | null;
@@ -65,15 +70,24 @@ function TwinTimelineTab({
           timepoint,
         ): Promise<TimelineItem> => {
           try {
-            const metadata =
-              await fetchViewerMetadata(
+            const [
+              metadata,
+              focus,
+            ] = await Promise.all([
+              fetchViewerMetadata(
                 patient.patient_id,
                 timepoint.name,
-              );
+              ),
+              fetchViewerFocus(
+                patient.patient_id,
+                timepoint.name,
+              ),
+            ]);
 
             return {
               timepoint,
               metadata,
+              focus,
               error: null,
             };
 
@@ -84,6 +98,7 @@ function TwinTimelineTab({
             return {
               timepoint,
               metadata: null,
+              focus: null,
               error:
                 requestError
                 instanceof Error
@@ -197,7 +212,7 @@ function TwinTimelineTab({
         </div>
 
         <p>
-          t0 и t1 доступны модели до прогнозирования. На t1 фактическое наблюдение используется как новое исходное состояние цифрового двойника. После этого строится прогноз t2. Реальная t2 открывается только после фиксации прогноза.
+          Для каждой временной точки показан аксиальный срез, где сегментация GTV занимает максимальную площадь. Поэтому опухоль должна быть видна на каждом превью. Срезы t0, t1 и t2 могут иметь разные индексы: это обзор динамики опухоли, а не покадровое сравнение одной и той же анатомической координаты.
         </p>
       </section>
 
@@ -328,14 +343,23 @@ function TimepointCard({
         === "axial",
     );
 
+  const focusedIndex =
+    item.focus?.axial_index
+    ?? null;
+
+  const displayedIndex =
+    focusedIndex
+    ?? axial?.default_index
+    ?? null;
+
   const imageUrl =
     metadata !== null
-    && axial !== undefined
+    && displayedIndex !== null
       ? viewerSliceUrl(
         patientId,
         item.timepoint.name,
         "axial",
-        axial.default_index,
+        displayedIndex,
         true,
       )
       : null;
@@ -346,6 +370,17 @@ function TimepointCard({
       : item.timepoint.name === "t1"
         ? "Последнее наблюдение / старт прогноза"
         : "Реальная отложенная цель";
+
+  const sliceDescription =
+    focusedIndex !== null
+      ? (
+        `Срез ${focusedIndex} · максимальная площадь GTV`
+      )
+      : (
+        displayedIndex === null
+          ? "Срез недоступен"
+          : `Срез ${displayedIndex} · GTV на томе не найдена`
+      );
 
   return (
     <article
@@ -403,9 +438,15 @@ function TimepointCard({
       </div>
 
       <footer>
-        <span>
-          Объём GTV
-        </span>
+        <div>
+          <span>
+            Объём GTV
+          </span>
+
+          <small>
+            {sliceDescription}
+          </small>
+        </div>
 
         <strong>
           {metadata === null
