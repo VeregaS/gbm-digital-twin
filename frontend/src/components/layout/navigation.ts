@@ -9,11 +9,11 @@ const sectionLabels: Record<
   WorkbenchSection,
   string
 > = {
-  patients: "Patients",
-  digital_twin: "Digital Twin",
-  viewer: "Imaging",
+  patients: "Пациенты",
+  digital_twin: "Цифровой двойник",
+  viewer: "МРТ и визуализация",
   anatomy: (
-    "Anatomy · Experimental"
+    "Анатомия · эксперимент"
   ),
 };
 
