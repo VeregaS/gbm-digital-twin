@@ -135,16 +135,12 @@ def load_selected_post_rt_candidate(
             f"Post-RT selection seal not found: {seal_path}"
         )
 
-    tokens = seal_path.read_text(
-        encoding="ascii"
-    ).split()
-
+    tokens = seal_path.read_text(encoding="ascii").split()
     if not tokens:
         raise ValueError("Post-RT selection seal is empty")
 
     expected_sha256 = tokens[0]
     actual_sha256 = sha256_file(manifest_path)
-
     if expected_sha256 != actual_sha256:
         raise ValueError(
             "Post-RT selection manifest checksum mismatch"
@@ -153,7 +149,6 @@ def load_selected_post_rt_candidate(
     raw: object = json.loads(
         manifest_path.read_text(encoding="utf-8")
     )
-
     if not isinstance(raw, dict):
         raise ValueError(
             "Post-RT selection manifest must contain a JSON object"
@@ -165,25 +160,28 @@ def load_selected_post_rt_candidate(
         raise ValueError(
             "Unsupported post-RT selection schema version"
         )
-
     if manifest.get("kind") != "v3_post_rt_parameter_selection":
         raise ValueError(
             "Artifact is not a V3 post-RT parameter selection"
         )
-
     if manifest.get("sealed") is not True:
         raise ValueError("Post-RT selection artifact is not sealed")
 
-    leakage = _require_mapping(
-        manifest,
-        "leakage_control",
-    )
+    repository = _require_mapping(manifest, "repository")
+    if repository.get("dirty") is not False:
+        raise ValueError(
+            "Post-RT selection must come from a clean Git working tree"
+        )
 
+    leakage = _require_mapping(manifest, "leakage_control")
     if leakage.get("loads_t2_imaging") is not False:
         raise ValueError(
             "Post-RT selection does not satisfy the t2 leakage contract"
         )
-
+    if leakage.get("uses_timepoints") != ["t0", "t1"]:
+        raise ValueError(
+            "Post-RT selection must use exactly t0 and t1"
+        )
     if (
         leakage.get("selection_metric")
         != "mean_t0_t1_calibration_loss"
@@ -192,36 +190,22 @@ def load_selected_post_rt_candidate(
             "Unsupported post-RT selection metric"
         )
 
-    experiment = _require_mapping(
-        manifest,
-        "experiment",
-    )
-
+    experiment = _require_mapping(manifest, "experiment")
     artifact_experiment_sha256 = _require_sha256(
         experiment,
         "experiment_config_sha256",
     )
-
     current_experiment_sha256 = sha256_file(
         experiment_config_path.resolve()
     )
-
     if artifact_experiment_sha256 != current_experiment_sha256:
         raise ValueError(
             "Post-RT selection experiment config does not match "
             "the V3 freeze experiment config"
         )
 
-    selected = _require_mapping(
-        manifest,
-        "selected_candidate",
-    )
-
-    candidate_id = _require_string(
-        selected,
-        "candidate_id",
-    )
-
+    selected = _require_mapping(manifest, "selected_candidate")
+    candidate_id = _require_string(selected, "candidate_id")
     if candidate_id == "fractionated-only":
         raise ValueError(
             "Selected treatment candidate has no delayed post-RT effect"
@@ -229,11 +213,9 @@ def load_selected_post_rt_candidate(
 
     return SelectedPostRTCandidate(
         candidate_id=candidate_id,
-        initial_kill_rate_per_day=(
-            _require_positive_float(
-                selected,
-                "initial_kill_rate_per_day",
-            )
+        initial_kill_rate_per_day=_require_positive_float(
+            selected,
+            "initial_kill_rate_per_day",
         ),
         decay_time_days=_require_positive_float(
             selected,
@@ -244,7 +226,5 @@ def load_selected_post_rt_candidate(
             experiment,
             "selection_config_sha256",
         ),
-        experiment_config_sha256=(
-            artifact_experiment_sha256
-        ),
+        experiment_config_sha256=artifact_experiment_sha256,
     )
