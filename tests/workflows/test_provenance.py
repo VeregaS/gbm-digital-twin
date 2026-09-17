@@ -72,6 +72,8 @@ def make_dataset_manifest() -> CFBDatasetManifest:
 def make_config(
     *,
     volume_weight: float = 0.5,
+    refinement_rounds: int = 1,
+    upper_boundary_expansion_factor: float = 0.5,
 ) -> V2CalibrationConfig:
     return V2CalibrationConfig(
         diffusion_values=(
@@ -85,6 +87,10 @@ def make_config(
             0.025,
         ),
         volume_weight=volume_weight,
+        refinement_rounds=refinement_rounds,
+        upper_boundary_expansion_factor=(
+            upper_boundary_expansion_factor
+        ),
     )
 
 
@@ -190,6 +196,25 @@ def test_config_checksum_changes_with_scientific_config(
     )
 
     assert first != second
+
+
+def test_config_checksum_changes_with_refinement_strategy(
+) -> None:
+    baseline = v2_calibration_config_sha256(
+        make_config(
+            refinement_rounds=1,
+            upper_boundary_expansion_factor=0.5,
+        )
+    )
+
+    accuracy_v1 = v2_calibration_config_sha256(
+        make_config(
+            refinement_rounds=3,
+            upper_boundary_expansion_factor=1.0,
+        )
+    )
+
+    assert baseline != accuracy_v1
 
 
 def test_prediction_provenance_contains_only_logical_input_names(
