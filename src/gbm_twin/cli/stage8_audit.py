@@ -32,15 +32,32 @@ class CliArguments(argparse.Namespace):
 def _resolve(repo_root: Path, path: Path) -> Path:
     if path.is_absolute():
         return path
-
     return repo_root / path
+
+
+def _role_counts(patients: object) -> tuple[int, int]:
+    if not isinstance(patients, list):
+        raise ValueError("Generated Stage 8 audit is missing patient rows")
+
+    exposed = 0
+    internal_validation = 0
+    for raw in patients:
+        if not isinstance(raw, dict):
+            continue
+        if raw.get("core_eligible") is not True:
+            continue
+        if raw.get("split") == "development-exposed":
+            exposed += 1
+        elif raw.get("split") in {"development", "internal-validation"}:
+            internal_validation += 1
+    return exposed, internal_validation
 
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description=(
             "Build the leakage-safe Stage 8 CFB multimodal/RTDOSE audit "
-            "and deterministic development/untouched-holdout split."
+            "and deterministic development/validation/holdout roles."
         )
     )
     parser.add_argument("--repo-root", type=Path, default=Path("."))
@@ -88,25 +105,23 @@ def main(argv: Sequence[str] | None = None) -> int:
     try:
         experiment_path = _resolve(repo_root, args.experiment_config)
         experiment = load_cohort_experiment_config(experiment_path)
-
         metadata_root = (
             args.metadata_root.resolve()
             if args.metadata_root is not None
             else _resolve(repo_root, experiment.metadata_root).resolve()
         )
-
         result = audit_stage8_cohort(
             metadata_root=metadata_root,
             protocol_config_path=_resolve(repo_root, args.protocol_config),
             output_dir=_resolve(repo_root, args.output_dir),
         )
-
         raw_summary = result.manifest.get("summary")
         raw_split = result.manifest.get("split")
-
         if not isinstance(raw_summary, dict) or not isinstance(raw_split, dict):
             raise ValueError("Generated Stage 8 audit is missing summary data")
-
+        exposed_count, validation_count = _role_counts(
+            result.manifest.get("patients")
+        )
     except (OSError, ValueError, RuntimeError) as exc:
         print(f"Error: {exc}", file=sys.stderr)
         return 1
@@ -119,9 +134,13 @@ def main(argv: Sequence[str] | None = None) -> int:
     print(
         "Patients: "
         f"{raw_summary.get('patient_count')}; "
-        f"core eligible: {raw_summary.get('core_eligible_count')}; "
-        f"development: {raw_summary.get('development_count')}; "
-        f"untouched holdout: {raw_summary.get('untouched_holdout_count')}"
+        f"core eligible: {raw_summary.get('core_eligible_count')}"
+    )
+    print(
+        "Cohort roles: "
+        f"development-exposed={exposed_count}; "
+        f"internal-validation={validation_count}; "
+        f"untouched-holdout={raw_summary.get('untouched_holdout_count')}"
     )
     print(
         "Rich inputs: "
