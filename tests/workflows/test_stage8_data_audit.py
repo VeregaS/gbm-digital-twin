@@ -24,6 +24,9 @@ observation_model:
   enhancing_detection_threshold: 0.80
   infiltrative_detection_threshold: 0.16
   transition_width_mm: 4.0
+radiobiology:
+  alpha_beta_ratio_gy: 10.0
+  effective_alpha_candidates_per_gy: [0.01, 0.12]
 chemotherapy:
   enabled: false
 treatment_memory:
