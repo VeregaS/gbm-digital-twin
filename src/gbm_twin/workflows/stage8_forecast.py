@@ -13,6 +13,7 @@ from gbm_twin.models.radiobiology import RadiobiologyParameters
 from gbm_twin.models.reaction_diffusion import ReactionDiffusionParameters
 from gbm_twin.models.rt_schedule import ReconstructedRadiotherapySchedule
 from gbm_twin.models.treatment_memory import (
+    FractionResponseEvent,
     TreatmentMemoryState,
     assimilate_observed_density,
     initial_treatment_memory_state,
@@ -61,7 +62,7 @@ def _events_for_interval(
     start_day: float,
     end_day: float,
     include_start: bool,
-) -> tuple:
+) -> tuple[FractionResponseEvent, ...]:
     tolerance = 1e-9
 
     return tuple(
@@ -95,11 +96,10 @@ def simulate_stage8_forecast(
     start_infiltrative_mask: np.ndarray | None = None,
     observed_infiltrative_mask: np.ndarray | None = None,
 ) -> Stage8ForecastResult:
-    """Calibrate state to t1 by assimilation and forecast without loading t2.
+    """Forecast from t1 while preserving the treatment state built on t0->t1.
 
-    The biological RT-memory state is propagated through t0->t1 and preserved
-    across MRI assimilation. The t1 observation updates the tumor-density field
-    but does not reset treatment-induced proliferation suppression.
+    The routine never loads t2. MRI assimilation updates the latent density at
+    t1 but deliberately preserves treatment-induced proliferation suppression.
     """
 
     _validate_longitudinal_geometry(start, observed)
