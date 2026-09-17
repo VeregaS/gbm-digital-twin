@@ -16,11 +16,9 @@ from gbm_twin.workflows.cohort_results import (
 DEFAULT_EXPERIMENT_CONFIG = Path(
     "configs/experiments/mini_cohort.yaml"
 )
-
 DEFAULT_COHORT_DIR = Path(
     "results/cohort/v2-freeze"
 )
-
 DEFAULT_OUTPUT_DIR = Path(
     "results/cohort/v2-evaluation"
 )
@@ -36,145 +34,99 @@ class CliArguments(argparse.Namespace):
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description=(
-            "Reveal held-out t2 observations "
-            "and evaluate an already sealed "
-            "V2 cohort freeze."
+            "Reveal held-out t2 observations and evaluate an already "
+            "sealed cohort freeze. All prediction artifacts are validated "
+            "before the first t2 observation is loaded."
         )
     )
-
     parser.add_argument(
         "--repo-root",
         type=Path,
         default=Path("."),
     )
-
     parser.add_argument(
         "--experiment-config",
         type=Path,
-        default=(
-            DEFAULT_EXPERIMENT_CONFIG
-        ),
+        default=DEFAULT_EXPERIMENT_CONFIG,
     )
-
     parser.add_argument(
         "--cohort-dir",
         type=Path,
         default=DEFAULT_COHORT_DIR,
     )
-
     parser.add_argument(
         "--output-dir",
         type=Path,
         default=DEFAULT_OUTPUT_DIR,
     )
-
     return parser
 
 
 def parse_arguments(
     argv: Sequence[str] | None = None,
 ) -> CliArguments:
-    parser = build_parser()
-
-    raw_argv = (
-        None
-        if argv is None
-        else list(argv)
-    )
-
     return cast(
         CliArguments,
-        parser.parse_args(
-            raw_argv,
+        build_parser().parse_args(
+            None if argv is None else list(argv),
             namespace=CliArguments(),
         ),
     )
 
 
-def _resolve(
-    repo_root: Path,
-    path: Path,
-) -> Path:
+def _resolve(repo_root: Path, path: Path) -> Path:
     if path.is_absolute():
         return path
-
-    return (
-        repo_root
-        / path
-    )
+    return repo_root / path
 
 
-def main(
-    argv: Sequence[str] | None = None,
-) -> int:
-    args = parse_arguments(
-        argv
-    )
-
-    repo_root = (
-        args.repo_root.resolve()
-    )
+def main(argv: Sequence[str] | None = None) -> int:
+    args = parse_arguments(argv)
+    repo_root = args.repo_root.resolve()
 
     try:
-        result = (
-            evaluate_frozen_cohort(
-                cohort_dir=_resolve(
-                    repo_root,
-                    args.cohort_dir,
-                ),
-                experiment_config_path=(
-                    _resolve(
-                        repo_root,
-                        args.experiment_config,
-                    )
-                ),
-                output_dir=_resolve(
-                    repo_root,
-                    args.output_dir,
-                ),
-            )
+        result = evaluate_frozen_cohort(
+            cohort_dir=_resolve(
+                repo_root,
+                args.cohort_dir,
+            ),
+            experiment_config_path=_resolve(
+                repo_root,
+                args.experiment_config,
+            ),
+            output_dir=_resolve(
+                repo_root,
+                args.output_dir,
+            ),
         )
     except (
         OSError,
         ValueError,
         RuntimeError,
     ) as exc:
-        print(
-            f"Error: {exc}",
-            file=sys.stderr,
-        )
-
+        print(f"Error: {exc}", file=sys.stderr)
         return 1
 
-    summary = (
-        summarize_cohort_evaluation(
-            result.manifest
-        )
+    summary = summarize_cohort_evaluation(
+        result.manifest
+    )
+    model_version = result.manifest.get(
+        "model_version",
+        "V2",
     )
 
     print(
-        "Cohort V2 evaluation created: "
+        f"Cohort {model_version} evaluation created: "
         f"{result.directory}"
     )
+    print(f"Evaluated patients: {summary.patient_count}")
 
-    print(
-        "Evaluated patients: "
-        f"{summary.patient_count}"
-    )
-
-    if (
-        summary.twin.mean_dice
-        is not None
-    ):
+    if summary.twin.mean_dice is not None:
         print(
             "Twin mean Dice: "
             f"{summary.twin.mean_dice:.4f}"
         )
-
-    if (
-        summary.persistence.mean_dice
-        is not None
-    ):
+    if summary.persistence.mean_dice is not None:
         print(
             "Persistence mean Dice: "
             f"{summary.persistence.mean_dice:.4f}"
@@ -186,5 +138,4 @@ def main(
         f"{summary.twin_equal_to_persistence_count} equal, "
         f"{summary.twin_worse_than_persistence_count} worse"
     )
-
     return 0
