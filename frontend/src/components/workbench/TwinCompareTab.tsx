@@ -1,12 +1,15 @@
 import {
+  useEffect,
+  useMemo,
+  useRef,
   useState,
 } from "react";
 
 import {
+  Box,
   Columns3,
   Layers3,
   SplitSquareVertical,
-  Box,
 } from "lucide-react";
 
 import {
@@ -45,21 +48,40 @@ type TwinCompareTabProps = {
 };
 
 
+type LoadedPair = {
+  key: string;
+  observedUrl: string;
+  predictionUrl: string;
+};
+
+
+type PairRequestState =
+  | {
+      status: "success";
+      pair: LoadedPair;
+    }
+  | {
+      status: "error";
+      key: string;
+      error: string;
+    };
+
+
 const methods: {
   value: TwinPredictionMethod;
   label: string;
 }[] = [
   {
     value: "twin",
-    label: "Digital Twin",
+    label: "Цифровой двойник",
   },
   {
     value: "persistence",
-    label: "Persistence",
+    label: "Без изменений",
   },
   {
     value: "volume_baseline",
-    label: "Volume baseline",
+    label: "Прогноз по объёму",
   },
 ];
 
@@ -119,6 +141,18 @@ function TwinCompareTab({
     ?? 0,
   );
 
+  const [
+    pairRequest,
+    setPairRequest,
+  ] = useState<
+    PairRequestState | null
+  >(null);
+
+  const pairUrlsRef =
+    useRef<
+      LoadedPair | null
+    >(null);
+
   const planeMetadata =
     viewer.planes.find(
       (item) =>
@@ -128,6 +162,179 @@ function TwinCompareTab({
 
   const metrics =
     evaluation[method];
+
+  const observedUrl =
+    twinSliceUrl(
+      patientId,
+      "observed",
+      plane,
+      sliceIndex,
+    );
+
+  const predictionUrl =
+    twinSliceUrl(
+      patientId,
+      method,
+      plane,
+      sliceIndex,
+    );
+
+  const pairKey =
+    `${patientId}:${method}:${plane}:${sliceIndex}`;
+
+  const comparisonUrl =
+    mode === "overlay"
+    || mode === "difference"
+      ? twinCompareSliceUrl(
+        patientId,
+        method,
+        mode,
+        plane,
+        sliceIndex,
+      )
+      : null;
+
+  useEffect(() => {
+    if (
+      mode !== "side_by_side"
+    ) {
+      return;
+    }
+
+    const controller =
+      new AbortController();
+
+    Promise.all([
+      fetchImageObjectUrl(
+        observedUrl,
+        controller.signal,
+      ),
+      fetchImageObjectUrl(
+        predictionUrl,
+        controller.signal,
+      ),
+    ])
+      .then(
+        ([
+          nextObservedUrl,
+          nextPredictionUrl,
+        ]) => {
+          if (
+            controller.signal.aborted
+          ) {
+            URL.revokeObjectURL(
+              nextObservedUrl,
+            );
+
+            URL.revokeObjectURL(
+              nextPredictionUrl,
+            );
+
+            return;
+          }
+
+          const previous =
+            pairUrlsRef.current;
+
+          const nextPair: LoadedPair = {
+            key: pairKey,
+            observedUrl:
+              nextObservedUrl,
+            predictionUrl:
+              nextPredictionUrl,
+          };
+
+          pairUrlsRef.current =
+            nextPair;
+
+          setPairRequest({
+            status: "success",
+            pair: nextPair,
+          });
+
+          if (previous !== null) {
+            URL.revokeObjectURL(
+              previous.observedUrl,
+            );
+
+            URL.revokeObjectURL(
+              previous.predictionUrl,
+            );
+          }
+        },
+      )
+      .catch(
+        (requestError: unknown) => {
+          if (
+            controller.signal.aborted
+          ) {
+            return;
+          }
+
+          setPairRequest({
+            status: "error",
+            key: pairKey,
+            error:
+              requestError
+              instanceof Error
+                ? requestError.message
+                : "Не удалось загрузить пару снимков",
+          });
+        },
+      );
+
+    return () => {
+      controller.abort();
+    };
+  }, [
+    mode,
+    observedUrl,
+    predictionUrl,
+    pairKey,
+  ]);
+
+  useEffect(() => {
+    return () => {
+      const pair =
+        pairUrlsRef.current;
+
+      if (pair !== null) {
+        URL.revokeObjectURL(
+          pair.observedUrl,
+        );
+
+        URL.revokeObjectURL(
+          pair.predictionUrl,
+        );
+      }
+    };
+  }, []);
+
+  const displayedPair =
+    pairRequest?.status
+    === "success"
+      ? pairRequest.pair
+      : pairUrlsRef.current;
+
+  const pairLoading =
+    mode === "side_by_side"
+    && displayedPair?.key
+    !== pairKey;
+
+  const pairError =
+    pairRequest?.status
+    === "error"
+    && pairRequest.key
+    === pairKey
+      ? pairRequest.error
+      : null;
+
+  const methodLabel =
+    methods.find(
+      (item) =>
+        item.value === method,
+    )?.label
+    ?? method;
 
   function changePlane(
     nextPlane: ViewerPlane,
@@ -150,69 +357,30 @@ function TwinCompareTab({
     );
   }
 
-  const observedUrl =
-    twinSliceUrl(
-      patientId,
-      "observed",
-      plane,
-      sliceIndex,
-    );
-
-  const predictionUrl =
-    twinSliceUrl(
-      patientId,
-      method,
-      plane,
-      sliceIndex,
-    );
-
-  const comparisonUrl =
-    mode === "overlay"
-    || mode === "difference"
-      ? twinCompareSliceUrl(
-        patientId,
-        method,
-        mode,
-        plane,
-        sliceIndex,
-      )
-      : null;
-
   return (
     <div
-      className={
-        "twin-tab-stack"
-      }
+      className="twin-tab-stack"
     >
       <section
-        className={
-          "twin-compare-toolbar"
-        }
+        className="twin-compare-toolbar"
       >
         <div>
           <span>
-            Method
+            Метод прогноза
           </span>
 
           <div
-            className={
-              "twin-chip-row"
-            }
+            className="twin-chip-row"
           >
             {methods.map(
               (item) => (
                 <button
-                  key={
-                    item.value
-                  }
+                  key={item.value}
                   type="button"
                   className={
                     method
                     === item.value
-                      ? (
-                        "twin-chip "
-                        + "active"
-                      )
+                      ? "twin-chip active"
                       : "twin-chip"
                   }
                   onClick={() =>
@@ -230,23 +398,19 @@ function TwinCompareTab({
 
         <div>
           <span>
-            View
+            Режим сравнения
           </span>
 
           <div
-            className={
-              "twin-chip-row"
-            }
+            className="twin-chip-row"
           >
             <ModeButton
               active={
                 mode
                 === "side_by_side"
               }
-              label="Side by side"
-              icon={
-                Columns3
-              }
+              label="Рядом"
+              icon={Columns3}
               onClick={() =>
                 setMode(
                   "side_by_side",
@@ -258,7 +422,7 @@ function TwinCompareTab({
               active={
                 mode === "overlay"
               }
-              label="Overlay"
+              label="Наложение"
               icon={Layers3}
               onClick={() =>
                 setMode(
@@ -272,7 +436,7 @@ function TwinCompareTab({
                 mode
                 === "difference"
               }
-              label="Difference"
+              label="Ошибки"
               icon={
                 SplitSquareVertical
               }
@@ -300,66 +464,50 @@ function TwinCompareTab({
       </section>
 
       <section
-        className={
-          "twin-selected-method"
-        }
+        className="twin-selected-method"
       >
-        <div>
-          <span>
-            Dice
-          </span>
+        <MetricSummary
+          label="Совпадение (Dice)"
+          value={
+            metrics.dice
+            .toFixed(3)
+          }
+          hint="больше — лучше"
+        />
 
-          <strong>
-            {
-              metrics.dice
-              .toFixed(3)
-            }
-          </strong>
-        </div>
+        <MetricSummary
+          label="Ошибка объёма"
+          value={
+            (
+              metrics
+              .relative_volume_error
+              * 100
+            ).toFixed(1)
+            + "%"
+          }
+          hint="меньше — лучше"
+        />
 
-        <div>
-          <span>
-            Volume error
-          </span>
-
-          <strong>
-            {
-              (
-                metrics
-                .relative_volume_error
-                * 100
-              ).toFixed(1)
-            }
-            %
-          </strong>
-        </div>
-
-        <div>
-          <span>
-            HD95
-          </span>
-
-          <strong>
-            {
-              metrics.hd95_mm
-              === null
-                ? "—"
-                : (
-                  metrics.hd95_mm
-                  .toFixed(1)
-                  + " mm"
-                )
-            }
-          </strong>
-        </div>
+        <MetricSummary
+          label="Ошибка границы (HD95)"
+          value={
+            metrics.hd95_mm
+            === null
+              ? "—"
+              : (
+                metrics.hd95_mm
+                .toFixed(1)
+                + " мм"
+              )
+          }
+          hint="меньше — лучше"
+        />
       </section>
 
       {mode !== "3d" && (
         <>
           <div
-            className={
-              "twin-plane-toolbar"
-            }
+            className="twin-plane-toolbar"
           >
             {planes.map(
               (item) => (
@@ -368,10 +516,7 @@ function TwinCompareTab({
                   type="button"
                   className={
                     plane === item
-                      ? (
-                        "twin-chip "
-                        + "active"
-                      )
+                      ? "twin-chip active"
                       : "twin-chip"
                   }
                   onClick={() =>
@@ -380,7 +525,7 @@ function TwinCompareTab({
                     )
                   }
                 >
-                  {item}
+                  {planeLabel(item)}
                 </button>
               ),
             )}
@@ -389,101 +534,98 @@ function TwinCompareTab({
           {mode
           === "side_by_side" ? (
             <div
-              className={
-                "twin-side-by-side"
-              }
+              className="twin-side-by-side-wrap"
             >
-              <ComparisonImage
-                title="Observed t2"
-                subtitle="Held-out ground truth"
-                src={observedUrl}
-              />
+              <div
+                className="twin-side-by-side"
+              >
+                <ComparisonImage
+                  title="Реальная опухоль на t2"
+                  subtitle="Отложенная сегментация, не использованная при прогнозе"
+                  src={
+                    displayedPair
+                    ?.observedUrl
+                    ?? null
+                  }
+                />
 
-              <ComparisonImage
-                title={
-                  methods.find(
-                    (item) =>
-                      item.value
-                      === method,
-                  )?.label
-                  ?? method
-                }
-                subtitle={
-                  "Sealed prediction "
-                  + "for t2"
-                }
-                src={predictionUrl}
-              />
+                <ComparisonImage
+                  title={methodLabel}
+                  subtitle="Зафиксированный прогноз состояния опухоли на t2"
+                  src={
+                    displayedPair
+                    ?.predictionUrl
+                    ?? null
+                  }
+                />
+              </div>
+
+              {(pairLoading
+              || pairError !== null) && (
+                <div
+                  className={
+                    pairError === null
+                      ? "twin-pair-status"
+                      : "twin-pair-status error"
+                  }
+                >
+                  {pairError
+                    ?? (
+                      `Загружаем срез ${sliceIndex} синхронно для обеих панелей…`
+                    )}
+                </div>
+              )}
             </div>
           ) : (
             <div
-              className={
-                "twin-comparison-single"
-              }
+              className="twin-comparison-single"
             >
               {comparisonUrl
               !== null && (
                 <img
-                  src={
-                    comparisonUrl
-                  }
+                  src={comparisonUrl}
                   alt={
-                    `${mode} `
-                    + `${method}`
+                    `${mode} ${method}`
                   }
                 />
               )}
 
               {mode === "overlay" ? (
                 <div
-                  className={
-                    "twin-compare-legend"
-                  }
+                  className="twin-compare-legend"
                 >
                   <Legend
                     color="#ef5350"
-                    label={
-                      "Observed only"
-                    }
+                    label="Только реальная опухоль"
                   />
 
                   <Legend
                     color="#3b82f6"
-                    label={
-                      "Prediction only"
-                    }
+                    label="Только прогноз"
                   />
 
                   <Legend
                     color="#a855f7"
-                    label="Overlap"
+                    label="Перекрытие"
                   />
                 </div>
               ) : (
                 <div
-                  className={
-                    "twin-compare-legend"
-                  }
+                  className="twin-compare-legend"
                 >
                   <Legend
                     color="#10b981"
-                    label={
-                      "Correct overlap"
-                    }
+                    label="Верное совпадение"
                   />
 
                   <Legend
                     color="#3b82f6"
-                    label={
-                      "False positive"
-                    }
+                    label="Ложноположительная область"
                   />
 
                   <Legend
                     color="#ef4444"
-                    label={
-                      "False negative"
-                    }
+                    label="Пропущенная опухоль"
                   />
                 </div>
               )}
@@ -492,9 +634,7 @@ function TwinCompareTab({
 
           {planeMetadata !== null && (
             <div
-              className={
-                "twin-slider-row"
-              }
+              className="twin-slider-row"
             >
               <span>
                 0
@@ -507,9 +647,8 @@ function TwinCompareTab({
                   planeMetadata
                   .max_index
                 }
-                value={
-                  sliceIndex
-                }
+                value={sliceIndex}
+                aria-label="Номер среза"
                 onChange={
                   (event) =>
                     setSliceIndex(
@@ -530,9 +669,7 @@ function TwinCompareTab({
               </span>
 
               <strong>
-                slice
-                {" "}
-                {sliceIndex}
+                срез {sliceIndex}
               </strong>
             </div>
           )}
@@ -541,14 +678,10 @@ function TwinCompareTab({
 
       {mode === "3d" && (
         <div
-          className={
-            "twin-3d-frame"
-          }
+          className="twin-3d-frame"
         >
           <TwinThreeDViewer
-            patientId={
-              patientId
-            }
+            patientId={patientId}
           />
         </div>
       )}
@@ -557,10 +690,40 @@ function TwinCompareTab({
 }
 
 
+type MetricSummaryProps = {
+  label: string;
+  value: string;
+  hint: string;
+};
+
+
+function MetricSummary({
+  label,
+  value,
+  hint,
+}: MetricSummaryProps) {
+  return (
+    <div>
+      <span>
+        {label}
+      </span>
+
+      <strong>
+        {value}
+      </strong>
+
+      <small>
+        {hint}
+      </small>
+    </div>
+  );
+}
+
+
 type ComparisonImageProps = {
   title: string;
   subtitle: string;
-  src: string;
+  src: string | null;
 };
 
 
@@ -571,9 +734,7 @@ function ComparisonImage({
 }: ComparisonImageProps) {
   return (
     <article
-      className={
-        "twin-compare-image-card"
-      }
+      className="twin-compare-image-card"
     >
       <header>
         <strong>
@@ -586,10 +747,19 @@ function ComparisonImage({
       </header>
 
       <div>
-        <img
-          src={src}
-          alt={title}
-        />
+        {src === null ? (
+          <span
+            className="twin-image-placeholder"
+          >
+            Загружаем снимок…
+          </span>
+        ) : (
+          <img
+            src={src}
+            alt={title}
+            draggable={false}
+          />
+        )}
       </div>
     </article>
   );
@@ -619,10 +789,7 @@ function ModeButton({
       type="button"
       className={
         active
-          ? (
-            "twin-chip "
-            + "active"
-          )
+          ? "twin-chip active"
           : "twin-chip"
       }
       onClick={onClick}
@@ -658,6 +825,46 @@ function Legend({
 
       {label}
     </span>
+  );
+}
+
+
+function planeLabel(
+  plane: ViewerPlane,
+): string {
+  switch (plane) {
+    case "axial":
+      return "Аксиальная";
+    case "coronal":
+      return "Корональная";
+    case "sagittal":
+      return "Сагиттальная";
+  }
+}
+
+
+async function fetchImageObjectUrl(
+  url: string,
+  signal: AbortSignal,
+): Promise<string> {
+  const response = await fetch(
+    url,
+    {
+      signal,
+      cache: "force-cache",
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error(
+      `Не удалось загрузить снимок: HTTP ${response.status}`,
+    );
+  }
+
+  const blob = await response.blob();
+
+  return URL.createObjectURL(
+    blob,
   );
 }
 
