@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 from pathlib import Path
 from typing import cast
@@ -39,11 +40,20 @@ class Stage8ObservationConfig:
 @dataclass(frozen=True)
 class Stage8RadiobiologyConfig:
     alpha_beta_ratio_gy: float
+    legacy_alpha_per_gy: float
+    reference_alpha_per_gy: float
     effective_alpha_candidates_per_gy: tuple[float, ...]
 
     def __post_init__(self) -> None:
-        if self.alpha_beta_ratio_gy <= 0.0:
-            raise ValueError("alpha_beta_ratio_gy must be positive")
+        if not math.isfinite(self.alpha_beta_ratio_gy) or self.alpha_beta_ratio_gy <= 0.0:
+            raise ValueError("alpha_beta_ratio_gy must be finite and positive")
+
+        for name, value in (
+            ("legacy_alpha_per_gy", self.legacy_alpha_per_gy),
+            ("reference_alpha_per_gy", self.reference_alpha_per_gy),
+        ):
+            if not math.isfinite(value) or value <= 0.0:
+                raise ValueError(f"{name} must be finite and positive")
 
         if not self.effective_alpha_candidates_per_gy:
             raise ValueError(
@@ -51,11 +61,11 @@ class Stage8RadiobiologyConfig:
             )
 
         if any(
-            value <= 0.0
+            not math.isfinite(value) or value <= 0.0
             for value in self.effective_alpha_candidates_per_gy
         ):
             raise ValueError(
-                "effective alpha candidates must be positive"
+                "effective alpha candidates must be finite and positive"
             )
 
         if (
@@ -63,6 +73,18 @@ class Stage8RadiobiologyConfig:
             != len(self.effective_alpha_candidates_per_gy)
         ):
             raise ValueError("effective alpha candidates contain duplicates")
+
+        for name, value in (
+            ("legacy_alpha_per_gy", self.legacy_alpha_per_gy),
+            ("reference_alpha_per_gy", self.reference_alpha_per_gy),
+        ):
+            if not any(
+                math.isclose(value, candidate, rel_tol=0.0, abs_tol=1e-12)
+                for candidate in self.effective_alpha_candidates_per_gy
+            ):
+                raise ValueError(
+                    f"{name} must be included in effective_alpha_candidates_per_gy"
+                )
 
 
 @dataclass(frozen=True)
@@ -77,9 +99,9 @@ class Stage8TreatmentMemoryConfig:
             )
 
         for value in self.proliferation_survival_candidates:
-            if not 0.0 < value <= 1.0:
+            if not math.isfinite(value) or not 0.0 < value <= 1.0:
                 raise ValueError(
-                    "proliferation survival candidates must be within (0, 1]"
+                    "proliferation survival candidates must be finite and within (0, 1]"
                 )
 
         if (
@@ -88,6 +110,11 @@ class Stage8TreatmentMemoryConfig:
         ):
             raise ValueError(
                 "proliferation survival candidates contain duplicates"
+            )
+
+        if 1.0 not in self.proliferation_survival_candidates:
+            raise ValueError(
+                "proliferation_survival_candidates must include 1.0 as no-memory ablation"
             )
 
 
@@ -219,6 +246,9 @@ def _float_tuple(mapping: dict[str, object], key: str) -> tuple[float, ...]:
 
 
 def load_stage8_protocol_config(path: Path) -> Stage8ProtocolConfig:
+    if not path.is_file():
+        raise FileNotFoundError(path)
+
     raw: object = yaml.safe_load(path.read_text(encoding="utf-8"))
     root = _mapping(raw, name="Stage 8 protocol")
 
@@ -273,6 +303,14 @@ def load_stage8_protocol_config(path: Path) -> Stage8ProtocolConfig:
             alpha_beta_ratio_gy=_float(
                 radiobiology_raw,
                 "alpha_beta_ratio_gy",
+            ),
+            legacy_alpha_per_gy=_float(
+                radiobiology_raw,
+                "legacy_alpha_per_gy",
+            ),
+            reference_alpha_per_gy=_float(
+                radiobiology_raw,
+                "reference_alpha_per_gy",
             ),
             effective_alpha_candidates_per_gy=_float_tuple(
                 radiobiology_raw,
