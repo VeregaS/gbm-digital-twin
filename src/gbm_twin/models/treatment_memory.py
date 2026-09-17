@@ -12,7 +12,6 @@ from gbm_twin.models.solver import (
 )
 from gbm_twin.models.spatial_radiotherapy import apply_spatial_pirt_fraction
 
-
 SurvivalValue = float | np.ndarray
 
 

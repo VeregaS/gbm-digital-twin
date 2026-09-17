@@ -188,7 +188,7 @@ def _stratified_holdout(
             key=lambda patient_id: hashlib.sha256(
                 (
                     f"stage8:{seed}:{stratum}:{patient_id}"
-                ).encode("utf-8")
+                ).encode()
             ).hexdigest(),
         )
         raw_count = len(ordered) * fraction
