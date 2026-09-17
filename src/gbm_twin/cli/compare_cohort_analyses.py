@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import cast
 
 from gbm_twin.evaluation.experiment_comparison import (
+    AccuracyExperimentComparison,
     compare_cohort_analyses,
 )
 from gbm_twin.workflows.cohort_analysis import (
@@ -94,20 +95,8 @@ def _resolve(
 
 def _write_csv(
     path: Path,
-    comparison: object,
+    comparison: AccuracyExperimentComparison,
 ) -> None:
-    from gbm_twin.evaluation.experiment_comparison import (
-        AccuracyExperimentComparison,
-    )
-
-    if not isinstance(
-        comparison,
-        AccuracyExperimentComparison,
-    ):
-        raise TypeError(
-            "comparison must be AccuracyExperimentComparison"
-        )
-
     path.parent.mkdir(
         parents=True,
         exist_ok=True,
@@ -203,7 +192,6 @@ def main(
 
     except (
         OSError,
-        TypeError,
         ValueError,
     ) as exc:
         print(
