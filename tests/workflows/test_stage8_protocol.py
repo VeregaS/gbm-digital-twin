@@ -7,7 +7,12 @@ import pytest
 from gbm_twin.workflows.stage8_protocol import load_stage8_protocol_config
 
 
-def _write_config(path: Path, *, holdout_fraction: float = 0.25) -> None:
+def _write_config(
+    path: Path,
+    *,
+    holdout_fraction: float = 0.25,
+    reference_alpha: float = 0.12,
+) -> None:
     path.write_text(
         f"""schema_version: 1
 exposed_development_patient_ids: [8, 25]
@@ -24,6 +29,8 @@ observation_model:
   transition_width_mm: 4.0
 radiobiology:
   alpha_beta_ratio_gy: 10.0
+  legacy_alpha_per_gy: 0.01
+  reference_alpha_per_gy: {reference_alpha}
   effective_alpha_candidates_per_gy: [0.01, 0.10, 0.12, 0.14]
 chemotherapy:
   enabled: false
@@ -45,6 +52,8 @@ def test_load_stage8_protocol_config(tmp_path: Path) -> None:
     assert config.required_timepoints == ("t0", "t1", "t2")
     assert config.observation.enhancing_detection_threshold == pytest.approx(0.8)
     assert config.radiobiology.alpha_beta_ratio_gy == pytest.approx(10.0)
+    assert config.radiobiology.legacy_alpha_per_gy == pytest.approx(0.01)
+    assert config.radiobiology.reference_alpha_per_gy == pytest.approx(0.12)
     assert config.radiobiology.effective_alpha_candidates_per_gy == (
         0.01,
         0.10,
@@ -63,4 +72,14 @@ def test_stage8_protocol_rejects_invalid_holdout_fraction(tmp_path: Path) -> Non
     _write_config(path, holdout_fraction=1.0)
 
     with pytest.raises(ValueError, match="holdout_fraction"):
+        load_stage8_protocol_config(path)
+
+
+def test_stage8_protocol_requires_reference_alpha_in_candidate_set(
+    tmp_path: Path,
+) -> None:
+    path = tmp_path / "stage8.yaml"
+    _write_config(path, reference_alpha=0.2)
+
+    with pytest.raises(ValueError, match="reference_alpha_per_gy"):
         load_stage8_protocol_config(path)
