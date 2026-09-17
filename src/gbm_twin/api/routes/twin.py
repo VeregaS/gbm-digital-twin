@@ -23,6 +23,9 @@ from gbm_twin.api.schemas.twin import (
     TwinPatientListItemResponse,
     TwinPatientListResponse,
 )
+from gbm_twin.api.schemas.twin_qc import (
+    TwinPatientQCResponse,
+)
 from gbm_twin.api.schemas.twin_scene3d import (
     TwinViewer3DSceneResponse,
 )
@@ -37,12 +40,18 @@ from gbm_twin.workflows.cohort_results import (
     load_sealed_cohort_evaluation,
     summarize_cohort_evaluation,
 )
+from gbm_twin.workflows.twin_qc import (
+    get_twin_patient_qc,
+)
 from gbm_twin.workflows.twin_scene3d import (
     get_twin_viewer_3d_scene,
 )
 from gbm_twin.workflows.twin_viewer import (
+    TwinComparisonMode,
     TwinOverlayLayer,
+    TwinPredictionMethod,
     get_twin_viewer_volume_metadata,
+    render_twin_comparison_slice_png,
     render_twin_viewer_slice_png,
 )
 
@@ -74,6 +83,16 @@ IndexParameter = Annotated[
 
 LayerParameter = Annotated[
     TwinOverlayLayer,
+    Query(),
+]
+
+MethodParameter = Annotated[
+    TwinPredictionMethod,
+    Query(),
+]
+
+ComparisonModeParameter = Annotated[
+    TwinComparisonMode,
     Query(),
 ]
 
@@ -463,6 +482,175 @@ def get_twin_slice(
                 "private, max-age=60"
             ),
         },
+    )
+
+@router.get(
+    "/patients/{patient_id}/compare-slice",
+)
+def get_twin_comparison_slice(
+    patient_id: int,
+    settings: SettingsDependency,
+    method: MethodParameter = "twin",
+    mode: ComparisonModeParameter = "overlay",
+    plane: PlaneParameter = "axial",
+    index: IndexParameter = None,
+) -> Response:
+    if patient_id <= 0:
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                "patient_id must be positive"
+            ),
+        )
+
+    evaluation = (
+        _load_evaluation(
+            settings
+        )
+    )
+
+    _find_patient(
+        evaluation,
+        patient_id,
+    )
+
+    (
+        freeze_root,
+        evaluation_root,
+    ) = _require_twin_roots(
+        settings
+    )
+
+    try:
+        png = (
+            render_twin_comparison_slice_png(
+                metadata_root=(
+                    settings.metadata_root
+                ),
+                patients_root=(
+                    settings.patients_root
+                ),
+                cohort_freeze_root=(
+                    freeze_root
+                ),
+                cohort_evaluation_root=(
+                    evaluation_root
+                ),
+                patient_id=patient_id,
+                method=method,
+                comparison_mode=mode,
+                plane=plane,
+                index=index,
+            )
+        )
+
+    except FileNotFoundError as exc:
+        raise HTTPException(
+            status_code=404,
+            detail=str(exc),
+        ) from exc
+
+    except IndexError as exc:
+        raise HTTPException(
+            status_code=422,
+            detail=str(exc),
+        ) from exc
+
+    except (
+        KeyError,
+        ValueError,
+        RuntimeError,
+    ) as exc:
+        raise HTTPException(
+            status_code=400,
+            detail=str(exc),
+        ) from exc
+
+    return Response(
+        content=png,
+        media_type="image/png",
+        headers={
+            "Cache-Control": (
+                "private, max-age=60"
+            ),
+        },
+    )
+
+
+@router.get(
+    "/patients/{patient_id}/qc",
+    response_model=(
+        TwinPatientQCResponse
+    ),
+)
+def get_twin_qc(
+    patient_id: int,
+    settings: SettingsDependency,
+) -> TwinPatientQCResponse:
+    if patient_id <= 0:
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                "patient_id must be positive"
+            ),
+        )
+
+    evaluation = (
+        _load_evaluation(
+            settings
+        )
+    )
+
+    _find_patient(
+        evaluation,
+        patient_id,
+    )
+
+    (
+        freeze_root,
+        evaluation_root,
+    ) = _require_twin_roots(
+        settings
+    )
+
+    try:
+        qc = get_twin_patient_qc(
+            metadata_root=(
+                settings.metadata_root
+            ),
+            patients_root=(
+                settings.patients_root
+            ),
+            cohort_freeze_root=(
+                freeze_root
+            ),
+            cohort_evaluation_root=(
+                evaluation_root
+            ),
+            patient_id=patient_id,
+        )
+
+    except FileNotFoundError as exc:
+        raise HTTPException(
+            status_code=404,
+            detail=str(exc),
+        ) from exc
+
+    except (
+        KeyError,
+        ValueError,
+        RuntimeError,
+    ) as exc:
+        raise HTTPException(
+            status_code=400,
+            detail=str(exc),
+        ) from exc
+
+    return (
+        TwinPatientQCResponse
+        .from_qc(
+            qc
+        )
     )
 
 

@@ -732,3 +732,243 @@ def render_viewer_mask_slice_png(
     )
 
     return buffer.getvalue()
+
+def render_viewer_observed_prediction_slice_png(
+    *,
+    metadata_root: Path,
+    patients_root: Path,
+    patient_id: int,
+    timepoint_name: str,
+    prediction_mask: np.ndarray,
+    plane: ViewerPlane,
+    comparison_mode: Literal[
+        "overlay",
+        "difference",
+    ],
+    index: int | None = None,
+    target_spacing: tuple[
+        float,
+        float,
+        float,
+    ] = DEFAULT_TARGET_SPACING,
+) -> bytes:
+    cached = _load_viewer_volume(
+        metadata_root=metadata_root,
+        patients_root=patients_root,
+        patient_id=patient_id,
+        timepoint_name=timepoint_name,
+        target_spacing=target_spacing,
+    )
+
+    prepared = cached.prepared
+
+    predicted_volume = np.asarray(
+        prediction_mask
+    )
+
+    if (
+        predicted_volume.shape
+        != prepared.gtv.data.shape
+    ):
+        raise ValueError(
+            "Prediction mask shape does not "
+            "match observed target geometry: "
+            f"{predicted_volume.shape} vs "
+            f"{prepared.gtv.data.shape}"
+        )
+
+    metadata = (
+        get_viewer_volume_metadata(
+            metadata_root=metadata_root,
+            patients_root=patients_root,
+            patient_id=patient_id,
+            timepoint_name=timepoint_name,
+            target_spacing=target_spacing,
+        )
+    )
+
+    plane_metadata = next(
+        item
+        for item in metadata.planes
+        if item.name == plane
+    )
+
+    slice_index = (
+        plane_metadata.default_index
+        if index is None
+        else index
+    )
+
+    image_slice = _extract_plane(
+        prepared.t1gd.data,
+        plane=plane,
+        index=slice_index,
+    )
+
+    grayscale = _normalize_mri_slice(
+        image_slice,
+        low=cached.intensity_low,
+        high=cached.intensity_high,
+    )
+
+    rgb = np.repeat(
+        grayscale[
+            :,
+            :,
+            np.newaxis,
+        ],
+        3,
+        axis=2,
+    ).astype(
+        np.float32
+    )
+
+    observed_slice = _extract_plane(
+        np.asarray(
+            prepared.gtv.data
+        ),
+        plane=plane,
+        index=slice_index,
+    )
+
+    predicted_slice = _extract_plane(
+        predicted_volume,
+        plane=plane,
+        index=slice_index,
+    )
+
+    observed = (
+        observed_slice > 0.5
+    )
+
+    predicted = (
+        predicted_slice > 0.5
+    )
+
+    overlap = (
+        observed
+        & predicted
+    )
+
+    observed_only = (
+        observed
+        & ~predicted
+    )
+
+    predicted_only = (
+        predicted
+        & ~observed
+    )
+
+    def blend(
+        mask: np.ndarray,
+        color: tuple[
+            float,
+            float,
+            float,
+        ],
+        alpha: float,
+    ) -> None:
+        if not np.any(mask):
+            return
+
+        color_array = np.asarray(
+            color,
+            dtype=np.float32,
+        )
+
+        rgb[mask] = (
+            (1.0 - alpha)
+            * rgb[mask]
+            + alpha
+            * color_array
+        )
+
+    if comparison_mode == "overlay":
+        blend(
+            observed_only,
+            (
+                239.0,
+                83.0,
+                80.0,
+            ),
+            0.66,
+        )
+
+        blend(
+            predicted_only,
+            (
+                59.0,
+                130.0,
+                246.0,
+            ),
+            0.66,
+        )
+
+        blend(
+            overlap,
+            (
+                168.0,
+                85.0,
+                247.0,
+            ),
+            0.72,
+        )
+
+    elif comparison_mode == "difference":
+        blend(
+            overlap,
+            (
+                16.0,
+                185.0,
+                129.0,
+            ),
+            0.78,
+        )
+
+        blend(
+            predicted_only,
+            (
+                59.0,
+                130.0,
+                246.0,
+            ),
+            0.78,
+        )
+
+        blend(
+            observed_only,
+            (
+                239.0,
+                68.0,
+                68.0,
+            ),
+            0.78,
+        )
+
+    else:
+        raise ValueError(
+            "Unsupported comparison mode: "
+            f"{comparison_mode}"
+        )
+
+    rgb_uint8 = np.clip(
+        rgb,
+        0.0,
+        255.0,
+    ).astype(
+        np.uint8
+    )
+
+    image = Image.fromarray(
+        rgb_uint8
+    )
+
+    buffer = BytesIO()
+
+    image.save(
+        buffer,
+        format="PNG",
+    )
+
+    return buffer.getvalue()

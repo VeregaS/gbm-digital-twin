@@ -114,11 +114,20 @@ export type TwinCohort = {
 };
 
 
-export type TwinOverlayLayer =
+export type TwinPredictionMethod =
   | "twin"
   | "persistence"
-  | "volume_baseline"
+  | "volume_baseline";
+
+
+export type TwinOverlayLayer =
+  | TwinPredictionMethod
   | "observed";
+
+
+export type TwinComparisonMode =
+  | "overlay"
+  | "difference";
 
 
 export type Twin3DScene = {
@@ -139,6 +148,49 @@ export type Twin3DScene = {
 
   volume_baseline:
     SurfaceMesh;
+};
+
+
+export type TwinMaskQC = {
+  name: string;
+
+  voxel_count: number;
+  volume_cm3: number;
+
+  component_count: number;
+
+  largest_component_fraction:
+    number | null;
+
+  outside_brain_voxels:
+    number;
+
+  outside_brain_fraction:
+    number | null;
+
+  centroid_inside_brain:
+    boolean | null;
+};
+
+
+export type TwinQCWarning = {
+  code: string;
+  message: string;
+};
+
+
+export type TwinPatientQC = {
+  patient_id: number;
+
+  observed: TwinMaskQC;
+  twin: TwinMaskQC;
+  persistence: TwinMaskQC;
+
+  volume_baseline:
+    TwinMaskQC;
+
+  warnings:
+    TwinQCWarning[];
 };
 
 
@@ -217,6 +269,20 @@ export function fetchTwin3DScene(
 }
 
 
+export function fetchTwinQC(
+  patientId: number,
+): Promise<TwinPatientQC> {
+  return requestJson<
+    TwinPatientQC
+  >(
+    (
+      `/api/twin/patients/${patientId}`
+      + "/qc"
+    ),
+  );
+}
+
+
 export function twinSliceUrl(
   patientId: number,
   layer: TwinOverlayLayer,
@@ -233,5 +299,27 @@ export function twinSliceUrl(
   return (
     `/api/twin/patients/${patientId}`
     + `/slice?${query.toString()}`
+  );
+}
+
+
+export function twinCompareSliceUrl(
+  patientId: number,
+  method: TwinPredictionMethod,
+  mode: TwinComparisonMode,
+  plane: ViewerPlane,
+  index: number,
+): string {
+  const query =
+    new URLSearchParams({
+      method,
+      mode,
+      plane,
+      index: String(index),
+    });
+
+  return (
+    `/api/twin/patients/${patientId}`
+    + `/compare-slice?${query.toString()}`
   );
 }

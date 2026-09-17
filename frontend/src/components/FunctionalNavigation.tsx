@@ -16,9 +16,23 @@ import type {
 
 
 type FunctionalNavigationProps = {
-  active: WorkbenchSection;
-  capabilities: Capabilities | null;
-  capabilitiesError: string | null;
+  active:
+    WorkbenchSection;
+
+  capabilities:
+    Capabilities | null;
+
+  capabilitiesError:
+    string | null;
+
+  selectedPatientId:
+    number | null;
+
+  selectedPatientHasTwin:
+    boolean | null;
+
+  twinPatientsError:
+    string | null;
 
   onChange: (
     section: WorkbenchSection,
@@ -26,15 +40,138 @@ type FunctionalNavigationProps = {
 };
 
 
+function unavailable(
+  reason: string,
+): FeatureCapability {
+  return {
+    available: false,
+    reason,
+  };
+}
+
+
+function requirePatient(
+  capability: FeatureCapability,
+  selectedPatientId:
+    number | null,
+): FeatureCapability {
+  if (!capability.available) {
+    return capability;
+  }
+
+  if (
+    selectedPatientId === null
+  ) {
+    return unavailable(
+      "Select a patient on "
+      + "the Patients page first.",
+    );
+  }
+
+  return capability;
+}
+
+
+function resolveTwinCapability(
+  capability: FeatureCapability,
+  selectedPatientId:
+    number | null,
+  selectedPatientHasTwin:
+    boolean | null,
+  twinPatientsError:
+    string | null,
+): FeatureCapability {
+  if (!capability.available) {
+    return capability;
+  }
+
+  if (
+    selectedPatientId === null
+  ) {
+    return unavailable(
+      "Select a patient on "
+      + "the Patients page first.",
+    );
+  }
+
+  if (
+    twinPatientsError !== null
+  ) {
+    return unavailable(
+      twinPatientsError
+    );
+  }
+
+  if (
+    selectedPatientHasTwin
+    === null
+  ) {
+    return unavailable(
+      "Checking sealed "
+      + "Twin availability…",
+    );
+  }
+
+  if (
+    !selectedPatientHasTwin
+  ) {
+    return unavailable(
+      `Patient ${selectedPatientId} `
+      + "has no sealed V2 "
+      + "prediction/evaluation.",
+    );
+  }
+
+  return capability;
+}
+
+
 function FunctionalNavigation({
   active,
   capabilities,
   capabilitiesError,
+  selectedPatientId,
+  selectedPatientHasTwin,
+  twinPatientsError,
   onChange,
 }: FunctionalNavigationProps) {
   const fallbackReason =
     capabilitiesError
-    ?? "Checking backend availability…";
+    ?? (
+      "Checking backend "
+      + "availability…"
+    );
+
+  const patientBadge =
+    selectedPatientId === null
+      ? undefined
+      : `P${selectedPatientId}`;
+
+  const twinCapability =
+    capabilities === null
+      ? null
+      : resolveTwinCapability(
+        capabilities.digital_twin,
+        selectedPatientId,
+        selectedPatientHasTwin,
+        twinPatientsError,
+      );
+
+  const imagingCapability =
+    capabilities === null
+      ? null
+      : requirePatient(
+        capabilities.viewer,
+        selectedPatientId,
+      );
+
+  const anatomyCapability =
+    capabilities === null
+      ? null
+      : requirePatient(
+        capabilities.anatomy,
+        selectedPatientId,
+      );
 
   return (
     <nav
@@ -50,33 +187,39 @@ function FunctionalNavigation({
           capabilities?.patients
           ?? null
         }
-        fallbackReason={fallbackReason}
+        fallbackReason={
+          fallbackReason
+        }
         onChange={onChange}
       />
 
       <NavigationButton
         section="digital_twin"
         label="Digital Twin"
+        badge={patientBadge}
         icon={Activity}
         active={active}
         capability={
-          capabilities?.digital_twin
-          ?? null
+          twinCapability
         }
-        fallbackReason={fallbackReason}
+        fallbackReason={
+          fallbackReason
+        }
         onChange={onChange}
       />
 
       <NavigationButton
         section="viewer"
         label="Imaging"
+        badge={patientBadge}
         icon={Images}
         active={active}
         capability={
-          capabilities?.viewer
-          ?? null
+          imagingCapability
         }
-        fallbackReason={fallbackReason}
+        fallbackReason={
+          fallbackReason
+        }
         onChange={onChange}
       />
 
@@ -87,10 +230,11 @@ function FunctionalNavigation({
         icon={Brain}
         active={active}
         capability={
-          capabilities?.anatomy
-          ?? null
+          anatomyCapability
         }
-        fallbackReason={fallbackReason}
+        fallbackReason={
+          fallbackReason
+        }
         onChange={onChange}
       />
     </nav>
@@ -99,15 +243,23 @@ function FunctionalNavigation({
 
 
 type NavigationButtonProps = {
-  section: WorkbenchSection;
+  section:
+    WorkbenchSection;
+
   label: string;
   badge?: string;
-  icon: typeof Brain;
 
-  active: WorkbenchSection;
+  icon:
+    typeof Brain;
+
+  active:
+    WorkbenchSection;
+
   capability:
     FeatureCapability | null;
-  fallbackReason: string;
+
+  fallbackReason:
+    string;
 
   onChange: (
     section: WorkbenchSection,
@@ -154,7 +306,9 @@ function NavigationButton({
         onChange(section)
       }
     >
-      <Icon size={16} />
+      <Icon
+        size={16}
+      />
 
       <span>
         {label}
