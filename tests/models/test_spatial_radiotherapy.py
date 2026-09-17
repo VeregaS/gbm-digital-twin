@@ -6,6 +6,7 @@ import pytest
 from gbm_twin.models.spatial_radiotherapy import (
     apply_spatial_pirt_fraction,
     lq_survival_field,
+    normalize_cumulative_rtdose_to_gy,
     per_fraction_dose_from_cumulative_plan,
 )
 
@@ -21,6 +22,36 @@ def test_cumulative_plan_scales_to_fraction_dose() -> None:
 
     assert fraction.dtype == np.float32
     assert np.allclose(fraction, 2.0)
+
+
+def test_rtdose_auto_detects_gy() -> None:
+    result = normalize_cumulative_rtdose_to_gy(
+        np.full((2, 2, 2), 63.0, dtype=np.float32),
+        prescribed_total_dose_gy=60.0,
+    )
+
+    assert result.source_unit == "gy"
+    assert result.scale_to_gy == pytest.approx(1.0)
+    assert result.max_dose_gy == pytest.approx(63.0)
+
+
+def test_rtdose_auto_detects_cgy() -> None:
+    result = normalize_cumulative_rtdose_to_gy(
+        np.full((2, 2, 2), 6300.0, dtype=np.float32),
+        prescribed_total_dose_gy=60.0,
+    )
+
+    assert result.source_unit == "cgy"
+    assert result.scale_to_gy == pytest.approx(0.01)
+    assert result.max_dose_gy == pytest.approx(63.0)
+
+
+def test_rtdose_auto_fails_closed_for_unexpected_scale() -> None:
+    with pytest.raises(ValueError, match="infer RTDOSE unit"):
+        normalize_cumulative_rtdose_to_gy(
+            np.full((2, 2, 2), 6.0, dtype=np.float32),
+            prescribed_total_dose_gy=60.0,
+        )
 
 
 def test_lq_survival_field_is_spatial() -> None:
