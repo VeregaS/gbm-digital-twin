@@ -18,6 +18,7 @@ from gbm_twin.evaluation.metrics import (
 from gbm_twin.models.observation import MRIDetectionObservationParameters
 from gbm_twin.models.radiobiology import RadiobiologyParameters
 from gbm_twin.models.reaction_diffusion import ReactionDiffusionParameters
+from gbm_twin.models.treatment_memory import FractionResponseEvent
 from gbm_twin.workflows.stage8_forecast import simulate_stage8_forecast
 from gbm_twin.workflows.stage8_model_family import Stage8ModelCandidate
 from gbm_twin.workflows.stage8_patient import (
@@ -50,11 +51,11 @@ class Stage8PatientCandidateEvaluation:
 
 
 def _events_for_interval(
-    events: tuple,
+    events: tuple[FractionResponseEvent, ...],
     *,
     start_day: float,
     end_day: float,
-) -> tuple:
+) -> tuple[FractionResponseEvent, ...]:
     tolerance = 1e-9
     return tuple(
         event
@@ -78,13 +79,11 @@ def evaluate_stage8_candidate(
         raise ValueError("Stage 8 target does not match prepared patient inputs")
 
     cumulative_rtdose: np.ndarray | None = None
-
     if candidate.use_spatial_rtdose:
         if inputs.cumulative_rtdose is None:
             raise FileNotFoundError(
                 f"Patient {inputs.patient_id}: spatial candidate requires local RTDOSE"
             )
-
         cumulative_rtdose = inputs.cumulative_rtdose
 
     radiobiology = RadiobiologyParameters(
