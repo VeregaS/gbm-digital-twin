@@ -68,6 +68,8 @@ class EvaluationConfig:
     )
 
     volume_weight: float = 0.5
+    refinement_rounds: int = 1
+    upper_boundary_expansion_factor: float = 0.5
 
 
 def evaluate_patient(
