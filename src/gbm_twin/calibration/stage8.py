@@ -477,7 +477,20 @@ def _evaluate_grid(
 
 def _worker_initializer_args(
     context: _GridContext,
-) -> tuple[object, ...]:
+) -> tuple[
+    np.ndarray,
+    np.ndarray,
+    np.ndarray,
+    np.ndarray,
+    tuple[float, float, float],
+    float,
+    float,
+    float,
+    tuple[FractionResponseEvent, ...],
+    float,
+    float,
+    float,
+]:
     return (
         np.asarray(context.initial_state.field, dtype=np.float32),
         np.asarray(
