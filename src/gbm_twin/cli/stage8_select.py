@@ -107,6 +107,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             output_dir=_resolve(repo_root, args.output_dir),
             workers=args.workers,
             allow_dirty=args.allow_dirty,
+            progress=lambda message: print(message, flush=True),
         )
 
         selected = result.manifest.get("selected_candidate")
