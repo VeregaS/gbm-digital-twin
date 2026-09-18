@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import hashlib
 import json
+import tempfile
+from collections.abc import Callable
 from concurrent.futures import ProcessPoolExecutor
 from dataclasses import dataclass
 from pathlib import Path
@@ -93,6 +95,7 @@ class _GridContext:
     signature: str
     cache_dir: Path | None
     workers: int
+    progress: Callable[[str], None] | None
 
 
 _WORKER_INITIAL_FIELD: np.ndarray | None = None
@@ -198,7 +201,13 @@ def _load_cached_result(
     if path is None or not path.is_file():
         return None
 
-    raw: object = json.loads(path.read_text(encoding="utf-8"))
+    try:
+        raw: object = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+        # A run interrupted during an older non-atomic cache write must not
+        # poison all future resumptions. Treat the entry as a cache miss.
+        return None
+
     if not isinstance(raw, dict):
         return None
     if (
@@ -230,7 +239,7 @@ def _save_cached_result(path: Path | None, result: CalibrationResult) -> None:
         return
 
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(
+    payload = (
         json.dumps(
             {
                 "diffusion": result.diffusion,
@@ -242,9 +251,29 @@ def _save_cached_result(path: Path | None, result: CalibrationResult) -> None:
             sort_keys=True,
             allow_nan=False,
         )
-        + "\n",
-        encoding="utf-8",
+        + "\n"
     )
+
+    # Cache entries are resumability checkpoints. Write atomically so Ctrl+C,
+    # a killed worker, or a Windows terminal close cannot leave a truncated
+    # JSON file that breaks the next run.
+    temporary_path: Path | None = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="w",
+            encoding="utf-8",
+            dir=path.parent,
+            prefix=f".{path.name}.",
+            suffix=".tmp",
+            delete=False,
+        ) as stream:
+            stream.write(payload)
+            temporary_path = Path(stream.name)
+
+        temporary_path.replace(path)
+    finally:
+        if temporary_path is not None and temporary_path.exists():
+            temporary_path.unlink()
 
 
 def _initialize_worker(
@@ -388,6 +417,8 @@ def _evaluate_grid(
     *,
     diffusion_values: list[float],
     proliferation_values: list[float],
+    executor: ProcessPoolExecutor | None,
+    label: str,
 ) -> list[CalibrationResult]:
     candidates = [
         _Candidate(
@@ -414,39 +445,21 @@ def _evaluate_grid(
         else:
             results.append(cached)
 
-    if pending:
-        initializer_args = (
-            np.asarray(context.initial_state.field, dtype=np.float32),
-            np.asarray(
-                context.initial_state.proliferation_modifier,
-                dtype=np.float32,
-            ),
-            np.asarray(context.observed_mask, dtype=bool),
-            np.asarray(context.domain_mask, dtype=bool),
-            context.spacing,
-            context.duration_days,
-            context.start_time_day,
-            context.config.dt_days,
-            context.events,
-            context.config.observation_threshold,
-            context.config.soft_temperature,
-            context.config.volume_weight,
-        )
-        effective_workers = min(
-            max(1, context.workers),
-            len(pending),
+    if context.progress is not None:
+        context.progress(
+            f"{label}: {len(candidates)} D/rho points; "
+            f"{len(results)} cached, {len(pending)} to compute"
         )
 
-        if effective_workers == 1:
-            _initialize_worker(*initializer_args)
+    if pending:
+        if context.workers == 1:
             computed = [_run_candidate(candidate) for candidate in pending]
         else:
-            with ProcessPoolExecutor(
-                max_workers=effective_workers,
-                initializer=_initialize_worker,
-                initargs=initializer_args,
-            ) as executor:
-                computed = list(executor.map(_run_candidate, pending))
+            if executor is None:
+                raise RuntimeError(
+                    "Stage 8 parallel calibration executor is not initialized"
+                )
+            computed = list(executor.map(_run_candidate, pending))
 
         for candidate, result in zip(pending, computed, strict=True):
             _save_cached_result(
@@ -462,6 +475,100 @@ def _evaluate_grid(
     return _deduplicate(results)
 
 
+def _worker_initializer_args(
+    context: _GridContext,
+) -> tuple[object, ...]:
+    return (
+        np.asarray(context.initial_state.field, dtype=np.float32),
+        np.asarray(
+            context.initial_state.proliferation_modifier,
+            dtype=np.float32,
+        ),
+        np.asarray(context.observed_mask, dtype=bool),
+        np.asarray(context.domain_mask, dtype=bool),
+        context.spacing,
+        context.duration_days,
+        context.start_time_day,
+        context.config.dt_days,
+        context.events,
+        context.config.observation_threshold,
+        context.config.soft_temperature,
+        context.config.volume_weight,
+    )
+
+
+def _run_adaptive_search(
+    context: _GridContext,
+    *,
+    executor: ProcessPoolExecutor | None,
+) -> Stage8CalibrationRun:
+    coarse = _evaluate_grid(
+        context,
+        diffusion_values=list(context.config.diffusion_values),
+        proliferation_values=list(context.config.proliferation_values),
+        executor=executor,
+        label="coarse",
+    )
+    coarse_best = coarse[0]
+    all_results = list(coarse)
+    refined_results: list[CalibrationResult] = []
+    diffusion_axis = sorted(
+        set(float(value) for value in context.config.diffusion_values)
+    )
+    proliferation_axis = sorted(
+        set(float(value) for value in context.config.proliferation_values)
+    )
+
+    for round_index in range(context.config.refinement_rounds):
+        current_best = _deduplicate(all_results)[0]
+        refined_diffusion = build_refined_axis(
+            diffusion_axis,
+            current_best.diffusion,
+            upper_boundary_expansion_factor=(
+                context.config.upper_boundary_expansion_factor
+            ),
+        )
+        refined_proliferation = build_refined_axis(
+            proliferation_axis,
+            current_best.proliferation,
+            upper_boundary_expansion_factor=(
+                context.config.upper_boundary_expansion_factor
+            ),
+        )
+        round_results = _evaluate_grid(
+            context,
+            diffusion_values=refined_diffusion,
+            proliferation_values=refined_proliferation,
+            executor=executor,
+            label=(
+                f"refinement {round_index + 1}/"
+                f"{context.config.refinement_rounds}"
+            ),
+        )
+        refined_results.extend(round_results)
+        all_results.extend(round_results)
+        diffusion_axis = sorted({*diffusion_axis, *refined_diffusion})
+        proliferation_axis = sorted(
+            {*proliferation_axis, *refined_proliferation}
+        )
+
+    combined = _deduplicate(all_results)
+    diagnostics = assess_calibration_diagnostics(
+        best=combined[0],
+        candidates=combined,
+    )
+
+    return Stage8CalibrationRun(
+        best=combined[0],
+        coarse_best=coarse_best,
+        diagnostics=diagnostics,
+        candidates=tuple(combined),
+        coarse_candidates=tuple(coarse),
+        refined_candidates=tuple(_deduplicate(refined_results)),
+        cache_signature=context.signature,
+    )
+
+
 def calibrate_stage8_interval(
     *,
     initial_state: TreatmentMemoryState,
@@ -474,6 +581,7 @@ def calibrate_stage8_interval(
     start_time_day: float = 0.0,
     cache_dir: Path | None = None,
     workers: int = 1,
+    progress: Callable[[str], None] | None = None,
 ) -> Stage8CalibrationRun:
     if duration_days <= 0.0:
         raise ValueError("duration_days must be positive")
@@ -511,62 +619,20 @@ def calibrate_stage8_interval(
         signature=signature,
         cache_dir=cache_dir,
         workers=workers,
+        progress=progress,
     )
-    coarse = _evaluate_grid(
-        context,
-        diffusion_values=list(config.diffusion_values),
-        proliferation_values=list(config.proliferation_values),
-    )
-    coarse_best = coarse[0]
-    all_results = list(coarse)
-    refined_results: list[CalibrationResult] = []
-    diffusion_axis = sorted(
-        set(float(value) for value in config.diffusion_values)
-    )
-    proliferation_axis = sorted(
-        set(float(value) for value in config.proliferation_values)
-    )
+    initializer_args = _worker_initializer_args(context)
 
-    for _ in range(config.refinement_rounds):
-        current_best = _deduplicate(all_results)[0]
-        refined_diffusion = build_refined_axis(
-            diffusion_axis,
-            current_best.diffusion,
-            upper_boundary_expansion_factor=(
-                config.upper_boundary_expansion_factor
-            ),
-        )
-        refined_proliferation = build_refined_axis(
-            proliferation_axis,
-            current_best.proliferation,
-            upper_boundary_expansion_factor=(
-                config.upper_boundary_expansion_factor
-            ),
-        )
-        round_results = _evaluate_grid(
-            context,
-            diffusion_values=refined_diffusion,
-            proliferation_values=refined_proliferation,
-        )
-        refined_results.extend(round_results)
-        all_results.extend(round_results)
-        diffusion_axis = sorted({*diffusion_axis, *refined_diffusion})
-        proliferation_axis = sorted(
-            {*proliferation_axis, *refined_proliferation}
-        )
+    if workers == 1:
+        _initialize_worker(*initializer_args)
+        return _run_adaptive_search(context, executor=None)
 
-    combined = _deduplicate(all_results)
-    diagnostics = assess_calibration_diagnostics(
-        best=combined[0],
-        candidates=combined,
-    )
-
-    return Stage8CalibrationRun(
-        best=combined[0],
-        coarse_best=coarse_best,
-        diagnostics=diagnostics,
-        candidates=tuple(combined),
-        coarse_candidates=tuple(coarse),
-        refined_candidates=tuple(_deduplicate(refined_results)),
-        cache_signature=signature,
-    )
+    # Windows uses the spawn start method. Reusing one pool across coarse and
+    # all refinement rounds avoids repeatedly spawning Python interpreters and
+    # serializing the same 3D arrays up to four times per calibration.
+    with ProcessPoolExecutor(
+        max_workers=workers,
+        initializer=_initialize_worker,
+        initargs=initializer_args,
+    ) as executor:
+        return _run_adaptive_search(context, executor=executor)
