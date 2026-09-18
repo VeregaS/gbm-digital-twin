@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -74,6 +75,7 @@ def evaluate_stage8_candidate(
     calibration_config: Stage8CalibrationConfig,
     cache_root: Path,
     workers: int,
+    progress: Callable[[str], None] | None = None,
 ) -> Stage8PatientCandidateEvaluation:
     if target.patient_id != inputs.patient_id:
         raise ValueError("Stage 8 target does not match prepared patient inputs")
@@ -118,6 +120,7 @@ def evaluate_stage8_candidate(
             / candidate.candidate_id
         ),
         workers=workers,
+        progress=progress,
     )
     forecast = simulate_stage8_forecast(
         start=inputs.start,
