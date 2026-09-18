@@ -4,6 +4,8 @@ import csv
 import json
 import shutil
 import tempfile
+import time
+from collections.abc import Callable
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
@@ -185,11 +187,20 @@ def _prepare_patients(
     target_spacing: tuple[float, float, float],
     treatment: CFBTreatmentMetadata,
     observation_parameters: MRIDetectionObservationParameters,
+    progress: Callable[[str], None] | None,
 ) -> dict[int, _PreparedDevelopmentPatient]:
     """Materialize each development patient once for the whole model family."""
 
     prepared: dict[int, _PreparedDevelopmentPatient] = {}
-    for patient_id in patient_ids:
+    total = len(patient_ids)
+    for index, patient_id in enumerate(patient_ids, start=1):
+        if progress is not None:
+            progress(
+                f"[stage8] preparing patient {patient_id} "
+                f"({index}/{total})"
+            )
+
+        started = time.perf_counter()
         inputs = prepare_stage8_forecast_inputs(
             metadata_root=metadata_root,
             patients_root=patients_root,
@@ -210,6 +221,12 @@ def _prepare_patients(
             inputs=inputs,
             target=target,
         )
+
+        if progress is not None:
+            progress(
+                f"[stage8] prepared patient {patient_id} "
+                f"in {time.perf_counter() - started:.1f}s"
+            )
     return prepared
 
 
@@ -228,6 +245,7 @@ def _run_phase(
         Stage8PatientCandidateEvaluation,
     ],
     failures: dict[tuple[int, str], Stage8CandidateFailure],
+    progress: Callable[[str], None] | None,
 ) -> tuple[Stage8ModelSelectionResult, dict[str, object]]:
     candidate_index = {
         candidate.candidate_id: candidate
@@ -236,15 +254,49 @@ def _run_phase(
     if len(candidate_index) != len(candidates):
         raise ValueError(f"Stage 8 phase {name!r} contains duplicate candidates")
 
+    total_jobs = len(candidates) * len(patient_ids)
+    completed_jobs = 0
+
+    if progress is not None:
+        progress(
+            f"[stage8] phase {name}: {len(candidates)} candidates x "
+            f"{len(patient_ids)} patients = {total_jobs} evaluations"
+        )
+
     for candidate in candidates:
         for patient_id in patient_ids:
+            completed_jobs += 1
             key = (patient_id, candidate.candidate_id)
-            if key in evaluation_cache or key in failures:
+            if key in evaluation_cache:
+                if progress is not None:
+                    progress(
+                        f"[stage8] phase {name} {completed_jobs}/{total_jobs}: "
+                        f"patient={patient_id} candidate={candidate.candidate_id} "
+                        "reused in-memory result"
+                    )
+                continue
+            if key in failures:
                 continue
 
             patient = prepared[patient_id]
+            if progress is not None:
+                progress(
+                    f"[stage8] phase {name} {completed_jobs}/{total_jobs}: "
+                    f"patient={patient_id} candidate={candidate.candidate_id} "
+                    "starting"
+                )
+
+            started = time.perf_counter()
+
+            def calibration_progress(message: str) -> None:
+                if progress is not None:
+                    progress(
+                        f"[stage8]   patient={patient_id} "
+                        f"candidate={candidate.candidate_id}: {message}"
+                    )
+
             try:
-                evaluation_cache[key] = evaluate_stage8_candidate(
+                row = evaluate_stage8_candidate(
                     inputs=patient.inputs,
                     target=patient.target,
                     candidate=candidate,
@@ -252,13 +304,30 @@ def _run_phase(
                     calibration_config=calibration_config,
                     cache_root=cache_root,
                     workers=workers,
+                    progress=calibration_progress,
                 )
+                evaluation_cache[key] = row
+
+                if progress is not None:
+                    progress(
+                        f"[stage8] phase {name} {completed_jobs}/{total_jobs}: "
+                        f"patient={patient_id} candidate={candidate.candidate_id} "
+                        f"done in {time.perf_counter() - started:.1f}s; "
+                        f"calibration Dice={row.calibration_dice:.4f}; "
+                        f"t2 Dice={row.t2_dice:.4f}"
+                    )
             except (FileNotFoundError, ValueError) as exc:
                 failures[key] = Stage8CandidateFailure(
                     patient_id=patient_id,
                     candidate_id=candidate.candidate_id,
                     reason=str(exc),
                 )
+                if progress is not None:
+                    progress(
+                        f"[stage8] phase {name} {completed_jobs}/{total_jobs}: "
+                        f"patient={patient_id} candidate={candidate.candidate_id} "
+                        f"skipped: {exc}"
+                    )
 
     phase_ids = set(candidate_index)
     scores = tuple(
@@ -300,6 +369,7 @@ def select_stage8_model_family(
     output_dir: Path,
     workers: int = 1,
     allow_dirty: bool = False,
+    progress: Callable[[str], None] | None = None,
 ) -> Stage8SelectionArtifact:
     destination = output_dir.resolve()
     if destination.exists():
@@ -343,6 +413,12 @@ def select_stage8_model_family(
         else repo_root / experiment.patients_root
     )
     treatment = CFBTreatmentMetadata(metadata_root)
+    if progress is not None:
+        progress(
+            f"[stage8] selection start: {len(patient_ids)} "
+            "development-exposed patients"
+        )
+
     prepared = _prepare_patients(
         patient_ids=patient_ids,
         metadata_root=metadata_root,
@@ -350,6 +426,7 @@ def select_stage8_model_family(
         target_spacing=experiment.evaluation.target_spacing,
         treatment=treatment,
         observation_parameters=observation_parameters,
+        progress=progress,
     )
 
     evaluation_cache: dict[
@@ -376,6 +453,7 @@ def select_stage8_model_family(
         workers=workers,
         evaluation_cache=evaluation_cache,
         failures=failures,
+        progress=progress,
     )
     phases.append(phase)
     selected_alpha = all_candidates[
@@ -401,6 +479,7 @@ def select_stage8_model_family(
         workers=workers,
         evaluation_cache=evaluation_cache,
         failures=failures,
+        progress=progress,
     )
     phases.append(phase)
     selected_dose = all_candidates[dose_selection.selected_candidate_id]
@@ -425,6 +504,7 @@ def select_stage8_model_family(
         workers=workers,
         evaluation_cache=evaluation_cache,
         failures=failures,
+        progress=progress,
     )
     phases.append(phase)
     selected_memory = all_candidates[memory_selection.selected_candidate_id]
@@ -449,6 +529,7 @@ def select_stage8_model_family(
         workers=workers,
         evaluation_cache=evaluation_cache,
         failures=failures,
+        progress=progress,
     )
     phases.append(phase)
     selected_candidate = all_candidates[
