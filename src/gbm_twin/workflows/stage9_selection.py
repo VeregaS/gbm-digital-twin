@@ -92,6 +92,14 @@ class Stage9PatientCandidateEvaluation:
     persistence_hd95_mm: float | None
     centroid_distance_mm: float | None
     persistence_centroid_distance_mm: float | None
+    t1_day: float
+    t2_day: float
+    forecast_horizon_days: float
+    days_last_rt_to_t1: float
+    observed_t1_volume_cm3: float
+    observed_t2_volume_cm3: float
+    predicted_t2_volume_cm3: float
+    observed_volume_change_fraction: float
 
 
 @dataclass(frozen=True)
@@ -453,6 +461,15 @@ def _prepare_patients(
     return prepared
 
 
+def _mask_volume_cm3(
+    mask: np.ndarray,
+    *,
+    spacing: tuple[float, float, float],
+) -> float:
+    voxel_volume_mm3 = float(np.prod(np.asarray(spacing, dtype=float)))
+    return float(np.count_nonzero(mask) * voxel_volume_mm3 / 1000.0)
+
+
 def _evaluate_candidate(
     *,
     candidate: Stage9DelayedCandidate,
@@ -494,6 +511,25 @@ def _evaluate_candidate(
     predicted = forecast.prediction_mask
 
     twin_dice = dice_score(predicted, patient.observed_t2)
+    t1_volume = _mask_volume_cm3(
+        patient.persistence,
+        spacing=patient.target.target.spacing,
+    )
+    t2_volume = _mask_volume_cm3(
+        patient.observed_t2,
+        spacing=patient.target.target.spacing,
+    )
+    predicted_volume = _mask_volume_cm3(
+        predicted,
+        spacing=patient.target.target.spacing,
+    )
+    volume_change = (
+        0.0
+        if t1_volume <= 0.0
+        else (t2_volume - t1_volume) / t1_volume
+    )
+    last_fraction_day = max(patient.inputs.schedule.fraction_days)
+
     return Stage9PatientCandidateEvaluation(
         patient_id=patient_id,
         candidate_id=candidate.candidate_id,
@@ -527,6 +563,20 @@ def _evaluate_candidate(
         persistence_centroid_distance_mm=(
             patient.persistence_centroid_distance_mm
         ),
+        t1_day=patient.inputs.observed.days_from_baseline,
+        t2_day=patient.target.target.days_from_baseline,
+        forecast_horizon_days=(
+            patient.target.target.days_from_baseline
+            - patient.inputs.observed.days_from_baseline
+        ),
+        days_last_rt_to_t1=(
+            patient.inputs.observed.days_from_baseline
+            - last_fraction_day
+        ),
+        observed_t1_volume_cm3=t1_volume,
+        observed_t2_volume_cm3=t2_volume,
+        predicted_t2_volume_cm3=predicted_volume,
+        observed_volume_change_fraction=volume_change,
     )
 
 
