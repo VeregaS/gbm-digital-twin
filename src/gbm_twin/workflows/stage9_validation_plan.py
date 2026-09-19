@@ -258,7 +258,9 @@ def create_stage9_validation_plan(
             "\n".join(
                 _required_paths(
                     patient_ids,
-                    require_spatial_rtdose=False,
+                    require_spatial_rtdose=(
+                        selected.base_stage8_use_spatial_rtdose
+                    ),
                 )
             )
             + "\n",
