@@ -144,10 +144,14 @@ def main(argv: Sequence[str] | None = None) -> int:
         selected = result.manifest.get("selected_candidate")
         summary = result.manifest.get("selected_summary")
         leakage = result.manifest.get("leakage_control")
+        control = result.manifest.get("stage8_control")
+        trajectory = result.manifest.get("trajectory_analysis")
         if (
             not isinstance(selected, dict)
             or not isinstance(summary, dict)
             or not isinstance(leakage, dict)
+            or not isinstance(control, dict)
+            or not isinstance(trajectory, dict)
         ):
             raise ValueError("Generated Stage 9 selection is incomplete")
     except (OSError, ValueError, RuntimeError) as exc:
@@ -166,9 +170,22 @@ def main(argv: Sequence[str] | None = None) -> int:
         f"{float(summary['mean_delta_vs_persistence']):+.4f}"
     )
     print(
+        "Mean Dice gain vs exact Stage 8 control: "
+        f"{float(summary['mean_dice']) - float(control['mean_dice']):+.4f}"
+    )
+    print(
         "Catastrophic failures: "
         f"{int(summary['catastrophic_failure_count'])}"
     )
+    selected_trajectory = trajectory.get("selected_candidate")
+    if isinstance(selected_trajectory, dict):
+        regression = selected_trajectory.get("regression")
+        if isinstance(regression, dict) and regression.get("patient_count"):
+            print(
+                "Regression subgroup mean delta vs persistence: "
+                f"{float(regression['mean_delta_vs_persistence']):+.4f}"
+            )
+
     print(
         "Development patients: "
         f"{len(cast(list[object], leakage['development_patient_ids']))}"
