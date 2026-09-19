@@ -143,6 +143,27 @@ def select_validation_patient_ids(
     return result
 
 
+def _required_relative_paths(
+    patient_ids: tuple[int, ...],
+    *,
+    require_spatial_rtdose: bool,
+) -> tuple[str, ...]:
+    paths: list[str] = []
+
+    for patient_id in patient_ids:
+        for timepoint in ("t0", "t1", "t2"):
+            prefix = f"{patient_id}_{timepoint}"
+            for suffix in ("t1gd", "gtv", "brain_mask"):
+                paths.append(
+                    f"{patient_id}/{timepoint}/{prefix}_{suffix}.nii.gz"
+                )
+
+        if require_spatial_rtdose:
+            paths.append(f"{patient_id}/**/*rtdose*.nii.gz")
+
+    return tuple(paths)
+
+
 def create_stage8_validation_plan(
     *,
     data_audit_root: Path,
@@ -179,6 +200,13 @@ def create_stage8_validation_plan(
         for row in _candidate_rows(audit.manifest)
     }
     selected_rows = [rows_by_id[patient_id] for patient_id in patient_ids]
+
+    required_paths = _required_relative_paths(
+        patient_ids,
+        require_spatial_rtdose=(
+            selected_model.candidate.use_spatial_rtdose
+        ),
+    )
 
     payload: dict[str, object] = {
         "schema_version": STAGE8_VALIDATION_PLAN_SCHEMA_VERSION,
@@ -244,6 +272,14 @@ def create_stage8_validation_plan(
             sha256_file(manifest_path)
             + "  stage8_validation_plan.json\n",
             encoding="ascii",
+        )
+        (temporary / "stage8_validation_patient_ids.txt").write_text(
+            "\n".join(str(patient_id) for patient_id in patient_ids) + "\n",
+            encoding="ascii",
+        )
+        (temporary / "stage8_validation_required_paths.txt").write_text(
+            "\n".join(required_paths) + "\n",
+            encoding="utf-8",
         )
         temporary.rename(destination)
     except BaseException:
