@@ -1,0 +1,32 @@
+schema_version: 1
+
+# Stage 9.1 boundary follow-up.
+#
+# Stage 9 v1 selected 60 d at the upper edge of the tested half-life grid.
+# Before spending a new reserve-validation cohort, bracket that timescale on
+# the already exposed 24-patient development cohort.
+#
+# 120 d is a diagnostic upper bound for this model family. If 120 d wins,
+# do not continue extending half-life automatically; reassess the state model.
+design: frozen_stage8_kinetics_delayed_response_v1
+
+delayed_response:
+  damage_half_life_days:
+    - 60.0
+    - 90.0
+    - 120.0
+
+  damage_transfer_fraction:
+    - 0.50
+    - 0.75
+    - 1.00
+
+  damaged_visibility:
+    - 0.50
+    - 0.75
+    - 1.00
+
+selection:
+  catastrophic_delta_vs_persistence: -0.10
+  min_mean_dice_gain_over_stage8_control: 0.005
+  max_additional_catastrophic_failures: 0
