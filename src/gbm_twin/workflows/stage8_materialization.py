@@ -16,6 +16,9 @@ from gbm_twin.workflows.stage8_inputs import discover_patient_rtdose_path
 from gbm_twin.workflows.stage8_selection_artifact import (
     load_selected_stage8_model,
 )
+from gbm_twin.workflows.stage8_validation_plan import (
+    load_stage8_validation_plan,
+)
 
 MaterializationMode = Literal["auto", "hardlink", "copy"]
 
@@ -296,6 +299,7 @@ def materialize_stage8_internal_validation(
     experiment_config_path: Path,
     data_audit_root: Path,
     selection_root: Path,
+    validation_plan_root: Path | None = None,
     source_data_root: Path | None = None,
     mode: MaterializationMode = "auto",
     dry_run: bool = False,
@@ -335,7 +339,31 @@ def materialize_stage8_internal_validation(
             "--source-data-root explicitly."
         )
 
-    patient_ids = _internal_validation_patient_ids(audit.manifest)
+    eligible_patient_ids = _internal_validation_patient_ids(audit.manifest)
+
+    if validation_plan_root is None:
+        patient_ids = eligible_patient_ids
+    else:
+        validation_plan = load_stage8_validation_plan(validation_plan_root)
+        if validation_plan.data_audit_sha256 != audit_sha:
+            raise ValueError(
+                "Stage 8 validation plan does not match the sealed data audit"
+            )
+        if (
+            validation_plan.model_selection_sha256
+            != selected.source_manifest_sha256
+        ):
+            raise ValueError(
+                "Stage 8 validation plan does not match model selection"
+            )
+        if not set(validation_plan.patient_ids).issubset(
+            eligible_patient_ids
+        ):
+            raise ValueError(
+                "Stage 8 validation plan contains an ineligible patient"
+            )
+        patient_ids = validation_plan.patient_ids
+
     items = build_stage8_materialization_plan(
         source_root=source_root,
         destination_root=patients_root,
