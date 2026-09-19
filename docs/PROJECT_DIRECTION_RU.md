@@ -75,6 +75,36 @@ population distributions → virtual patients → virtual cohort → in silico t
 
 Нельзя добавлять patient-specific свободные параметры только ради улучшения уже раскрытого t2.
 
+## Текущее научное состояние после Stage 9
+
+Stage 9 подтвердил, что delayed post-radiotherapy state полезен как
+mechanistic direction, но текущая однокомпартментная семантика недостаточна.
+
+На 24 уже раскрытых development patients Stage 9 v2 улучшил mean Dice
+относительно exact Stage 8 control с `0.667942` до `0.681404` и особенно
+улучшил regression subgroup. При этом mean delta vs persistence остаётся
+отрицательным (`-0.011792`), а две catastrophic failures сохраняются.
+
+Ключевой диагностический результат: half-life `60 -> 90 -> 120` дней давал
+монотонное улучшение, а `120 d` был выбран во всех 24 leave-one-out folds.
+По заранее заданному stop rule этот поиск нельзя продолжать в сторону
+`180/240/365 d`.
+
+Это означает, что текущий damaged compartment нельзя трактовать как найденную
+биологическую константу clearance. В существующей модели один параметр
+одновременно управляет:
+
+- исчезновением MRI-visible damaged burden;
+- освобождением logistic carrying capacity.
+
+Следующий приоритет predictive core — **развязать visible clearance и
+post-treatment occupancy/growth suppression**. Для этого Stage 10 проверяет
+минимальное расширение с отдельным MRI-invisible inert occupancy state на тех
+же уже раскрытых development patients.
+
+До завершения этого mechanistic diagnostic нельзя расходовать новые reserve
+patients или untouched holdout.
+
 ## Направления развития платформы
 
 После стабилизации predictive core проект должен развиваться как исследовательская платформа.
