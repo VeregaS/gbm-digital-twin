@@ -247,6 +247,20 @@ def _optional_mean(values: list[float | None]) -> float | None:
     return float(fmean(available)) if available else None
 
 
+def _patient_progress_callback(
+    progress: Callable[[str], None] | None,
+    *,
+    patient_id: int,
+) -> Callable[[str], None]:
+    def emit(message: str) -> None:
+        if progress is not None:
+            progress(
+                f"[stage8-validation]   patient={patient_id}: {message}"
+            )
+
+    return emit
+
+
 def _write_csv(path: Path, rows: list[Stage8InternalValidationRow]) -> None:
     if not rows:
         return
@@ -374,11 +388,10 @@ def validate_selected_stage8_model(
             target_spacing=experiment.evaluation.target_spacing,
             reference=inputs.observed,
         )
-        def calibration_progress(message: str) -> None:
-            if progress is not None:
-                progress(
-                    f"[stage8-validation]   patient={patient_id}: {message}"
-                )
+        calibration_progress = _patient_progress_callback(
+            progress,
+            patient_id=patient_id,
+        )
 
         evaluation = evaluate_stage8_candidate(
             inputs=inputs,
