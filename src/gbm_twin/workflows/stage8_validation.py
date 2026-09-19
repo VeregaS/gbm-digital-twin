@@ -37,6 +37,9 @@ from gbm_twin.workflows.stage8_protocol import load_stage8_protocol_config
 from gbm_twin.workflows.stage8_selection_artifact import (
     load_selected_stage8_model,
 )
+from gbm_twin.workflows.stage8_validation_plan import (
+    load_stage8_validation_plan,
+)
 
 STAGE8_VALIDATION_SCHEMA_VERSION = 1
 
@@ -283,6 +286,7 @@ def validate_selected_stage8_model(
     protocol_config_path: Path,
     data_audit_root: Path,
     selection_root: Path,
+    validation_plan_root: Path | None,
     cache_root: Path,
     output_dir: Path,
     workers: int = 1,
@@ -320,7 +324,35 @@ def validate_selected_stage8_model(
             "Selected Stage 8 model does not match the experiment config"
         )
 
-    patient_ids = _validation_patient_ids(audit.manifest)
+    eligible_validation_ids = _validation_patient_ids(audit.manifest)
+    validation_plan_sha: str | None = None
+
+    if validation_plan_root is None:
+        patient_ids = eligible_validation_ids
+    else:
+        validation_plan = load_stage8_validation_plan(validation_plan_root)
+        if validation_plan.data_audit_sha256 != audit_sha:
+            raise ValueError(
+                "Stage 8 validation plan does not match the data audit"
+            )
+        if (
+            validation_plan.model_selection_sha256
+            != selected.source_manifest_sha256
+        ):
+            raise ValueError(
+                "Stage 8 validation plan does not match model selection"
+            )
+        if not set(validation_plan.patient_ids).issubset(
+            eligible_validation_ids
+        ):
+            raise ValueError(
+                "Stage 8 validation plan contains an ineligible patient"
+            )
+        patient_ids = validation_plan.patient_ids
+        validation_plan_sha = sha256_file(
+            validation_plan_root.resolve() / "stage8_validation_plan.json"
+        )
+
     experiment = load_cohort_experiment_config(experiment_config_path)
     observation = _observation_parameters(protocol_config_path)
     calibration = _calibration_config(
@@ -479,6 +511,7 @@ def validate_selected_stage8_model(
             ),
             "protocol_config_sha256": protocol_sha,
             "experiment_config_sha256": experiment_sha,
+            "stage8_validation_plan_sha256": validation_plan_sha,
         },
         "selected_candidate": selected.provenance_payload(),
         "leakage_control": {
