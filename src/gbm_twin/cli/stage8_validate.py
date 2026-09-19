@@ -118,6 +118,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             output_dir=_resolve(repo_root, args.output_dir),
             workers=args.workers,
             allow_dirty=args.allow_dirty,
+            progress=lambda message: print(message, flush=True),
         )
         summary = result.manifest.get("summary")
         if not isinstance(summary, dict):
