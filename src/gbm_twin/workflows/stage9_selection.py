@@ -248,6 +248,14 @@ def _stage8_frozen_kinetics(
         raise ValueError(
             "Stage 8 validation used a different selected candidate"
         )
+    validation_source = _mapping(validation, "source")
+    if (
+        validation_source.get("stage8_model_selection_sha256")
+        != selection_sha
+    ):
+        raise ValueError(
+            "Stage 8 validation does not reference this model selection"
+        )
 
     kinetics: dict[int, FrozenStage8Kinetics] = {}
     selection_leakage = _mapping(selection, "leakage_control")
@@ -1144,6 +1152,21 @@ def select_stage9_delayed_response(
             "reserve_t2_loaded": False,
             "untouched_holdout_t2_loaded": False,
             "patient_specific_kinetics_refit": False,
+        },
+        "base_stage8_candidate": {
+            "candidate_id": selected_stage8.candidate.candidate_id,
+            "effective_alpha_per_gy": (
+                selected_stage8.candidate.effective_alpha_per_gy
+            ),
+            "alpha_beta_ratio_gy": (
+                selected_stage8.candidate.alpha_beta_ratio_gy
+            ),
+            "proliferation_survival": (
+                selected_stage8.candidate.proliferation_survival
+            ),
+            "use_spatial_rtdose": (
+                selected_stage8.candidate.use_spatial_rtdose
+            ),
         },
         "design": {
             "name": STAGE9_SELECTION_DESIGN,
