@@ -731,6 +731,59 @@ def _loo_counts(
     return dict(sorted(counts.items()))
 
 
+def _trajectory_group(
+    volume_change_fraction: float,
+    *,
+    stable_threshold: float = 0.10,
+) -> str:
+    if volume_change_fraction > stable_threshold:
+        return "growth"
+    if volume_change_fraction < -stable_threshold:
+        return "regression"
+    return "stable"
+
+
+def _trajectory_summary(
+    rows: list[Stage9PatientCandidateEvaluation],
+) -> dict[str, object]:
+    grouped: dict[str, list[Stage9PatientCandidateEvaluation]] = {}
+
+    for row in rows:
+        grouped.setdefault(
+            _trajectory_group(row.observed_volume_change_fraction),
+            [],
+        ).append(row)
+
+    result: dict[str, object] = {}
+    for name in ("growth", "stable", "regression"):
+        group = grouped.get(name, [])
+        if not group:
+            result[name] = {
+                "patient_count": 0,
+            }
+            continue
+
+        result[name] = {
+            "patient_count": len(group),
+            "patient_ids": sorted(row.patient_id for row in group),
+            "mean_dice": float(fmean(row.twin_dice for row in group)),
+            "mean_delta_vs_persistence": float(
+                fmean(row.delta_vs_persistence for row in group)
+            ),
+            "mean_hd95_mm": _optional_mean(
+                [row.hd95_mm for row in group]
+            ),
+            "mean_observed_volume_change_fraction": float(
+                fmean(
+                    row.observed_volume_change_fraction
+                    for row in group
+                )
+            ),
+        }
+
+    return result
+
+
 def _write_csv(
     path: Path,
     rows: list[Stage9PatientCandidateEvaluation],
@@ -1118,6 +1171,17 @@ def select_stage9_delayed_response(
             asdict(item)
             for item in selected_rows
         ],
+        "trajectory_analysis": {
+            "selected_candidate": _trajectory_summary(selected_rows),
+            "stage8_control": _trajectory_summary(
+                [
+                    evaluation_cache[
+                        (patient_id, control.candidate_id)
+                    ]
+                    for patient_id in development_ids
+                ]
+            ),
+        },
     }
 
     destination.parent.mkdir(parents=True, exist_ok=True)
