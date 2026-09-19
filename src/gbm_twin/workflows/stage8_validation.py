@@ -4,6 +4,8 @@ import csv
 import json
 import shutil
 import tempfile
+import time
+from collections.abc import Callable
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from statistics import fmean, median
@@ -26,6 +28,7 @@ from gbm_twin.workflows.stage8_candidate import evaluate_stage8_candidate
 from gbm_twin.workflows.stage8_data_audit import (
     load_sealed_stage8_data_audit,
 )
+from gbm_twin.workflows.stage8_inputs import discover_patient_rtdose_path
 from gbm_twin.workflows.stage8_patient import (
     prepare_stage8_evaluation_target,
     prepare_stage8_forecast_inputs,
@@ -61,6 +64,117 @@ class Stage8InternalValidationRow:
 class Stage8ValidationArtifact:
     directory: Path
     manifest: dict[str, object]
+
+
+@dataclass(frozen=True)
+class Stage8MaterializationIssue:
+    patient_id: int
+    input_name: str
+    expected_path: str
+
+
+def _required_timepoint_paths(
+    patients_root: Path,
+    *,
+    patient_id: int,
+    timepoint: str,
+) -> tuple[tuple[str, Path], ...]:
+    directory = patients_root / str(patient_id) / timepoint
+    prefix = f"{patient_id}_{timepoint}"
+    return (
+        ("T1Gd", directory / f"{prefix}_t1gd.nii.gz"),
+        ("GTV", directory / f"{prefix}_gtv.nii.gz"),
+        ("brain mask", directory / f"{prefix}_brain_mask.nii.gz"),
+    )
+
+
+def preflight_stage8_validation_inputs(
+    *,
+    patients_root: Path,
+    patient_ids: tuple[int, ...],
+    require_spatial_rtdose: bool,
+) -> tuple[Stage8MaterializationIssue, ...]:
+    """Check local files without loading any validation image content."""
+
+    issues: list[Stage8MaterializationIssue] = []
+
+    for patient_id in patient_ids:
+        for timepoint in ("t0", "t1", "t2"):
+            for input_name, path in _required_timepoint_paths(
+                patients_root,
+                patient_id=patient_id,
+                timepoint=timepoint,
+            ):
+                if not path.is_file():
+                    issues.append(
+                        Stage8MaterializationIssue(
+                            patient_id=patient_id,
+                            input_name=f"{timepoint} {input_name}",
+                            expected_path=str(path),
+                        )
+                    )
+
+        if require_spatial_rtdose:
+            try:
+                rtdose = discover_patient_rtdose_path(
+                    patients_root=patients_root,
+                    patient_id=patient_id,
+                )
+            except ValueError as exc:
+                issues.append(
+                    Stage8MaterializationIssue(
+                        patient_id=patient_id,
+                        input_name="RTDOSE",
+                        expected_path=str(exc),
+                    )
+                )
+            else:
+                if rtdose is None:
+                    issues.append(
+                        Stage8MaterializationIssue(
+                            patient_id=patient_id,
+                            input_name="RTDOSE",
+                            expected_path=(
+                                str(patients_root / str(patient_id))
+                                + r"\**\*rtdose*.nii.gz"
+                            ),
+                        )
+                    )
+
+    return tuple(issues)
+
+
+def _materialization_error(
+    issues: tuple[Stage8MaterializationIssue, ...],
+) -> str:
+    patient_count = len({issue.patient_id for issue in issues})
+    preview_limit = 40
+    lines = [
+        (
+            "Stage 8 internal validation preflight failed before any t2 "
+            "image content was loaded."
+        ),
+        (
+            f"Missing or ambiguous local inputs: {len(issues)} files/inputs "
+            f"across {patient_count} patients."
+        ),
+        (
+            "Materialize the sealed internal-validation cohort; do not drop "
+            "or replace patients after model selection."
+        ),
+    ]
+
+    for issue in issues[:preview_limit]:
+        lines.append(
+            f"  patient {issue.patient_id}: {issue.input_name} -> "
+            f"{issue.expected_path}"
+        )
+
+    remaining = len(issues) - preview_limit
+    if remaining > 0:
+        lines.append(f"  ... and {remaining} more missing inputs")
+
+    return "\n".join(lines)
 
 
 def _validation_patient_ids(manifest: dict[str, object]) -> tuple[int, ...]:
@@ -159,6 +273,7 @@ def validate_selected_stage8_model(
     output_dir: Path,
     workers: int = 1,
     allow_dirty: bool = False,
+    progress: Callable[[str], None] | None = None,
 ) -> Stage8ValidationArtifact:
     destination = output_dir.resolve()
     if destination.exists():
@@ -209,9 +324,40 @@ def validate_selected_stage8_model(
         else repo_root / experiment.patients_root
     )
     treatment = CFBTreatmentMetadata(metadata_root)
-    rows: list[Stage8InternalValidationRow] = []
 
-    for patient_id in patient_ids:
+    if progress is not None:
+        progress(
+            f"[stage8-validation] preflight: {len(patient_ids)} sealed "
+            "internal-validation patients"
+        )
+
+    materialization_issues = preflight_stage8_validation_inputs(
+        patients_root=patients_root,
+        patient_ids=patient_ids,
+        require_spatial_rtdose=selected.candidate.use_spatial_rtdose,
+    )
+    if materialization_issues:
+        raise FileNotFoundError(
+            _materialization_error(materialization_issues)
+        )
+
+    if progress is not None:
+        progress(
+            "[stage8-validation] preflight passed; validation t2 reveal "
+            "may begin"
+        )
+
+    rows: list[Stage8InternalValidationRow] = []
+    total_patients = len(patient_ids)
+
+    for patient_index, patient_id in enumerate(patient_ids, start=1):
+        if progress is not None:
+            progress(
+                f"[stage8-validation] patient {patient_id} "
+                f"({patient_index}/{total_patients}) starting"
+            )
+
+        started = time.perf_counter()
         inputs = prepare_stage8_forecast_inputs(
             metadata_root=metadata_root,
             patients_root=patients_root,
@@ -228,6 +374,12 @@ def validate_selected_stage8_model(
             target_spacing=experiment.evaluation.target_spacing,
             reference=inputs.observed,
         )
+        def calibration_progress(message: str) -> None:
+            if progress is not None:
+                progress(
+                    f"[stage8-validation]   patient={patient_id}: {message}"
+                )
+
         evaluation = evaluate_stage8_candidate(
             inputs=inputs,
             target=target,
@@ -236,6 +388,7 @@ def validate_selected_stage8_model(
             calibration_config=calibration,
             cache_root=cache_root.resolve(),
             workers=workers,
+            progress=calibration_progress,
         )
 
         observed_t2 = np.asarray(target.target.gtv.data > 0.5, dtype=bool)
@@ -285,6 +438,15 @@ def validate_selected_stage8_model(
                 ),
             )
         )
+
+        if progress is not None:
+            progress(
+                f"[stage8-validation] patient {patient_id} done in "
+                f"{time.perf_counter() - started:.1f}s; "
+                f"Twin Dice={evaluation.t2_dice:.4f}; "
+                f"Persistence Dice={persistence_dice:.4f}; "
+                f"delta={evaluation.t2_dice - persistence_dice:+.4f}"
+            )
 
     twin_dice = [row.twin_dice for row in rows]
     persistence_dice = [row.persistence_dice for row in rows]
