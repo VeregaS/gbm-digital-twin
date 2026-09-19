@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-import os
 from pathlib import Path
+
+import pytest
 
 from gbm_twin.workflows.stage8_materialization import (
     build_stage8_materialization_plan,
@@ -70,13 +71,11 @@ def test_materialization_plan_adds_rtdose_for_spatial_candidate(
 
 
 def test_source_root_defaults_to_sibling_data_directory(
-    monkeypatch: object,
+    monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
-    # pytest's MonkeyPatch type is not required for runtime behavior here;
-    # keep the test independent from private implementation details.
-    os.environ.pop("GBM_TWIN_CFB_SOURCE_DATA_ROOT", None)
-    os.environ.pop("GBM_TWIN_CFB_ROOT", None)
+    monkeypatch.delenv("GBM_TWIN_CFB_SOURCE_DATA_ROOT", raising=False)
+    monkeypatch.delenv("GBM_TWIN_CFB_ROOT", raising=False)
 
     patients = tmp_path / "CFB-GBM" / "patients"
 
