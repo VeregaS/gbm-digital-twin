@@ -387,6 +387,7 @@ def _prepare_patients(
     target_spacing: tuple[float, float, float],
     treatment: CFBTreatmentMetadata,
     observation: MRIDetectionObservationParameters,
+    load_spatial_rtdose: bool,
     progress: Callable[[str], None] | None,
 ) -> dict[int, _PreparedPatient]:
     prepared: dict[int, _PreparedPatient] = {}
@@ -405,8 +406,8 @@ def _prepare_patients(
             target_spacing=target_spacing,
             treatment=treatment,
             observation_parameters=observation,
-            load_spatial_rtdose=False,
-            require_spatial_rtdose=False,
+            load_spatial_rtdose=load_spatial_rtdose,
+            require_spatial_rtdose=load_spatial_rtdose,
         )
         target = prepare_stage8_evaluation_target(
             metadata_root=metadata_root,
@@ -781,7 +782,9 @@ def select_stage9_delayed_response(
     issues = preflight_stage8_validation_inputs(
         patients_root=patients_root,
         patient_ids=development_ids,
-        require_spatial_rtdose=False,
+        require_spatial_rtdose=(
+            selected_stage8.candidate.use_spatial_rtdose
+        ),
     )
     if issues:
         preview = "\n".join(
@@ -802,6 +805,9 @@ def select_stage9_delayed_response(
         target_spacing=experiment.evaluation.target_spacing,
         treatment=treatment,
         observation=observation,
+        load_spatial_rtdose=(
+            selected_stage8.candidate.use_spatial_rtdose
+        ),
         progress=progress,
     )
 
