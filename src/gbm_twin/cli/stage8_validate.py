@@ -24,6 +24,7 @@ class CliArguments(argparse.Namespace):
     protocol_config: Path
     data_audit_root: Path
     selection_root: Path
+    validation_plan_root: Path | None
     cache_root: Path
     output_dir: Path
     workers: int
@@ -61,6 +62,14 @@ def build_parser() -> argparse.ArgumentParser:
         "--selection-root",
         type=Path,
         default=DEFAULT_SELECTION_ROOT,
+    )
+    parser.add_argument(
+        "--validation-plan-root",
+        type=Path,
+        help=(
+            "Optional sealed compact internal-validation plan. "
+            "Without it, all eligible non-holdout patients are evaluated."
+        ),
     )
     parser.add_argument(
         "--cache-root",
@@ -113,6 +122,11 @@ def main(argv: Sequence[str] | None = None) -> int:
             selection_root=_resolve(
                 repo_root,
                 args.selection_root,
+            ),
+            validation_plan_root=(
+                None
+                if args.validation_plan_root is None
+                else _resolve(repo_root, args.validation_plan_root)
             ),
             cache_root=_resolve(repo_root, args.cache_root),
             output_dir=_resolve(repo_root, args.output_dir),
