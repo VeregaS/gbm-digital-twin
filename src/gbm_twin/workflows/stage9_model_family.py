@@ -26,6 +26,21 @@ class Stage9DelayedCandidate:
             raise ValueError("complexity_rank must be non-negative")
 
 
+def _complexity_rank(
+    *,
+    transfer: float,
+    visibility: float,
+) -> int:
+    if transfer == 0.0:
+        return 0
+
+    return (
+        1
+        + int(abs(transfer - 1.0) > 1e-12)
+        + int(abs(visibility - 1.0) > 1e-12)
+    )
+
+
 def _id(
     *,
     transfer: float,
@@ -64,7 +79,10 @@ def timescale_candidates(
             damage_transfer_fraction=1.0,
             damage_half_life_days=value,
             damaged_visibility=1.0,
-            complexity_rank=1,
+            complexity_rank=_complexity_rank(
+                transfer=1.0,
+                visibility=1.0,
+            ),
         )
         for value in half_life_days
     )
@@ -86,7 +104,10 @@ def transfer_candidates(
             damage_transfer_fraction=value,
             damage_half_life_days=half_life_days,
             damaged_visibility=1.0,
-            complexity_rank=2,
+            complexity_rank=_complexity_rank(
+                transfer=value,
+                visibility=1.0,
+            ),
         )
         for value in transfer_values
     )
@@ -108,7 +129,10 @@ def visibility_candidates(
             damage_transfer_fraction=damage_transfer_fraction,
             damage_half_life_days=half_life_days,
             damaged_visibility=value,
-            complexity_rank=3,
+            complexity_rank=_complexity_rank(
+                transfer=damage_transfer_fraction,
+                visibility=value,
+            ),
         )
         for value in visibility_values
     )
