@@ -23,6 +23,7 @@ class SelectedStage9Model:
     stage9_protocol_sha256: str
     experiment_config_sha256: str
     repository_commit_sha: str
+    base_stage8_use_spatial_rtdose: bool
     reserve_patient_ids: tuple[int, ...]
     untouched_holdout_patient_ids: tuple[int, ...]
 
@@ -138,6 +139,13 @@ def load_selected_stage9_model(
     )
 
     source = _mapping(manifest, "source")
+    base_stage8 = _mapping(manifest, "base_stage8_candidate")
+    use_spatial_rtdose = base_stage8.get("use_spatial_rtdose")
+    if type(use_spatial_rtdose) is not bool:
+        raise ValueError(
+            "Stage 9 base Stage 8 spatial-dose flag must be boolean"
+        )
+
     return SelectedStage9Model(
         candidate=candidate,
         source_manifest_sha256=actual_sha,
@@ -166,6 +174,7 @@ def load_selected_stage9_model(
             "experiment_config_sha256",
         ),
         repository_commit_sha=_string(repository, "commit_sha"),
+        base_stage8_use_spatial_rtdose=cast(bool, use_spatial_rtdose),
         reserve_patient_ids=_int_tuple(
             leakage,
             "reserve_patient_ids",
