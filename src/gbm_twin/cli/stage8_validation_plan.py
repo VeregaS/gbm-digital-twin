@@ -95,9 +95,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     print(f"Stage 8 validation plan created: {result.directory}")
     print(f"Patients: {len(result.patient_ids)}")
     print("Patient IDs: " + ", ".join(str(x) for x in result.patient_ids))
-    print(
-        f"Reserved non-holdout patients: "
-        f"{64 - len(result.patient_ids)} or audit-dependent remainder"
-    )
     print("Selection used metadata only; validation t2 was not loaded.")
+    print(
+        "Download manifests: stage8_validation_patient_ids.txt, "
+        "stage8_validation_required_paths.txt"
+    )
     return 0
