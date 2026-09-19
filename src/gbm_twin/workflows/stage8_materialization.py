@@ -223,6 +223,18 @@ def _same_existing_file(
             f"{destination}"
         )
 
+    try:
+        if source.samefile(destination):
+            return True
+    except OSError:
+        pass
+
+    if sha256_file(source) != sha256_file(destination):
+        raise ValueError(
+            "Existing Stage 8 destination differs from the official source: "
+            f"{destination}"
+        )
+
     return True
 
 
