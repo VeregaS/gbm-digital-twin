@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import csv
 import json
-import math
 import shutil
 import tempfile
 import time
@@ -211,6 +210,20 @@ def _trajectory_summary(
     return result
 
 
+def _patient_progress_callback(
+    progress: Callable[[str], None] | None,
+    *,
+    patient_id: int,
+) -> Callable[[str], None]:
+    def emit(message: str) -> None:
+        if progress is not None:
+            progress(
+                f"[stage9-validation]   patient={patient_id}: {message}"
+            )
+
+    return emit
+
+
 def _write_csv(path: Path, rows: list[Stage9ValidationRow]) -> None:
     if not rows:
         return
@@ -256,7 +269,7 @@ def validate_stage9_model(
             "Stage 9 reserve validation requires a clean Git tree"
         )
 
-    audit = load_sealed_stage8_data_audit(data_audit_root)
+    load_sealed_stage8_data_audit(data_audit_root)
     selected_stage8 = load_selected_stage8_model(
         stage8_selection_root
     )
@@ -409,12 +422,10 @@ def validate_stage9_model(
             ),
         )
 
-        def calibration_progress(message: str) -> None:
-            if progress is not None:
-                progress(
-                    f"[stage9-validation]   patient={patient_id}: "
-                    f"{message}"
-                )
+        calibration_progress = _patient_progress_callback(
+            progress,
+            patient_id=patient_id,
+        )
 
         calibration = calibrate_stage8_interval(
             initial_state=inputs.initial_state,
