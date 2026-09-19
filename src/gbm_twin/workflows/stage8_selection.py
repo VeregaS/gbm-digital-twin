@@ -160,6 +160,22 @@ def _selection_payload(
     }
 
 
+def _candidate_progress_callback(
+    progress: Callable[[str], None] | None,
+    *,
+    patient_id: int,
+    candidate_id: str,
+) -> Callable[[str], None]:
+    def emit(message: str) -> None:
+        if progress is not None:
+            progress(
+                f"[stage8]   patient={patient_id} "
+                f"candidate={candidate_id}: {message}"
+            )
+
+    return emit
+
+
 def _write_csv(
     path: Path,
     rows: list[Stage8PatientCandidateEvaluation],
@@ -288,12 +304,11 @@ def _run_phase(
 
             started = time.perf_counter()
 
-            def calibration_progress(message: str) -> None:
-                if progress is not None:
-                    progress(
-                        f"[stage8]   patient={patient_id} "
-                        f"candidate={candidate.candidate_id}: {message}"
-                    )
+            calibration_progress = _candidate_progress_callback(
+                progress,
+                patient_id=patient_id,
+                candidate_id=candidate.candidate_id,
+            )
 
             try:
                 row = evaluate_stage8_candidate(
