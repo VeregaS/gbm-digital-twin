@@ -15,19 +15,31 @@ python -m pytest `
   tests\workflows\test_stage9_validation_plan.py `
   tests\workflows\test_stage9_split.py `
   -v
+if ($LASTEXITCODE -ne 0) {
+    throw "pytest failed with exit code $LASTEXITCODE"
+}
 
 python -m ruff check .
+if ($LASTEXITCODE -ne 0) {
+    throw "ruff failed with exit code $LASTEXITCODE"
+}
 
 if (-not $SkipBootstrap) {
     Write-Host ""
     Write-Host "== Bootstrap pinned TumorTwin environment =="
     powershell -ExecutionPolicy Bypass -File `
       scripts\reference\bootstrap_tumortwin.ps1
+    if ($LASTEXITCODE -ne 0) {
+        throw "TumorTwin bootstrap failed with exit code $LASTEXITCODE"
+    }
 }
 
 Write-Host ""
 Write-Host "== TumorTwin synthetic smoke test =="
 python scripts\reference\smoke_test_tumortwin.py
+if ($LASTEXITCODE -ne 0) {
+    throw "TumorTwin smoke test failed with exit code $LASTEXITCODE"
+}
 
 $mpmriOutput = "results\cohort\mpmri-availability-v1"
 if (Test-Path $mpmriOutput) {
@@ -79,6 +91,9 @@ if ($RunBenchmark) {
     }
 
     python @args
+    if ($LASTEXITCODE -ne 0) {
+        throw "Reference benchmark failed with exit code $LASTEXITCODE"
+    }
 }
 
 Write-Host ""
