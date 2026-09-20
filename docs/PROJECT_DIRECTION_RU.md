@@ -107,28 +107,51 @@ patients или untouched holdout.
 
 ## Reference-first checkpoint
 
-После Stage 9 v2 проект временно останавливает наращивание собственных latent
-treatment states и вводит обязательный benchmark против опубликованной
-реализации TumorTwin.
+После Stage 9 v2 проект временно остановил наращивание собственных latent
+treatment states и провёл benchmark против опубликованной реализации
+TumorTwin на тех же 24 уже раскрытых development patients.
 
-Цель checkpoint:
+Reference benchmark v1 дал:
 
-- отделить ошибки solver/treatment semantics от ошибок calibration;
-- отдельно проверить upstream Levenberg-Marquardt calibration;
-- сравнить published reference и текущий Stage 9 на тех же 24 уже раскрытых
-  development patients;
-- не расходовать reserve/holdout до локализации bottleneck;
-- провести локальный audit T1Gd/FLAIR/ADC/DWI и понять, насколько реально
-  воспроизвести более сильный mpMRI/ADC-derived cellularity workflow.
+- persistence mean Dice: `0.693196`;
+- Stage 9 v2 mean Dice: около `0.681404`;
+- TumorTwin frozen-kinetics mean Dice: `0.629097`;
+- TumorTwin LM mean Dice: `0.637488`;
+- TumorTwin frozen catastrophic failures: `5`;
+- TumorTwin LM catastrophic failures: `5`.
+
+Следовательно, простая замена собственного solver или grid/refinement
+calibration на опубликованные TumorTwin ReactionDiffusion3D + LM не решает
+текущую задачу при том же GTV-derived observation state.
+
+Но benchmark v1 не является полной репликацией HGG workflow: ADC-derived
+cellularity не использовалась, а LM оптимизировался на full prepared brain
+grid, тогда как опубликованный workflow использует tumor-centric cropping.
+Поэтому следующий обязательный шаг — **Reference Fidelity v2**, а не Stage 10.
+
+Reference Fidelity v2 использует только уже раскрытые development data и
+проверяет два вопроса:
+
+1. меняет ли результат ROI-cropped LM calibration на всех 24 patients;
+2. добавляет ли predictive information TumorTwin-style ADC-derived enhancing
+   cellularity на paired subset с t0+t1 ADC.
+
+Локальный audit показал 26 materialized patients, 25 longitudinal FLAIR cases
+и 9 longitudinal ADC cases. Для pre-t2 ADC diagnostic в текущем Stage 9
+cohort доступны пациенты:
+
+`25, 45, 65, 70, 76, 99, 112, 120, 214`.
+
+t2 ADC для этого эксперимента не используется. Raw FLAIR не thresholded и не
+объявляется non-enhancing tumor segmentation без отдельного валидированного
+observation model.
 
 Stage 10 с decoupled damaged/occupancy states остаётся заранее описанным
-fallback-экспериментом, но его реализация приостановлена до получения
-reference-benchmark result.
+fallback-экспериментом, но его реализация приостановлена до результата
+Reference Fidelity v2.
 
-Если published solver/calibration существенно выигрывает, приоритет переходит
-к соответствующему слою. Если reference-модель и текущий twin одинаково
-уступают persistence, приоритет смещается к observation model и multimodal MRI,
-а не к добавлению новых treatment parameters.
+Reserve patients, untouched CFB holdout и Burdenko external-validation cohort
+не должны расходоваться на этот diagnostic.
 
 ## Направления развития платформы
 
