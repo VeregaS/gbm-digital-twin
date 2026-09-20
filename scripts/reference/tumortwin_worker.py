@@ -119,9 +119,10 @@ def _solve(
     radiotherapy: RadiotherapySpecification | None,
 ) -> np.ndarray:
     base_time = datetime(2000, 1, 1)
+    model_initial_time = base_time + timedelta(days=start_day)
     model = _build_model(
         patient=patient,
-        initial_time=base_time,
+        initial_time=model_initial_time,
         diffusion=diffusion,
         proliferation=proliferation,
         radiotherapy=radiotherapy,
@@ -136,8 +137,8 @@ def _solve(
         ),
     )
     times = [
-        base_time + timedelta(days=start_day),
-        base_time + timedelta(days=end_day),
+        model_initial_time,
+        model_initial_time + timedelta(days=end_day - start_day),
     ]
     _, states = solver.solve(
         times,
