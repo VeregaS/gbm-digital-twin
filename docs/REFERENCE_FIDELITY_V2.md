@@ -106,6 +106,12 @@ No t2 quantity participates in parameter fitting.
 The prediction is restored from the cropped ROI to the full prepared image
 grid before evaluation.
 
+For the GTV-derived mode the existing Stage 8 enhancing detection threshold is
+kept, so the ROI experiment isolates cropping/calibration support. For the
+ADC-derived cellularity mode, binary tumor volume is evaluated at the pinned
+TumorTwin postprocessing default threshold `0.5`. This threshold is fixed
+before the diagnostic and is not selected from t2.
+
 Metrics remain exactly comparable to previous stages:
 
 - Dice;
@@ -121,8 +127,10 @@ The artifact reports three summaries:
 - `tumortwin-lm-roi-adc-paired-subset` on the ADC-eligible subset;
 - `tumortwin-adc-lm-roi` on the same paired subset.
 
-The paired summaries are the primary evidence for whether ADC adds useful
-information.
+The paired summaries are the primary evidence for whether the published-style
+ADC observation pipeline adds useful information. Because the ADC and GTV
+pipelines use their respective predeclared observation thresholds, this is a
+pipeline-level comparison rather than a pure single-variable ablation.
 
 ## Decision rule
 
