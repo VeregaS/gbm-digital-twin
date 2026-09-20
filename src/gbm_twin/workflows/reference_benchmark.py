@@ -28,6 +28,7 @@ from gbm_twin.models.observation import (
 from gbm_twin.reference.tumortwin import (
     TUMORTWIN_COMMIT,
     TumorTwinReferenceRequest,
+    TumorTwinReferenceResult,
     reference_request_signature,
     run_external_tumortwin,
 )
@@ -79,6 +80,8 @@ class _Stage9PatientReference:
     diffusion: float
     proliferation: float
     stage9_dice: float
+    t1_day: float
+    t2_day: float
 
 
 def _mapping(mapping: dict[str, object], key: str) -> dict[str, object]:
@@ -139,6 +142,8 @@ def _stage9_patient_references(
                 diffusion=_number(row, "diffusion"),
                 proliferation=_number(row, "proliferation"),
                 stage9_dice=_number(row, "twin_dice"),
+                t1_day=_number(row, "t1_day"),
+                t2_day=_number(row, "t2_day"),
             )
         )
 
@@ -351,6 +356,12 @@ def run_reference_benchmark(
                 shifted_fraction_days.append(shifted_day)
                 fraction_doses.append(inputs.schedule.dose_per_fraction_gy)
 
+        forecast_duration = reference.t2_day - reference.t1_day
+        if forecast_duration <= 0.0:
+            raise ValueError(
+                f"Patient {reference.patient_id}: invalid Stage 9 t1/t2 days"
+            )
+
         mode_results: dict[str, object] = {}
         for mode in modes:
             request = TumorTwinReferenceRequest(
@@ -360,7 +371,7 @@ def run_reference_benchmark(
                 brain_mask=inputs.domain_mask,
                 spacing_mm=inputs.observed.spacing,
                 calibration_duration_days=calibration_duration,
-                forecast_duration_days=1.0,
+                forecast_duration_days=forecast_duration,
                 dt_days=min(0.5, experiment.evaluation.dt),
                 radiotherapy_fraction_days=tuple(shifted_fraction_days),
                 radiotherapy_fraction_doses_gy=tuple(fraction_doses),
@@ -379,10 +390,33 @@ def run_reference_benchmark(
             )
             mode_results[mode] = request
 
+        external_results: dict[str, object] = {}
+        for mode in modes:
+            request = cast(TumorTwinReferenceRequest, mode_results[mode])
+            signature = reference_request_signature(request)
+            work_dir = (
+                cache
+                / f"patient-{reference.patient_id}"
+                / mode
+                / signature
+            )
+            started = time.perf_counter()
+            external_results[mode] = run_external_tumortwin(
+                python_executable=tumortwin_python,
+                worker_script=worker_script,
+                request=request,
+                work_dir=work_dir,
+            )
+            if progress is not None:
+                progress(
+                    f"[reference]   {mode} pre-t2 run frozen in "
+                    f"{time.perf_counter() - started:.1f}s"
+                )
+
         if progress is not None:
             progress(
                 f"[reference] patient {reference.patient_id}: "
-                "reference calibration/forecast prepared; revealing t2"
+                "reference runs frozen; revealing t2 for evaluation"
             )
 
         target = prepare_stage8_evaluation_target(
@@ -392,38 +426,21 @@ def run_reference_benchmark(
             target_spacing=experiment.evaluation.target_spacing,
             reference=inputs.observed,
         )
-        forecast_duration = (
-            target.target.days_from_baseline
-            - inputs.observed.days_from_baseline
-        )
         observed_t2 = np.asarray(target.target.gtv.data > 0.5, dtype=bool)
         persistence = np.asarray(inputs.observed.gtv.data > 0.5, dtype=bool)
         persistence_dice = dice_score(persistence, observed_t2)
 
         for mode in modes:
-            base_request = cast(TumorTwinReferenceRequest, mode_results[mode])
-            request = TumorTwinReferenceRequest(
-                **{
-                    **asdict(base_request),
-                    "forecast_duration_days": forecast_duration,
-                }
+            result = cast(
+                TumorTwinReferenceResult,
+                external_results[mode],
             )
-            signature = reference_request_signature(request)
-            work_dir = (
-                cache
-                / f"patient-{reference.patient_id}"
-                / mode
-                / signature
-            )
-            started = time.perf_counter()
-            result = run_external_tumortwin(
-                python_executable=tumortwin_python,
-                worker_script=worker_script,
-                request=request,
-                work_dir=work_dir,
+            prediction_density = np.asarray(
+                result.prediction_density,
+                dtype=np.float32,
             )
             predicted = np.asarray(
-                result.prediction_density >= observation.enhancing_threshold,
+                prediction_density >= observation.enhancing_threshold,
                 dtype=bool,
             )
             score = dice_score(predicted, observed_t2)
