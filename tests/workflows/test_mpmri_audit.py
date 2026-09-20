@@ -13,8 +13,8 @@ def _touch(path: Path) -> None:
 def test_modality_audit_recognizes_cfb_aliases(tmp_path: Path) -> None:
     patient_root = tmp_path / "8"
     _touch(patient_root / "t0" / "8_t0_t1gd.nii.gz")
-    _touch(patient_root / "t0" / "8_t0_flair.nii.gz")
-    _touch(patient_root / "t0" / "8_t0_adc.nii.gz")
+    _touch(patient_root / "t0" / "flair" / "8_t0_flair.nii.gz")
+    _touch(patient_root / "t0" / "dwi" / "8_t0_adc.nii.gz")
 
     assert _modality_present(
         patient_root,
