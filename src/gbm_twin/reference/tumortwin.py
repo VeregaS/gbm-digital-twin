@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import math
 import subprocess
@@ -90,6 +91,50 @@ class TumorTwinReferenceResult:
     proliferation: float
     upstream_commit: str
     mode: str
+
+
+def reference_request_signature(
+    request: TumorTwinReferenceRequest,
+) -> str:
+    digest = hashlib.sha256()
+    payload = {
+        "schema_version": 1,
+        "patient_id": request.patient_id,
+        "spacing_mm": request.spacing_mm,
+        "calibration_duration_days": request.calibration_duration_days,
+        "forecast_duration_days": request.forecast_duration_days,
+        "dt_days": request.dt_days,
+        "radiotherapy_fraction_days": request.radiotherapy_fraction_days,
+        "radiotherapy_fraction_doses_gy": (
+            request.radiotherapy_fraction_doses_gy
+        ),
+        "alpha_per_gy": request.alpha_per_gy,
+        "alpha_beta_ratio_gy": request.alpha_beta_ratio_gy,
+        "mode": request.mode,
+        "frozen_diffusion": request.frozen_diffusion,
+        "frozen_proliferation": request.frozen_proliferation,
+        "diffusion_bounds": request.diffusion_bounds,
+        "proliferation_bounds": request.proliferation_bounds,
+        "optimizer_iterations": request.optimizer_iterations,
+        "upstream_commit": TUMORTWIN_COMMIT,
+    }
+    digest.update(
+        json.dumps(
+            payload,
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode("utf-8")
+    )
+    for array in (
+        request.initial_density,
+        request.observed_density,
+        request.brain_mask,
+    ):
+        contiguous = np.ascontiguousarray(array)
+        digest.update(str(contiguous.dtype).encode("ascii"))
+        digest.update(str(contiguous.shape).encode("ascii"))
+        digest.update(contiguous.tobytes())
+    return digest.hexdigest()
 
 
 def write_reference_request(
@@ -193,6 +238,11 @@ def run_external_tumortwin(
         )
 
     request_dir = work_dir.resolve()
+    result_metadata = request_dir / "result.json"
+    result_arrays = request_dir / "result_arrays.npz"
+    if result_metadata.is_file() and result_arrays.is_file():
+        return load_reference_result(request_dir)
+
     metadata_path, arrays_path = write_reference_request(request, request_dir)
     command = [
         str(python_executable),
