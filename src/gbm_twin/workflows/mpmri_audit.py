@@ -100,7 +100,7 @@ def _modality_present(
         f"{patient_id}_{timepoint}_{alias}".lower()
         for alias in aliases
     }
-    for path in timepoint_root.iterdir():
+    for path in timepoint_root.rglob("*"):
         if not path.is_file():
             continue
         name = path.name.lower()
