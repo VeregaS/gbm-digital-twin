@@ -65,6 +65,11 @@ The t2 outcome is not passed to the optimizer.
 This mode tests whether the published inverse-problem implementation improves
 over this project's grid/refinement calibration.
 
+To stay close to the upstream HGG/TNBC tutorial setup, the reference worker
+uses RK4 with a 0.5-day step (or smaller if the project configuration is
+already smaller), LM bounds D in [0, 2] and rho in [0, 0.5], and an initial
+guess near D=0.025 and rho=0.05.
+
 ## Important limitation
 
 The first benchmark is deliberately apples-to-apples with the data that are
@@ -129,6 +134,27 @@ The main counts of interest are:
 - longitudinal ADC;
 - longitudinal T1Gd + FLAIR;
 - longitudinal T1Gd + ADC.
+
+## One-shot checkpoint
+
+The complete technical checkpoint can be run from one PowerShell entrypoint:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File `
+  scripts\reference\run_reference_checkpoint.ps1 `
+  -RunBenchmark `
+  -IncludeLmCalibration
+```
+
+It runs the targeted pytest suite, Ruff over the whole repository, creates the
+isolated pinned TumorTwin environment, executes the synthetic upstream smoke
+test, creates the local mpMRI filename audit, and then runs both the frozen and
+LM-calibrated reference modes.
+
+The full benchmark artifact is written to
+`results/cohort/reference-benchmark-full-v1`. A frozen-only run uses
+`results/cohort/reference-benchmark-frozen-v1`, so both experiments can be
+kept without overwriting one another.
 
 ## Reference benchmark execution
 
