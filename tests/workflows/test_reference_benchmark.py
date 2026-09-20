@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import pytest
+
 from gbm_twin.workflows.reference_benchmark import (
     ReferenceBenchmarkRow,
     _summary,
@@ -44,4 +46,4 @@ def test_reference_summary_counts_failures_and_deltas() -> None:
     assert summary["catastrophic_failure_count"] == 1
     assert summary["better_than_persistence_count"] == 1
     assert summary["worse_than_persistence_count"] == 1
-    assert summary["mean_dice"] == 0.6
+    assert summary["mean_dice"] == pytest.approx(0.6)
