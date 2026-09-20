@@ -329,7 +329,7 @@ def run_reference_benchmark(
                 spacing_mm=inputs.observed.spacing,
                 calibration_duration_days=calibration_duration,
                 forecast_duration_days=1.0,
-                dt_days=experiment.evaluation.dt,
+                dt_days=min(0.5, experiment.evaluation.dt),
                 radiotherapy_fraction_days=tuple(shifted_fraction_days),
                 radiotherapy_fraction_doses_gy=tuple(fraction_doses),
                 alpha_per_gy=(
@@ -341,22 +341,8 @@ def run_reference_benchmark(
                 mode="frozen" if mode == "tumortwin-frozen" else "calibrate",
                 frozen_diffusion=reference.diffusion,
                 frozen_proliferation=reference.proliferation,
-                diffusion_bounds=(
-                    min(experiment.evaluation.diffusion_values),
-                    max(experiment.evaluation.diffusion_values)
-                    * (
-                        1.0
-                        + experiment.evaluation.upper_boundary_expansion_factor
-                    ),
-                ),
-                proliferation_bounds=(
-                    min(experiment.evaluation.proliferation_values),
-                    max(experiment.evaluation.proliferation_values)
-                    * (
-                        1.0
-                        + experiment.evaluation.upper_boundary_expansion_factor
-                    ),
-                ),
+                diffusion_bounds=(0.0, 2.0),
+                proliferation_bounds=(0.0, 0.5),
                 optimizer_iterations=optimizer_iterations,
             )
             mode_results[mode] = request
