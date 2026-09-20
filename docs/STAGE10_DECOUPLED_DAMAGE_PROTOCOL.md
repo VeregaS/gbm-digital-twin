@@ -2,6 +2,14 @@
 
 ## Status
 
+**Paused before implementation pending the published-reference benchmark.**
+
+Stage 10 remains a pre-specified mechanistic fallback, not the immediate next
+experiment. The project first compares the current pipeline with the pinned
+TumorTwin reference implementation and audits the locally available mpMRI
+modalities. Stage 10 proceeds only if that benchmark does not identify solver,
+calibration, or observation-model limitations that should be addressed first.
+
 Stage 9 v2 hit its predefined 120-day diagnostic ceiling. The selected
 half-life remained the largest tested value and was chosen in all 24
 leave-one-patient-out folds.
@@ -9,6 +17,13 @@ leave-one-patient-out folds.
 Stage 10 is therefore a new **development-only mechanistic diagnostic**. It
 must use the same already exposed 24-patient cohort. Reserve patients and the
 untouched holdout remain sealed.
+
+## Reference-benchmark gate
+
+See `docs/REFERENCE_BENCHMARK_PROTOCOL.md`.
+
+No new Stage 10 code or reserve-cohort reveal should occur until the benchmark
+has produced a sealed result.
 
 ## Failure in the Stage 9 state semantics
 
