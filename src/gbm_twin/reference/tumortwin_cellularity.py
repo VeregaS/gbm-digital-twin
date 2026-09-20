@@ -3,6 +3,7 @@ from __future__ import annotations
 import numpy as np
 
 TUMORTWIN_NONENHANCING_CELLULARITY = 0.16
+TUMORTWIN_CELLULARITY_VOLUME_THRESHOLD = 0.5
 
 
 def adc_water_reference(adc: np.ndarray) -> float:
