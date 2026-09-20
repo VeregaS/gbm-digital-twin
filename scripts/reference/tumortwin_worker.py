@@ -161,8 +161,8 @@ def _calibrate(
 ) -> tuple[float, float]:
     initial_guess = torch.tensor(
         [
-            0.5 * (diffusion_bounds[0] + diffusion_bounds[1]),
-            0.5 * (proliferation_bounds[0] + proliferation_bounds[1]),
+            min(max(0.025, diffusion_bounds[0]), diffusion_bounds[1]),
+            min(max(0.05, proliferation_bounds[0]), proliferation_bounds[1]),
         ],
         dtype=torch.float64,
     )
