@@ -28,6 +28,7 @@ from gbm_twin.models.observation import (
 from gbm_twin.reference.tumortwin import (
     TUMORTWIN_COMMIT,
     TumorTwinReferenceRequest,
+    reference_request_signature,
     run_external_tumortwin,
 )
 from gbm_twin.workflows.provenance import sha256_file
@@ -389,7 +390,13 @@ def run_reference_benchmark(
                     "forecast_duration_days": forecast_duration,
                 }
             )
-            work_dir = cache / f"patient-{reference.patient_id}" / mode
+            signature = reference_request_signature(request)
+            work_dir = (
+                cache
+                / f"patient-{reference.patient_id}"
+                / mode
+                / signature
+            )
             started = time.perf_counter()
             result = run_external_tumortwin(
                 python_executable=tumortwin_python,
