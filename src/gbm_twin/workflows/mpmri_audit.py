@@ -117,6 +117,7 @@ def _modality_present(
 
 def audit_local_mpmri(
     *,
+    repo_root: Path,
     data_audit_root: Path,
     experiment_config_path: Path,
     output_dir: Path,
@@ -135,7 +136,7 @@ def audit_local_mpmri(
     patients_root = (
         experiment.patients_root
         if experiment.patients_root.is_absolute()
-        else experiment_config_path.resolve().parent / experiment.patients_root
+        else repo_root.resolve() / experiment.patients_root
     )
 
     rows: list[MPMRIPatientAuditRow] = []
