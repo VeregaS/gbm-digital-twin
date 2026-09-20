@@ -21,7 +21,7 @@ def test_roi_slices_cover_support_with_padding() -> None:
         slice(3, 11),
         slice(4, 12),
     )
-    assert np.all(support[roi])
+    assert np.count_nonzero(support[roi]) == np.count_nonzero(support)
 
 
 def test_roi_slices_clip_padding_to_volume_bounds() -> None:
