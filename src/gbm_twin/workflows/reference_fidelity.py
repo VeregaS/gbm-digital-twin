@@ -4,6 +4,7 @@ import json
 import shutil
 import tempfile
 import time
+from collections.abc import Callable
 from dataclasses import asdict
 from pathlib import Path
 from typing import cast
@@ -38,6 +39,7 @@ from gbm_twin.workflows.reference_benchmark import (
     _observation_parameters,
     _stage9_patient_references,
     _summary,
+    _write_csv,
 )
 from gbm_twin.workflows.repository import read_repository_state
 from gbm_twin.workflows.stage8_patient import (
@@ -197,6 +199,21 @@ def _restore_prediction(
     return restored
 
 
+def _adc_eligible_patient_ids(
+    references: tuple[object, ...],
+    mpmri_rows: dict[int, dict[str, object]],
+) -> tuple[int, ...]:
+    patient_ids: list[int] = []
+    for item in references:
+        patient_id = getattr(item, "patient_id", None)
+        if type(patient_id) is not int:
+            raise ValueError("Reference patient_id must be integer")
+        row = mpmri_rows.get(cast(int, patient_id), {})
+        if row.get("t0_adc") is True and row.get("t1_adc") is True:
+            patient_ids.append(cast(int, patient_id))
+    return tuple(patient_ids)
+
+
 def _reference_request(
     *,
     patient_id: int,
@@ -291,7 +308,7 @@ def run_reference_fidelity_benchmark(
     roi_padding_voxels: int = 10,
     optimizer_iterations: int = 8,
     allow_dirty: bool = False,
-    progress: callable | None = None,
+    progress: Callable[[str], None] | None = None,
 ) -> dict[str, object]:
     destination = output_dir.resolve()
     if destination.exists():
@@ -363,13 +380,9 @@ def run_reference_fidelity_benchmark(
             + preview
         )
 
-    adc_patient_ids = tuple(
-        item.patient_id
-        for item in references
-        if (
-            mpmri_rows.get(item.patient_id, {}).get("t0_adc") is True
-            and mpmri_rows.get(item.patient_id, {}).get("t1_adc") is True
-        )
+    adc_patient_ids = _adc_eligible_patient_ids(
+        cast(tuple[object, ...], references),
+        mpmri_rows,
     )
     if not adc_patient_ids:
         raise ValueError(
@@ -666,6 +679,7 @@ def run_reference_fidelity_benchmark(
             + "  reference_fidelity.json\n",
             encoding="ascii",
         )
+        _write_csv(temporary / "reference_fidelity.csv", rows)
         temporary.rename(destination)
     except BaseException:
         shutil.rmtree(temporary, ignore_errors=True)
