@@ -45,7 +45,12 @@ else {
 }
 
 if ($RunBenchmark) {
-    $benchmarkOutput = "results\cohort\reference-benchmark-v1"
+    $benchmarkOutput = if ($IncludeLmCalibration) {
+        "results\cohort\reference-benchmark-full-v1"
+    }
+    else {
+        "results\cohort\reference-benchmark-frozen-v1"
+    }
 
     if (Test-Path $benchmarkOutput) {
         throw "Reference benchmark output already exists: $benchmarkOutput"
