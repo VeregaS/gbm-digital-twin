@@ -30,6 +30,7 @@ from gbm_twin.reference.tumortwin import (
     run_external_tumortwin,
 )
 from gbm_twin.reference.tumortwin_cellularity import (
+    TUMORTWIN_CELLULARITY_VOLUME_THRESHOLD,
     tumortwin_adc_to_cellularity,
 )
 from gbm_twin.workflows.provenance import sha256_file
@@ -575,7 +576,11 @@ def run_reference_fidelity_benchmark(
                 engine=engine,
                 result=result,
                 prediction_density=restored,
-                threshold=observation.enhancing_threshold,
+                threshold=(
+                    TUMORTWIN_CELLULARITY_VOLUME_THRESHOLD
+                    if engine == ADC_ENGINE
+                    else observation.enhancing_threshold
+                ),
                 observed_t2=observed_t2,
                 persistence=persistence,
                 spacing=target.target.spacing,
@@ -638,8 +643,11 @@ def run_reference_fidelity_benchmark(
             "raw_flair_thresholded": False,
             "adc_nonenhancing_roi_used": False,
             "t2_used_only_after_reference_run_freeze": True,
-            "enhancing_detection_threshold": (
+            "gtv_enhancing_detection_threshold": (
                 observation.enhancing_threshold
+            ),
+            "adc_cellularity_volume_threshold": (
+                TUMORTWIN_CELLULARITY_VOLUME_THRESHOLD
             ),
         },
         "summaries": {
