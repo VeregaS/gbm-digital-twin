@@ -346,6 +346,16 @@ def run_reference_benchmark(
 
         start_day = inputs.start.days_from_baseline
         observed_day = inputs.observed.days_from_baseline
+        if not np.isclose(
+            observed_day,
+            reference.t1_day,
+            rtol=0.0,
+            atol=1e-6,
+        ):
+            raise ValueError(
+                f"Patient {reference.patient_id}: Stage 9 t1 day "
+                "does not match prepared CFB data"
+            )
         calibration_duration = observed_day - start_day
 
         shifted_fraction_days: list[float] = []
@@ -362,7 +372,7 @@ def run_reference_benchmark(
                 f"Patient {reference.patient_id}: invalid Stage 9 t1/t2 days"
             )
 
-        mode_results: dict[str, object] = {}
+        mode_results: dict[str, TumorTwinReferenceRequest] = {}
         for mode in modes:
             request = TumorTwinReferenceRequest(
                 patient_id=reference.patient_id,
@@ -390,9 +400,9 @@ def run_reference_benchmark(
             )
             mode_results[mode] = request
 
-        external_results: dict[str, object] = {}
+        external_results: dict[str, TumorTwinReferenceResult] = {}
         for mode in modes:
-            request = cast(TumorTwinReferenceRequest, mode_results[mode])
+            request = mode_results[mode]
             signature = reference_request_signature(request)
             work_dir = (
                 cache
@@ -426,15 +436,23 @@ def run_reference_benchmark(
             target_spacing=experiment.evaluation.target_spacing,
             reference=inputs.observed,
         )
+        if not np.isclose(
+            target.target.days_from_baseline,
+            reference.t2_day,
+            rtol=0.0,
+            atol=1e-6,
+        ):
+            raise ValueError(
+                f"Patient {reference.patient_id}: Stage 9 t2 day "
+                "does not match prepared CFB target"
+            )
         observed_t2 = np.asarray(target.target.gtv.data > 0.5, dtype=bool)
         persistence = np.asarray(inputs.observed.gtv.data > 0.5, dtype=bool)
         persistence_dice = dice_score(persistence, observed_t2)
 
         for mode in modes:
-            result = cast(
-                TumorTwinReferenceResult,
-                external_results[mode],
-            )
+            result = external_results[mode]
+            evaluation_started = time.perf_counter()
             prediction_density = np.asarray(
                 result.prediction_density,
                 dtype=np.float32,
@@ -473,8 +491,8 @@ def run_reference_benchmark(
 
             if progress is not None:
                 progress(
-                    f"[reference]   {mode} done in "
-                    f"{time.perf_counter() - started:.1f}s; "
+                    f"[reference]   {mode} evaluated in "
+                    f"{time.perf_counter() - evaluation_started:.1f}s; "
                     f"Dice={score:.4f}; "
                     f"delta_vs_persistence={row.delta_vs_persistence:+.4f}; "
                     f"delta_vs_stage9={row.delta_vs_stage9:+.4f}"
