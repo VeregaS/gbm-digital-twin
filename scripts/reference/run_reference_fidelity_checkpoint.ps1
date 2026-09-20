@@ -8,17 +8,8 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-Write-Host "== Reference fidelity quality gates =="
-$pytestArgs = @(
-    "-m", "pytest",
-    "tests\reference\test_tumortwin_adapter.py",
-    "tests\reference\test_tumortwin_cellularity.py",
-    "tests\workflows\test_reference_benchmark.py",
-    "tests\workflows\test_reference_fidelity.py",
-    "tests\workflows\test_mpmri_audit.py",
-    "-v"
-)
-& python @pytestArgs
+Write-Host "== Full Python quality gates =="
+& python -m pytest -q
 if ($LASTEXITCODE -ne 0) {
     throw "pytest failed with exit code $LASTEXITCODE"
 }
