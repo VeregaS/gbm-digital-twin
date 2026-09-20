@@ -5,6 +5,7 @@ import pytest
 
 from gbm_twin.workflows.reference_fidelity import (
     _adc_eligible_patient_ids,
+    _find_modality_file,
     _restore_prediction,
     _roi_slices,
 )
@@ -74,3 +75,35 @@ def test_adc_eligibility_requires_t0_and_t1_only() -> None:
     )
 
     assert eligible == (25, 45)
+
+
+def test_find_modality_file_accepts_nested_cfb_adc(tmp_path) -> None:
+    expected = tmp_path / "25" / "t0" / "dwi" / "25_t0_adc.nii.gz"
+    expected.parent.mkdir(parents=True)
+    expected.write_bytes(b"adc")
+
+    actual = _find_modality_file(
+        tmp_path / "25",
+        patient_id=25,
+        timepoint="t0",
+        modality="adc",
+    )
+
+    assert actual == expected
+
+
+def test_find_modality_file_rejects_ambiguous_adc(tmp_path) -> None:
+    first = tmp_path / "25" / "t0" / "25_t0_adc.nii.gz"
+    second = tmp_path / "25" / "t0" / "dwi" / "25_t0_adc.nii.gz"
+    first.parent.mkdir(parents=True)
+    second.parent.mkdir(parents=True)
+    first.write_bytes(b"adc")
+    second.write_bytes(b"adc")
+
+    with pytest.raises(FileNotFoundError, match="found 2"):
+        _find_modality_file(
+            tmp_path / "25",
+            patient_id=25,
+            timepoint="t0",
+            modality="adc",
+        )
