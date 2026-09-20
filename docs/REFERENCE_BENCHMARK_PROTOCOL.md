@@ -1,5 +1,18 @@
 # Published Reference Benchmark
 
+## Result status
+
+Reference benchmark v1 has been completed on the 24 exposed development
+patients. Neither the frozen-kinetics nor upstream-LM mode beat Stage 9 or
+persistence under the same GTV-derived observation state.
+
+The sealed numeric result and interpretation are recorded in
+`docs/REFERENCE_BENCHMARK_V1_RESULT.md`.
+
+The next active diagnostic is `docs/REFERENCE_FIDELITY_V2.md`, which tests
+tumor-centric ROI calibration and pre-t2 ADC-derived cellularity before Stage
+10 is reconsidered.
+
 ## Why this stage exists
 
 Stage 9 improved the exposed development cohort relative to the exact Stage 8
