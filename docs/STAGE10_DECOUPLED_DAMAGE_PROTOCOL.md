@@ -1,5 +1,20 @@
 # Stage 10 — decoupled visible clearance and inert occupancy
 
+## Current execution status
+
+**Paused after the published-reference checkpoint.**
+
+The protocol below remains the predefined fallback mechanistic experiment, but
+it must not be implemented or run before Reference Fidelity v2 is completed.
+Reference benchmark v1 showed that the pinned TumorTwin solver and upstream LM
+calibration also underperform Stage 9/persistence when forced onto the current
+GTV-derived observation problem. Before adding another latent treatment state,
+the project is therefore testing tumor-centric ROI calibration and pre-t2
+ADC-derived cellularity on the same already exposed development cohort.
+
+No reserve or untouched-holdout patient should be opened for this pause-stage
+diagnostic.
+
 ## Status
 
 **Paused before implementation pending the published-reference benchmark.**
