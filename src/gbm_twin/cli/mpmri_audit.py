@@ -68,6 +68,7 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     try:
         artifact = audit_local_mpmri(
+            repo_root=repo_root,
             data_audit_root=_resolve(repo_root, args.data_audit_root),
             experiment_config_path=_resolve(
                 repo_root,
