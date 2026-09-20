@@ -105,6 +105,31 @@ post-treatment occupancy/growth suppression**. Для этого Stage 10 про
 До завершения этого mechanistic diagnostic нельзя расходовать новые reserve
 patients или untouched holdout.
 
+## Reference-first checkpoint
+
+После Stage 9 v2 проект временно останавливает наращивание собственных latent
+treatment states и вводит обязательный benchmark против опубликованной
+реализации TumorTwin.
+
+Цель checkpoint:
+
+- отделить ошибки solver/treatment semantics от ошибок calibration;
+- отдельно проверить upstream Levenberg-Marquardt calibration;
+- сравнить published reference и текущий Stage 9 на тех же 24 уже раскрытых
+  development patients;
+- не расходовать reserve/holdout до локализации bottleneck;
+- провести локальный audit T1Gd/FLAIR/ADC/DWI и понять, насколько реально
+  воспроизвести более сильный mpMRI/ADC-derived cellularity workflow.
+
+Stage 10 с decoupled damaged/occupancy states остаётся заранее описанным
+fallback-экспериментом, но его реализация приостановлена до получения
+reference-benchmark result.
+
+Если published solver/calibration существенно выигрывает, приоритет переходит
+к соответствующему слою. Если reference-модель и текущий twin одинаково
+уступают persistence, приоритет смещается к observation model и multimodal MRI,
+а не к добавлению новых treatment parameters.
+
 ## Направления развития платформы
 
 После стабилизации predictive core проект должен развиваться как исследовательская платформа.
