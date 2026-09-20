@@ -41,6 +41,9 @@ from gbm_twin.workflows.stage8_protocol import load_stage8_protocol_config
 from gbm_twin.workflows.stage8_selection_artifact import (
     load_selected_stage8_model,
 )
+from gbm_twin.workflows.stage8_validation import (
+    preflight_stage8_validation_inputs,
+)
 from gbm_twin.workflows.stage9_selection_artifact import (
     load_selected_stage9_model,
 )
@@ -273,6 +276,35 @@ def run_reference_benchmark(
     treatment = CFBTreatmentMetadata(metadata_root)
 
     patient_references = _stage9_patient_references(stage9_manifest)
+    patient_ids = tuple(
+        reference.patient_id
+        for reference in patient_references
+    )
+    issues = preflight_stage8_validation_inputs(
+        patients_root=patients_root,
+        patient_ids=patient_ids,
+        require_spatial_rtdose=False,
+    )
+    if issues:
+        preview = "\n".join(
+            f"  patient {item.patient_id}: {item.input_name} -> "
+            f"{item.expected_path}"
+            for item in issues[:40]
+        )
+        raise FileNotFoundError(
+            "Reference benchmark preflight failed before execution:\n"
+            + preview
+        )
+
+    if not tumortwin_python.is_file():
+        raise FileNotFoundError(
+            f"TumorTwin Python executable not found: {tumortwin_python}"
+        )
+    if not worker_script.is_file():
+        raise FileNotFoundError(
+            f"TumorTwin worker script not found: {worker_script}"
+        )
+
     modes: list[str] = []
     if run_frozen:
         modes.append("tumortwin-frozen")
