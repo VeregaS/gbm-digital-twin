@@ -200,18 +200,15 @@ def _restore_prediction(
 
 
 def _adc_eligible_patient_ids(
-    references: tuple[object, ...],
+    patient_ids: tuple[int, ...],
     mpmri_rows: dict[int, dict[str, object]],
 ) -> tuple[int, ...]:
-    patient_ids: list[int] = []
-    for item in references:
-        patient_id = getattr(item, "patient_id", None)
-        if type(patient_id) is not int:
-            raise ValueError("Reference patient_id must be integer")
-        row = mpmri_rows.get(cast(int, patient_id), {})
+    result: list[int] = []
+    for patient_id in patient_ids:
+        row = mpmri_rows.get(patient_id, {})
         if row.get("t0_adc") is True and row.get("t1_adc") is True:
-            patient_ids.append(cast(int, patient_id))
-    return tuple(patient_ids)
+            result.append(patient_id)
+    return tuple(result)
 
 
 def _reference_request(
@@ -381,7 +378,7 @@ def run_reference_fidelity_benchmark(
         )
 
     adc_patient_ids = _adc_eligible_patient_ids(
-        cast(tuple[object, ...], references),
+        patient_ids,
         mpmri_rows,
     )
     if not adc_patient_ids:
