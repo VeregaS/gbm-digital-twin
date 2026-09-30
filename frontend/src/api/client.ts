@@ -12,9 +12,11 @@ import type {
 
 export async function requestJson<T>(
   path: string,
+  init?: RequestInit,
 ): Promise<T> {
   const response = await fetch(
     path,
+    init,
   );
 
   if (!response.ok) {
@@ -173,5 +175,27 @@ export function fetchAnatomicalRisk(
       `/api/patients/${patientId}`
       + `/anatomy/${timepointName}`
     ),
+  );
+}
+
+
+
+export function prepareAnatomicalRisk(
+  patientId: number,
+  timepointName: string,
+): Promise<{
+  status: string;
+}> {
+  return requestJson<{
+    status: string;
+  }>(
+    (
+      `/api/patients/${patientId}`
+      + `/anatomy/${timepointName}`
+      + "/prepare"
+    ),
+    {
+      method: "POST",
+    },
   );
 }
