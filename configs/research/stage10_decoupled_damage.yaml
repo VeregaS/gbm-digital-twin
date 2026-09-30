@@ -1,0 +1,19 @@
+schema_version: 1
+design: frozen_stage9_kinetics_decoupled_damage_v1
+
+decoupled:
+  # Pre-specified diagnostic only. Do not extend this grid post hoc.
+  visible_damage_half_life_days:
+    - 14.0
+    - 30.0
+    - 60.0
+
+selection:
+  catastrophic_delta_vs_persistence: -0.10
+
+  # A candidate must reduce catastrophic failures and improve the regression
+  # subgroup. These tolerances prevent trading that gain for a material
+  # aggregate or growth-subgroup degradation.
+  max_mean_dice_degradation: 0.005
+  max_growth_delta_degradation: 0.010
+  min_regression_delta_gain: 0.0
