@@ -20,7 +20,6 @@ from gbm_twin.models.latent_state import (
     latent_state_from_gtv,
 )
 from gbm_twin.workflows.anatomy_runtime import (
-    ensure_atlas_assets,
     select_patient_atlas,
 )
 from gbm_twin.workflows.patients import (
@@ -103,12 +102,6 @@ def analyze_patient_anatomy(
         )
 
     try:
-        atlas_root = (
-            ensure_atlas_assets(
-                atlas_root
-            )
-        )
-
         selection = (
             select_patient_atlas(
                 metadata_root=(
@@ -129,6 +122,7 @@ def analyze_patient_anatomy(
                 target_spacing=(
                     DEFAULT_TARGET_SPACING
                 ),
+                prepare_if_missing=False,
             )
         )
 
