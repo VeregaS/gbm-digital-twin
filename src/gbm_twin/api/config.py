@@ -10,6 +10,10 @@ DEFAULT_CFB_ROOT = Path(
     r"D:\Datasets\CFB-GBM"
 )
 
+DEFAULT_ATLAS_ROOT = Path(
+    "data/anatomy/atlas"
+)
+
 DEFAULT_COHORT_FREEZE_ROOT = Path(
     "results/cohort/v2-freeze"
 )
@@ -91,8 +95,12 @@ class ApiSettings:
 
         atlas_root_text = (
             os.environ.get(
-                "GBM_TWIN_ATLAS_ROOT"
+                "GBM_TWIN_ATLAS_ROOT",
+                str(
+                    DEFAULT_ATLAS_ROOT
+                ),
             )
+            .strip()
         )
 
         atlas_root = (
