@@ -23,6 +23,9 @@ from gbm_twin.api.schemas.twin import (
     TwinPatientListItemResponse,
     TwinPatientListResponse,
 )
+from gbm_twin.api.schemas.twin_anatomy import (
+    TwinAnatomicalImpactResponse,
+)
 from gbm_twin.api.schemas.twin_qc import (
     TwinPatientQCResponse,
 )
@@ -39,6 +42,9 @@ from gbm_twin.workflows.cohort_evaluation import (
 from gbm_twin.workflows.cohort_results import (
     load_sealed_cohort_evaluation,
     summarize_cohort_evaluation,
+)
+from gbm_twin.workflows.twin_anatomy import (
+    analyze_twin_anatomical_impact,
 )
 from gbm_twin.workflows.twin_qc import (
     get_twin_patient_qc,
@@ -574,6 +580,90 @@ def get_twin_comparison_slice(
                 "private, max-age=60"
             ),
         },
+    )
+
+
+
+
+@router.get(
+    "/patients/{patient_id}/anatomical-impact",
+    response_model=(
+        TwinAnatomicalImpactResponse
+    ),
+)
+def get_twin_anatomical_impact(
+    patient_id: int,
+    settings: SettingsDependency,
+) -> TwinAnatomicalImpactResponse:
+    if patient_id <= 0:
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                "patient_id must be positive"
+            ),
+        )
+
+    evaluation = (
+        _load_evaluation(
+            settings
+        )
+    )
+
+    _find_patient(
+        evaluation,
+        patient_id,
+    )
+
+    (
+        freeze_root,
+        evaluation_root,
+    ) = _require_twin_roots(
+        settings
+    )
+
+    try:
+        report = (
+            analyze_twin_anatomical_impact(
+                metadata_root=(
+                    settings.metadata_root
+                ),
+                patients_root=(
+                    settings.patients_root
+                ),
+                atlas_root=(
+                    settings.atlas_root
+                ),
+                cohort_freeze_root=(
+                    freeze_root
+                ),
+                cohort_evaluation_root=(
+                    evaluation_root
+                ),
+                patient_id=patient_id,
+            )
+        )
+
+    except FileNotFoundError as exc:
+        raise HTTPException(
+            status_code=404,
+            detail=str(exc),
+        ) from exc
+
+    except (
+        KeyError,
+        ValueError,
+        RuntimeError,
+    ) as exc:
+        raise HTTPException(
+            status_code=400,
+            detail=str(exc),
+        ) from exc
+
+    return (
+        TwinAnatomicalImpactResponse
+        .from_report(
+            report
+        )
     )
 
 
