@@ -144,3 +144,39 @@ def test_manual_rejection_blocks_preview(
         selection.labelmap_path
         is None
     )
+
+
+
+def test_read_only_selection_does_not_prepare_missing_registration(
+    tmp_path: Path,
+) -> None:
+    selection = (
+        select_patient_atlas(
+            metadata_root=tmp_path,
+            patients_root=tmp_path,
+            atlas_root=tmp_path,
+            patient_id=42,
+            timepoint_name="t1",
+            target_spacing=(
+                2.0,
+                2.0,
+                2.0,
+            ),
+            prepare_if_missing=False,
+        )
+    )
+
+    assert (
+        selection.mode
+        == "unavailable"
+    )
+
+    assert (
+        selection.labelmap_path
+        is None
+    )
+
+    assert (
+        "not prepared yet"
+        in selection.status_message
+    )
