@@ -19,6 +19,10 @@ from gbm_twin.models.latent_state import (
     LatentStateParameters,
     latent_state_from_gtv,
 )
+from gbm_twin.workflows.anatomy_runtime import (
+    ensure_atlas_assets,
+    select_patient_atlas,
+)
 from gbm_twin.workflows.patients import (
     DEFAULT_TARGET_SPACING,
     prepare_patient_timepoint,
@@ -94,13 +98,55 @@ def analyze_patient_anatomy(
                 normalized_timepoint
             ),
             status_message=(
-                "Atlas analysis is not "
-                "configured. Set "
-                "GBM_TWIN_ATLAS_ROOT."
+                "Atlas analysis is disabled."
             ),
         )
 
     try:
+        atlas_root = (
+            ensure_atlas_assets(
+                atlas_root
+            )
+        )
+
+        selection = (
+            select_patient_atlas(
+                metadata_root=(
+                    metadata_root
+                ),
+                patients_root=(
+                    patients_root
+                ),
+                atlas_root=(
+                    atlas_root
+                ),
+                patient_id=(
+                    patient_id
+                ),
+                timepoint_name=(
+                    normalized_timepoint
+                ),
+                target_spacing=(
+                    DEFAULT_TARGET_SPACING
+                ),
+            )
+        )
+
+        if (
+            selection.labelmap_path
+            is None
+        ):
+            return _unavailable_report(
+                patient_id=patient_id,
+                timepoint_name=(
+                    normalized_timepoint
+                ),
+                status_message=(
+                    selection
+                    .status_message
+                ),
+            )
+
         atlas = load_registered_atlas(
             atlas_root,
             patient_id=patient_id,
@@ -113,9 +159,14 @@ def analyze_patient_anatomy(
             expected_affine=(
                 prepared.gtv.affine
             ),
+            labelmap_path=(
+                selection
+                .labelmap_path
+            ),
         )
     except (
         FileNotFoundError,
+        RuntimeError,
         ValueError,
     ) as exc:
         return _unavailable_report(
