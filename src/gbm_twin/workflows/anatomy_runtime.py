@@ -2,7 +2,10 @@ from __future__ import annotations
 
 import json
 import shutil
-from dataclasses import dataclass
+from dataclasses import (
+    dataclass,
+    replace,
+)
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from threading import Lock
@@ -10,6 +13,9 @@ from typing import Literal, cast
 
 from gbm_twin.anatomy.bootstrap import (
     bootstrap_harvard_oxford_atlas,
+)
+from gbm_twin.anatomy.registration import (
+    DEFAULT_REGISTRATION_CONFIG,
 )
 from gbm_twin.workflows.anatomy_registration import (
     prepare_patient_registered_atlas,
@@ -30,6 +36,13 @@ _REQUIRED_ATLAS_FILES = (
 
 _BOOTSTRAP_LOCK = Lock()
 _REGISTRATION_LOCK = Lock()
+
+PREVIEW_REGISTRATION_CONFIG = (
+    replace(
+        DEFAULT_REGISTRATION_CONFIG,
+        enable_bspline=False,
+    )
+)
 
 
 @dataclass(frozen=True)
@@ -339,6 +352,9 @@ def select_patient_atlas(
                     ),
                     target_spacing=(
                         target_spacing
+                    ),
+                    config=(
+                        PREVIEW_REGISTRATION_CONFIG
                     ),
                 )
             )
