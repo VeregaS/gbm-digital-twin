@@ -48,4 +48,12 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 Write-Host ""
+Write-Host "== Render Stage 10 result report =="
+& python scripts\twin\render_stage10_result.py --result-root $OutputDir
+if ($LASTEXITCODE -ne 0) {
+    throw "Stage 10 report rendering failed with exit code $LASTEXITCODE"
+}
+
+Write-Host ""
 Write-Host "Stage 10 checkpoint completed."
+Write-Host "Human-readable report: $OutputDir\STAGE10_RESULT.md"
