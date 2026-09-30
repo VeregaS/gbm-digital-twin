@@ -93,10 +93,14 @@ def _load_region_definitions(
                 "be an object"
             )
 
-        if "label" not in item:
+        if (
+            "label" not in item
+            and "label_value" not in item
+        ):
             raise ValueError(
                 "Atlas region is missing "
-                "'label'"
+                "'label' or legacy "
+                "'label_value'"
             )
 
         if "name" not in item:
@@ -111,9 +115,12 @@ def _load_region_definitions(
                 "'category'"
             )
 
-        label_value = item[
-            "label"
-        ]
+        label_value = item.get(
+            "label",
+            item.get(
+                "label_value"
+            ),
+        )
 
         if not isinstance(
             label_value,
@@ -271,6 +278,7 @@ def load_registered_atlas(
         int,
     ],
     expected_affine: np.ndarray,
+    labelmap_path: Path | None = None,
 ) -> LoadedRegisteredAtlas:
     manifest_path = (
         atlas_root
@@ -283,15 +291,20 @@ def load_registered_atlas(
             f"{manifest_path}"
         )
 
-    labelmap_path = (
-        registered_labelmap_path(
-            atlas_root,
-            patient_id=patient_id,
-            timepoint_name=(
-                timepoint_name
-            ),
+    if labelmap_path is None:
+        labelmap_path = (
+            registered_labelmap_path(
+                atlas_root,
+                patient_id=patient_id,
+                timepoint_name=(
+                    timepoint_name
+                ),
+            )
         )
-    )
+    else:
+        labelmap_path = (
+            labelmap_path.resolve()
+        )
 
     if not labelmap_path.is_file():
         raise FileNotFoundError(
