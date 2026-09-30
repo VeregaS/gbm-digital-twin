@@ -12,8 +12,6 @@ from pathlib import Path
 from statistics import fmean, median
 from typing import cast
 
-import numpy as np
-
 from gbm_twin.data.cfb_treatment import CFBTreatmentMetadata
 from gbm_twin.evaluation.config import load_cohort_experiment_config
 from gbm_twin.evaluation.metrics import (
@@ -23,19 +21,11 @@ from gbm_twin.evaluation.metrics import (
     relative_volume_error,
 )
 from gbm_twin.models.delayed_response import DelayedResponseParameters
+from gbm_twin.models.observation import MRIDetectionObservationParameters
 from gbm_twin.models.radiobiology import RadiobiologyParameters
 from gbm_twin.models.reaction_diffusion import ReactionDiffusionParameters
 from gbm_twin.workflows.provenance import sha256_file
 from gbm_twin.workflows.repository import read_repository_state
-from gbm_twin.workflows.stage10_forecast import simulate_stage10_forecast
-from gbm_twin.workflows.stage10_model_family import (
-    Stage10Candidate,
-    build_stage10_candidates,
-)
-from gbm_twin.workflows.stage10_protocol import (
-    Stage10ProtocolConfig,
-    load_stage10_protocol_config,
-)
 from gbm_twin.workflows.stage8_data_audit import (
     load_sealed_stage8_data_audit,
 )
@@ -49,18 +39,27 @@ from gbm_twin.workflows.stage8_validation import (
 from gbm_twin.workflows.stage9_forecast import simulate_stage9_forecast
 from gbm_twin.workflows.stage9_selection import (
     FrozenStage8Kinetics,
-    _PreparedPatient,
     _development_and_reserve_ids,
     _mask_volume_cm3,
     _observation_parameters,
     _optional_mean,
     _prepare_patients,
+    _PreparedPatient,
     _stage8_frozen_kinetics,
     _trajectory_group,
 )
 from gbm_twin.workflows.stage9_selection_artifact import (
     SelectedStage9Model,
     load_selected_stage9_model,
+)
+from gbm_twin.workflows.stage10_forecast import simulate_stage10_forecast
+from gbm_twin.workflows.stage10_model_family import (
+    Stage10Candidate,
+    build_stage10_candidates,
+)
+from gbm_twin.workflows.stage10_protocol import (
+    Stage10ProtocolConfig,
+    load_stage10_protocol_config,
 )
 
 STAGE10_SELECTION_SCHEMA_VERSION = 1
@@ -438,7 +437,7 @@ def _evaluate_candidate(
     patient: _PreparedPatient,
     kinetics: FrozenStage8Kinetics,
     selected_stage8: SelectedStage8Model,
-    observation: object,
+    observation: MRIDetectionObservationParameters,
     dt_days: float,
 ) -> Stage10PatientCandidateEvaluation:
     radiobiology = (
@@ -510,10 +509,7 @@ def _evaluate_candidate(
                 ),
                 dt_days=dt_days,
                 observation_parameters=(
-                    cast(
-                        object,
-                        observation,
-                    )
+                    observation
                 ),
             )
         )
@@ -543,10 +539,7 @@ def _evaluate_candidate(
                 ),
                 dt_days=dt_days,
                 observation_parameters=(
-                    cast(
-                        object,
-                        observation,
-                    )
+                    observation
                 ),
             )
         )
