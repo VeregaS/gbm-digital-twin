@@ -231,6 +231,23 @@ def test_get_twin_cohort(
 
     assert payload.schema_version == 1
 
+    assert payload.kind == (
+        "v2_cohort_evaluation"
+    )
+
+    assert payload.sealed
+
+    assert (
+        payload.model_version
+        == "V2"
+    )
+
+    assert (
+        payload
+        .source_freeze_manifest_sha256
+        == "a" * 64
+    )
+
     assert payload.dataset.name == (
         "CFB-GBM"
     )

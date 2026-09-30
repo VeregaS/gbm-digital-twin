@@ -29,6 +29,9 @@ from gbm_twin.api.schemas.twin_anatomy import (
 from gbm_twin.api.schemas.twin_qc import (
     TwinPatientQCResponse,
 )
+from gbm_twin.api.schemas.twin_reliability import (
+    TwinForecastReliabilityResponse,
+)
 from gbm_twin.api.schemas.twin_scene3d import (
     TwinViewer3DSceneResponse,
 )
@@ -48,6 +51,9 @@ from gbm_twin.workflows.twin_anatomy import (
 )
 from gbm_twin.workflows.twin_qc import (
     get_twin_patient_qc,
+)
+from gbm_twin.workflows.twin_reliability import (
+    get_twin_forecast_reliability,
 )
 from gbm_twin.workflows.twin_scene3d import (
     get_twin_viewer_3d_scene,
@@ -663,6 +669,87 @@ def get_twin_anatomical_impact(
         TwinAnatomicalImpactResponse
         .from_report(
             report
+        )
+    )
+
+
+
+
+@router.get(
+    "/patients/{patient_id}/reliability",
+    response_model=(
+        TwinForecastReliabilityResponse
+    ),
+)
+def get_twin_reliability(
+    patient_id: int,
+    settings: SettingsDependency,
+) -> TwinForecastReliabilityResponse:
+    if patient_id <= 0:
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                "patient_id must be positive"
+            ),
+        )
+
+    evaluation = (
+        _load_evaluation(
+            settings
+        )
+    )
+
+    _find_patient(
+        evaluation,
+        patient_id,
+    )
+
+    (
+        freeze_root,
+        evaluation_root,
+    ) = _require_twin_roots(
+        settings
+    )
+
+    try:
+        reliability = (
+            get_twin_forecast_reliability(
+                metadata_root=(
+                    settings.metadata_root
+                ),
+                patients_root=(
+                    settings.patients_root
+                ),
+                cohort_freeze_root=(
+                    freeze_root
+                ),
+                cohort_evaluation_root=(
+                    evaluation_root
+                ),
+                patient_id=patient_id,
+            )
+        )
+
+    except FileNotFoundError as exc:
+        raise HTTPException(
+            status_code=404,
+            detail=str(exc),
+        ) from exc
+
+    except (
+        KeyError,
+        ValueError,
+        RuntimeError,
+    ) as exc:
+        raise HTTPException(
+            status_code=400,
+            detail=str(exc),
+        ) from exc
+
+    return (
+        TwinForecastReliabilityResponse
+        .from_reliability(
+            reliability
         )
     )
 

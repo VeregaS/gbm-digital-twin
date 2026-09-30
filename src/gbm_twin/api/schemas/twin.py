@@ -189,6 +189,11 @@ class TwinMethodSummaryResponse(
 class TwinCohortResponse(BaseModel):
     schema_version: int
 
+    kind: str
+    sealed: bool
+    model_version: str
+    source_freeze_manifest_sha256: str
+
     dataset: TwinDatasetResponse
     repository: TwinRepositoryResponse
 
@@ -228,6 +233,23 @@ class TwinCohortResponse(BaseModel):
             schema_version=(
                 payload[
                     "schema_version"
+                ]
+            ),
+            kind=payload[
+                "kind"
+            ],
+            sealed=payload[
+                "sealed"
+            ],
+            model_version=(
+                payload.get(
+                    "model_version",
+                    "V2",
+                )
+            ),
+            source_freeze_manifest_sha256=(
+                payload[
+                    "source_freeze_manifest_sha256"
                 ]
             ),
             dataset=TwinDatasetResponse(
