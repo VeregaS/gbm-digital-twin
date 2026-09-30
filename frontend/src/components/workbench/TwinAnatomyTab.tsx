@@ -15,6 +15,7 @@ import {
 
 import {
   fetchTwinAnatomicalImpact,
+  prepareTwinAnatomicalImpact,
 } from "../../api/twin";
 
 import type {
@@ -32,6 +33,10 @@ type TwinAnatomyTabProps = {
 type RequestState =
   | {
       patientId: number;
+      status: "preparing";
+    }
+  | {
+      patientId: number;
       status: "success";
       report: TwinAnatomicalImpact;
     }
@@ -40,6 +45,32 @@ type RequestState =
       status: "error";
       error: string;
     };
+
+
+function needsPreparation(
+  report: TwinAnatomicalImpact,
+): boolean {
+  return (
+    !report.configured
+    && report.status_message.includes(
+      "not prepared yet",
+    )
+  );
+}
+
+
+function delay(
+  milliseconds: number,
+): Promise<void> {
+  return new Promise(
+    (resolve) => {
+      window.setTimeout(
+        resolve,
+        milliseconds,
+      );
+    },
+  );
+}
 
 
 function TwinAnatomyTab({
@@ -55,45 +86,86 @@ function TwinAnatomyTab({
   useEffect(() => {
     let cancelled = false;
 
-    fetchTwinAnatomicalImpact(
-      patientId,
-    )
-      .then(
-        (report) => {
-          if (cancelled) {
-            return;
-          }
+    const load = async () => {
+      try {
+        let report =
+          await fetchTwinAnatomicalImpact(
+            patientId,
+          );
 
+        if (
+          !cancelled
+          && needsPreparation(
+            report
+          )
+        ) {
+          setRequest({
+            patientId,
+            status: "preparing",
+          });
+
+          await prepareTwinAnatomicalImpact(
+            patientId,
+          );
+
+          for (
+            let attempt = 0;
+            attempt < 180;
+            attempt += 1
+          ) {
+            if (cancelled) {
+              return;
+            }
+
+            await delay(
+              2000,
+            );
+
+            report =
+              await fetchTwinAnatomicalImpact(
+                patientId,
+              );
+
+            if (
+              !needsPreparation(
+                report
+              )
+            ) {
+              break;
+            }
+          }
+        }
+
+        if (!cancelled) {
           setRequest({
             patientId,
             status: "success",
             report,
           });
-        },
-      )
-      .catch(
-        (
-          requestError:
-            unknown,
-        ) => {
-          if (cancelled) {
-            return;
-          }
+        }
+      } catch (
+        requestError: unknown
+      ) {
+        if (cancelled) {
+          return;
+        }
 
-          setRequest({
-            patientId,
-            status: "error",
-            error:
-              requestError
+        setRequest({
+          patientId,
+          status: "error",
+          error:
+            requestError
               instanceof Error
                 ? requestError.message
                 : (
                   "Не удалось загрузить "
                   + "анатомический прогноз"
                 ),
-          });
-        },
-      );
+        });
+      }
+    };
+
+    void load();
 
     return () => {
       cancelled = true;
@@ -116,6 +188,19 @@ function TwinAnatomyTab({
         className="twin-tab-state"
       >
         Загружаем функциональные области…
+      </section>
+    );
+  }
+
+  if (
+    currentRequest.status
+    === "preparing"
+  ) {
+    return (
+      <section
+        className="twin-tab-state"
+      >
+        Подготавливаем atlas preview и регистрацию t1. Интерфейс остаётся доступным; результат появится автоматически.
       </section>
     );
   }
@@ -158,7 +243,7 @@ function TwinAnatomyTab({
             </p>
 
             <span>
-              Для прогнозной вкладки требуется вручную принятая регистрация атласа на t1. Непроверенная регистрация намеренно не используется.
+              Automatic-QC preview разрешён только для исследовательского отображения. Регистрации с QC fail или вручную отклонённые регистрации не используются.
             </span>
           </div>
         </section>
