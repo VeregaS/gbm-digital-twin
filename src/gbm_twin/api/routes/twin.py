@@ -7,6 +7,7 @@ from typing import Annotated, Literal
 
 from fastapi import (
     APIRouter,
+    BackgroundTasks,
     Depends,
     HTTPException,
     Query,
@@ -48,6 +49,7 @@ from gbm_twin.workflows.cohort_results import (
 )
 from gbm_twin.workflows.twin_anatomy import (
     analyze_twin_anatomical_impact,
+    prepare_twin_anatomical_preview,
 )
 from gbm_twin.workflows.twin_qc import (
     get_twin_patient_qc,
@@ -673,6 +675,62 @@ def get_twin_anatomical_impact(
     )
 
 
+
+
+@router.post(
+    "/patients/{patient_id}/anatomical-impact/prepare",
+    status_code=202,
+)
+def prepare_twin_anatomy(
+    patient_id: int,
+    background_tasks: BackgroundTasks,
+    settings: SettingsDependency,
+) -> dict[str, str]:
+    if patient_id <= 0:
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                "patient_id must be positive"
+            ),
+        )
+
+    evaluation = (
+        _load_evaluation(
+            settings
+        )
+    )
+
+    _find_patient(
+        evaluation,
+        patient_id,
+    )
+
+    _, evaluation_root = (
+        _require_twin_roots(
+            settings
+        )
+    )
+
+    background_tasks.add_task(
+        prepare_twin_anatomical_preview,
+        metadata_root=(
+            settings.metadata_root
+        ),
+        patients_root=(
+            settings.patients_root
+        ),
+        atlas_root=(
+            settings.atlas_root
+        ),
+        cohort_evaluation_root=(
+            evaluation_root
+        ),
+        patient_id=patient_id,
+    )
+
+    return {
+        "status": "preparing",
+    }
 
 
 @router.get(
