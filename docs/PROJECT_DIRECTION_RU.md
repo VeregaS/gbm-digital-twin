@@ -124,34 +124,46 @@ Reference benchmark v1 дал:
 calibration на опубликованные TumorTwin ReactionDiffusion3D + LM не решает
 текущую задачу при том же GTV-derived observation state.
 
-Но benchmark v1 не является полной репликацией HGG workflow: ADC-derived
-cellularity не использовалась, а LM оптимизировался на full prepared brain
-grid, тогда как опубликованный workflow использует tumor-centric cropping.
-Поэтому следующий обязательный шаг — **Reference Fidelity v2**, а не Stage 10.
+Benchmark v1 не был полной репликацией HGG workflow, поэтому был выполнен
+предварительно зарегистрированный **Reference Fidelity v2** на тех же уже
+раскрытых 24 development patients.
 
-Reference Fidelity v2 использует только уже раскрытые development data и
-проверяет два вопроса:
+Результат Reference Fidelity v2:
 
-1. меняет ли результат ROI-cropped LM calibration на всех 24 patients;
-2. добавляет ли predictive information TumorTwin-style ADC-derived enhancing
-   cellularity на paired subset с t0+t1 ADC.
+- ROI-cropped TumorTwin LM, 24 patients:
+  mean Dice = `0.636752`, mean delta vs persistence = `-0.056445`,
+  catastrophic failures = `5`;
+- ROI-GTV на paired ADC subset, 9 patients:
+  mean Dice = `0.575452`, catastrophic failures = `3`;
+- TumorTwin-style ADC-derived enhancing cellularity на тех же 9 patients:
+  mean Dice = `0.393779`, mean delta vs persistence = `-0.253006`,
+  catastrophic failures = `5`.
 
-Локальный audit показал 26 materialized patients, 25 longitudinal FLAIR cases
-и 9 longitudinal ADC cases. Для pre-t2 ADC diagnostic в текущем Stage 9
-cohort доступны пациенты:
+ROI cropping не улучшил опубликованный reference относительно benchmark v1,
+а ADC-derived branch в текущей постановке существенно ухудшил paired result.
+Следовательно, ни один из двух заранее заданных критериев перехода к
+calibration/observation rework не выполнен.
 
-`25, 45, 65, 70, 76, 99, 112, 120, 214`.
+По pre-specified decision rule **Stage 10 теперь является следующим
+development-only mechanistic diagnostic**. Он реализован как decoupling
+MRI-visible damaged burden и MRI-invisible inert occupancy и использует только
+те же 24 уже раскрытых development patients.
 
-t2 ADC для этого эксперимента не используется. Raw FLAIR не thresholded и не
-объявляется non-enhancing tumor segmentation без отдельного валидированного
-observation model.
+Stage 10 обязан:
 
-Stage 10 с decoupled damaged/occupancy states остаётся заранее описанным
-fallback-экспериментом, но его реализация приостановлена до результата
-Reference Fidelity v2.
+- бит-в-бит воспроизвести sealed Stage 9 v2 control;
+- проверить только заранее заданные half-life `14/30/60 d`;
+- сохранить D/rho и radiobiology замороженными;
+- продвигать decoupled candidate только при уменьшении catastrophic failures,
+  улучшении regression subgroup и отсутствии material global/growth
+  degradation.
+
+Reference Fidelity v2 использовал ADC только на t0+t1 для пациентов
+`25, 45, 65, 70, 76, 99, 112, 120, 214`. t2 ADC не загружался, raw FLAIR
+не thresholded.
 
 Reserve patients, untouched CFB holdout и Burdenko external-validation cohort
-не должны расходоваться на этот diagnostic.
+остаются закрыты до завершения Stage 10 и заморозки следующей структуры.
 
 ## Направления развития платформы
 

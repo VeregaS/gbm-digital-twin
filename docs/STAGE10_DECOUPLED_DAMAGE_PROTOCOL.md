@@ -2,43 +2,56 @@
 
 ## Current execution status
 
-**Paused after the published-reference checkpoint.**
+**Implemented and ready for the sealed development-only run.**
 
-The protocol below remains the predefined fallback mechanistic experiment, but
-it must not be implemented or run before Reference Fidelity v2 is completed.
-Reference benchmark v1 showed that the pinned TumorTwin solver and upstream LM
-calibration also underperform Stage 9/persistence when forced onto the current
-GTV-derived observation problem. Before adding another latent treatment state,
-the project is therefore testing tumor-centric ROI calibration and pre-t2
-ADC-derived cellularity on the same already exposed development cohort.
+Reference Fidelity v2 is complete. It did not identify a solver/calibration
+support or ADC-derived observation change that improves the current task:
 
-No reserve or untouched-holdout patient should be opened for this pause-stage
-diagnostic.
+- ROI-cropped TumorTwin LM on all 24 development patients:
+  mean Dice `0.636752`, catastrophic failures `5`;
+- paired ROI-GTV on the 9 ADC-eligible patients:
+  mean Dice `0.575452`, catastrophic failures `3`;
+- paired ADC-derived enhancing cellularity:
+  mean Dice `0.393779`, catastrophic failures `5`.
 
-## Status
+Therefore the pre-specified gate is satisfied and Stage 10 is the next
+mechanistic diagnostic.
 
-**Paused before implementation pending the published-reference benchmark.**
+The implementation lives in:
 
-Stage 10 remains a pre-specified mechanistic fallback, not the immediate next
-experiment. The project first compares the current pipeline with the pinned
-TumorTwin reference implementation and audits the locally available mpMRI
-modalities. Stage 10 proceeds only if that benchmark does not identify solver,
-calibration, or observation-model limitations that should be addressed first.
+- `src/gbm_twin/models/decoupled_damage.py`;
+- `src/gbm_twin/workflows/stage10_forecast.py`;
+- `src/gbm_twin/workflows/stage10_selection.py`;
+- `configs/research/stage10_decoupled_damage.yaml`.
+
+The selection workflow refuses to run unless the sealed Reference Fidelity v2
+artifact matches the selected Stage 9 v2 artifact. It also verifies that the
+Stage 10 control reproduces every sealed Stage 9 patient Dice within
+`1e-6`.
 
 Stage 9 v2 hit its predefined 120-day diagnostic ceiling. The selected
 half-life remained the largest tested value and was chosen in all 24
 leave-one-patient-out folds.
 
-Stage 10 is therefore a new **development-only mechanistic diagnostic**. It
-must use the same already exposed 24-patient cohort. Reserve patients and the
-untouched holdout remain sealed.
+Stage 10 remains a **development-only mechanistic diagnostic** on exactly the
+same 24 already exposed patients. Reserve patients and the untouched holdout
+remain sealed.
 
-## Reference-benchmark gate
+## Execution
 
-See `docs/REFERENCE_BENCHMARK_PROTOCOL.md`.
+From a clean repository after the sealed Reference Fidelity v2 artifact is
+present locally:
 
-No new Stage 10 code or reserve-cohort reveal should occur until the benchmark
-has produced a sealed result.
+    powershell -ExecutionPolicy Bypass -File scripts\twin\run_stage10_checkpoint.ps1
+
+The checkpoint runs targeted Stage 10 tests, Ruff, the full pytest suite and
+then the sealed selection.
+
+Expected outputs:
+
+- `results/cohort/stage10-decoupled-selection-v1/stage10_decoupled_selection.json`;
+- `results/cohort/stage10-decoupled-selection-v1/stage10_decoupled_selection.csv`;
+- `results/cohort/stage10-decoupled-selection-v1/stage10_decoupled_selection.sha256`.
 
 ## Failure in the Stage 9 state semantics
 
