@@ -114,6 +114,71 @@ export type TwinCohort = {
 };
 
 
+
+
+export type TwinAnatomicalSeverity =
+  | "high"
+  | "moderate";
+
+
+export type TwinAtlasReview = {
+  timepoint_name: string;
+  verified: boolean;
+  decision: string | null;
+  automatic_qc_status: string | null;
+  reviewed_at_utc: string | null;
+  status_message: string;
+};
+
+
+export type TwinAnatomicalRegionImpact = {
+  severity: TwinAnatomicalSeverity;
+  region_label: number;
+  region_name: string;
+  category: string;
+  laterality: string | null;
+  functional_note: string | null;
+  mask_overlap_cm3: number;
+  density_overlap_cm3: number;
+  min_distance_mm: number | null;
+};
+
+
+export type TwinAnatomicalChangeStatus =
+  | "new"
+  | "persistent"
+  | "resolved";
+
+
+export type TwinAnatomicalChange = {
+  status: TwinAnatomicalChangeStatus;
+  region_label: number;
+  region_name: string;
+  category: string;
+  laterality: string | null;
+  functional_note: string | null;
+  current_severity: TwinAnatomicalSeverity | null;
+  forecast_severity: TwinAnatomicalSeverity | null;
+};
+
+
+export type TwinAnatomicalImpact = {
+  patient_id: number;
+  current_timepoint: string;
+  forecast_timepoint: string;
+  configured: boolean;
+  atlas_name: string | null;
+  status_message: string;
+  registration: TwinAtlasReview;
+  current: TwinAnatomicalRegionImpact[];
+  forecast: TwinAnatomicalRegionImpact[];
+  changes: TwinAnatomicalChange[];
+  latent_level: number;
+  proximity_threshold_mm: number;
+  disclaimer: string;
+};
+
+
 export type TwinPredictionMethod =
   | "twin"
   | "persistence"
@@ -420,6 +485,23 @@ export function fetchTwin3DScene(
     (
       `/api/twin/patients/${patientId}`
       + "/scene3d"
+    ),
+  );
+}
+
+
+
+
+export function fetchTwinAnatomicalImpact(
+  patientId: number,
+): Promise<TwinAnatomicalImpact> {
+  return requestJson<
+    TwinAnatomicalImpact
+  >(
+    (
+      "/api/twin/patients/"
+      + patientId
+      + "/anatomical-impact"
     ),
   );
 }

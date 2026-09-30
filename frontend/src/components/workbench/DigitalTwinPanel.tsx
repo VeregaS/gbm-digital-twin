@@ -28,6 +28,7 @@ import type {
   ViewerVolumeMetadata,
 } from "../../api/types";
 
+import TwinAnatomyTab from "./TwinAnatomyTab";
 import TwinCohortAnalysisTab from "./TwinCohortAnalysisTab";
 import TwinCompareTab from "./TwinCompareTab";
 import TwinOverviewTab from "./TwinOverviewTab";
@@ -39,6 +40,7 @@ type TwinTab =
   | "overview"
   | "timeline"
   | "compare"
+  | "anatomy"
   | "qc"
   | "cohort_analysis";
 
@@ -254,7 +256,7 @@ function DigitalTwinPanel({
               size={15}
             />
 
-            Зафиксированный прогноз V2
+            Зафиксированный исследовательский прогноз
           </div>
 
           <h2>
@@ -323,6 +325,13 @@ function DigitalTwinPanel({
         />
 
         <TabButton
+          label="Функциональные области"
+          value="anatomy"
+          active={tab}
+          onChange={setTab}
+        />
+
+        <TabButton
           label={
             currentRequest.qc
             ?.warnings.length
@@ -373,6 +382,14 @@ function DigitalTwinPanel({
           }
           viewer={
             currentRequest.viewer
+          }
+        />
+      )}
+
+      {tab === "anatomy" && (
+        <TwinAnatomyTab
+          patientId={
+            patient.patient_id
           }
         />
       )}
