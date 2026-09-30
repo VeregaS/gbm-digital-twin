@@ -253,7 +253,11 @@ function ConfiguredImpact({
 
           <div>
             <strong>
-              Регистрация проверена
+              {
+                report.registration.verified
+                  ? "Регистрация проверена"
+                  : "Предварительная регистрация"
+              }
             </strong>
 
             <span>
@@ -264,6 +268,30 @@ function ConfiguredImpact({
           </div>
         </div>
       </section>
+
+      {!report.registration.verified && (
+        <section
+          className="twin-anatomy-unavailable"
+        >
+          <Info
+            size={19}
+          />
+
+          <div>
+            <strong>
+              Автоматический atlas preview
+            </strong>
+
+            <p>
+              Регистрация прошла автоматический QC и используется только для исследовательского предпросмотра.
+            </p>
+
+            <span>
+              До ручного review этот результат не считается verified anatomical registration.
+            </span>
+          </div>
+        </section>
+      )}
 
       <section
         className="twin-anatomy-summary-grid"
