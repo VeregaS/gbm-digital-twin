@@ -550,6 +550,26 @@ export function fetchTwinAnatomicalImpact(
 }
 
 
+export function prepareTwinAnatomicalImpact(
+  patientId: number,
+): Promise<{
+  status: string;
+}> {
+  return requestJson<{
+    status: string;
+  }>(
+    (
+      "/api/twin/patients/"
+      + patientId
+      + "/anatomical-impact/prepare"
+    ),
+    {
+      method: "POST",
+    },
+  );
+}
+
+
 
 
 export function fetchTwinReliability(
