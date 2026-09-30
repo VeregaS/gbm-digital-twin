@@ -78,6 +78,11 @@ export type TwinMethodSummary = {
 export type TwinCohort = {
   schema_version: number;
 
+  kind: string;
+  sealed: boolean;
+  model_version: string;
+  source_freeze_manifest_sha256: string;
+
   dataset: {
     name: string;
     version: number;
@@ -176,6 +181,44 @@ export type TwinAnatomicalImpact = {
   latent_level: number;
   proximity_threshold_mm: number;
   disclaimer: string;
+};
+
+
+
+
+export type TwinForecastReliabilityStatus =
+  | "nominal"
+  | "caution"
+  | "limited";
+
+
+export type TwinForecastReliabilityFactor = {
+  code: string;
+  level:
+    | "caution"
+    | "limited";
+  message: string;
+};
+
+
+export type TwinForecastReliability = {
+  patient_id: number;
+  status: TwinForecastReliabilityStatus;
+  model_version: string;
+  protocol_version: string;
+  sealed: boolean;
+  source_git_commit_sha: string;
+  source_git_dirty: boolean;
+  forecast_horizon_days: number;
+  calibration_identifiable: boolean;
+  diffusion_at_boundary: boolean;
+  proliferation_at_boundary: boolean;
+  prediction_empty: boolean;
+  prediction_component_count: number;
+  prediction_largest_component_fraction: number | null;
+  prediction_outside_brain_fraction: number | null;
+  factors: TwinForecastReliabilityFactor[];
+  interpretation: string;
 };
 
 
@@ -502,6 +545,23 @@ export function fetchTwinAnatomicalImpact(
       "/api/twin/patients/"
       + patientId
       + "/anatomical-impact"
+    ),
+  );
+}
+
+
+
+
+export function fetchTwinReliability(
+  patientId: number,
+): Promise<TwinForecastReliability> {
+  return requestJson<
+    TwinForecastReliability
+  >(
+    (
+      "/api/twin/patients/"
+      + patientId
+      + "/reliability"
     ),
   );
 }

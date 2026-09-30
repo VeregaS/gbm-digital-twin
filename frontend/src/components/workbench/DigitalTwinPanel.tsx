@@ -12,6 +12,7 @@ import {
   fetchTwinCohort,
   fetchTwinPatient,
   fetchTwinQC,
+  fetchTwinReliability,
   fetchTwinViewerMetadata,
   twinEvaluationCsvUrl,
   twinEvaluationJsonUrl,
@@ -19,6 +20,7 @@ import {
 
 import type {
   TwinCohort,
+  TwinForecastReliability,
   TwinPatientEvaluation,
   TwinPatientQC,
 } from "../../api/twin";
@@ -54,6 +56,15 @@ type QCResult = {
 };
 
 
+type ReliabilityResult = {
+  reliability:
+    TwinForecastReliability | null;
+
+  error:
+    string | null;
+};
+
+
 type RequestState =
   | {
       patientId: number;
@@ -72,6 +83,12 @@ type RequestState =
         TwinPatientQC | null;
 
       qcError:
+        string | null;
+
+      reliability:
+        TwinForecastReliability | null;
+
+      reliabilityError:
         string | null;
     }
   | {
@@ -134,6 +151,31 @@ function DigitalTwinPanel({
             }),
           );
 
+    const reliabilityPromise:
+      Promise<ReliabilityResult> =
+        fetchTwinReliability(
+          patient.patient_id,
+        )
+          .then(
+            (reliability) => ({
+              reliability,
+              error: null,
+            }),
+          )
+          .catch(
+            (
+              requestError:
+                unknown,
+            ) => ({
+              reliability: null,
+              error:
+                requestError
+                instanceof Error
+                  ? requestError.message
+                  : "Не удалось загрузить pre-t2 quality gate",
+            }),
+          );
+
     Promise.all([
       fetchTwinPatient(
         patient.patient_id,
@@ -143,6 +185,7 @@ function DigitalTwinPanel({
       ),
       fetchTwinCohort(),
       qcPromise,
+      reliabilityPromise,
     ])
       .then(
         ([
@@ -150,6 +193,7 @@ function DigitalTwinPanel({
           viewer,
           cohort,
           qcResult,
+          reliabilityResult,
         ]) => {
           if (cancelled) {
             return;
@@ -166,6 +210,11 @@ function DigitalTwinPanel({
               qcResult.qc,
             qcError:
               qcResult.error,
+            reliability:
+              reliabilityResult
+              .reliability,
+            reliabilityError:
+              reliabilityResult.error,
           });
         },
       )
@@ -257,6 +306,58 @@ function DigitalTwinPanel({
             />
 
             Зафиксированный исследовательский прогноз
+          </div>
+
+          <div
+            className="twin-model-provenance"
+          >
+            <span>
+              {
+                currentRequest.reliability
+                  ?.model_version
+                ?? currentRequest
+                  .cohort
+                  .model_version
+              }
+            </span>
+
+            {currentRequest.reliability && (
+              <span>
+                {
+                  currentRequest
+                  .reliability
+                  .protocol_version
+                }
+              </span>
+            )}
+
+            <span>
+              {
+                currentRequest
+                .cohort
+                .sealed
+                  ? "sealed"
+                  : "unsealed"
+              }
+            </span>
+
+            <span>
+              commit{" "}
+              {
+                (
+                  currentRequest
+                  .reliability
+                  ?.source_git_commit_sha
+                ?? currentRequest
+                  .cohort
+                  .repository
+                  .commit_sha
+                ).slice(
+                  0,
+                  8,
+                )
+              }
+            </span>
           </div>
 
           <h2>
@@ -361,6 +462,13 @@ function DigitalTwinPanel({
           }
           cohort={
             currentRequest.cohort
+          }
+          reliability={
+            currentRequest.reliability
+          }
+          reliabilityError={
+            currentRequest
+            .reliabilityError
           }
         />
       )}

@@ -1,0 +1,141 @@
+.twin-model-provenance {
+  margin-top: 9px;
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.twin-model-provenance span {
+  padding: 4px 7px;
+  color: var(--text-secondary);
+  background: var(--surface-subtle);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 8px;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+}
+
+.twin-reliability-card {
+  padding: 16px 18px;
+  display: grid;
+  gap: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.twin-reliability-card.nominal {
+  border-color: #bbf7d0;
+  background: #f7fff9;
+}
+
+.twin-reliability-card.caution {
+  border-color: #fde68a;
+  background: #fffdf5;
+}
+
+.twin-reliability-card.limited {
+  border-color: #fecaca;
+  background: #fff8f8;
+}
+
+.twin-reliability-card.unavailable {
+  background: var(--surface-subtle);
+}
+
+.twin-reliability-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.twin-reliability-header > div:first-child {
+  display: grid;
+  gap: 3px;
+}
+
+.twin-reliability-header span,
+.twin-reliability-card > div > span {
+  color: var(--text-tertiary);
+  font-size: 8px;
+  font-weight: 650;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.twin-reliability-header strong {
+  font-size: 12px;
+}
+
+.twin-reliability-model {
+  display: grid;
+  justify-items: end;
+  gap: 2px;
+}
+
+.twin-reliability-model b {
+  font-size: 10px;
+}
+
+.twin-reliability-model span {
+  text-transform: none;
+}
+
+.twin-reliability-facts {
+  display: flex;
+  gap: 8px 16px;
+  flex-wrap: wrap;
+}
+
+.twin-reliability-facts span {
+  color: var(--text-secondary);
+  font-size: 9px;
+}
+
+.twin-reliability-facts strong {
+  color: var(--text-primary);
+}
+
+.twin-reliability-factors {
+  display: grid;
+  gap: 7px;
+}
+
+.twin-reliability-factors > div {
+  padding: 8px 10px;
+  display: grid;
+  gap: 2px;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  border-radius: var(--radius-sm);
+}
+
+.twin-reliability-factors strong {
+  font-size: 9px;
+}
+
+.twin-reliability-factors span,
+.twin-reliability-card p,
+.twin-reliability-card small {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 9px;
+  line-height: 1.5;
+}
+
+.twin-reliability-card small {
+  color: var(--text-tertiary);
+  font-size: 8px;
+}
+
+@media (max-width: 760px) {
+  .twin-reliability-header {
+    flex-direction: column;
+  }
+
+  .twin-reliability-model {
+    justify-items: start;
+  }
+}

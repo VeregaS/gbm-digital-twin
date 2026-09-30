@@ -4,6 +4,7 @@ import type {
 
 import type {
   TwinCohort,
+  TwinForecastReliability,
   TwinMethodMetrics,
   TwinPatientEvaluation,
 } from "../../api/twin";
@@ -18,6 +19,12 @@ type TwinOverviewTabProps = {
 
   cohort:
     TwinCohort;
+
+  reliability:
+    TwinForecastReliability | null;
+
+  reliabilityError:
+    string | null;
 };
 
 
@@ -25,6 +32,8 @@ function TwinOverviewTab({
   patient,
   evaluation,
   cohort,
+  reliability,
+  reliabilityError,
 }: TwinOverviewTabProps) {
   const diceDelta = (
     evaluation.twin.dice
@@ -71,6 +80,15 @@ function TwinOverviewTab({
           Параметры модели калибруются по данным до момента прогноза. Реальная сегментация t2 не используется при построении прогноза: она открывается только после фиксации результата и служит для независимой оценки.
         </p>
       </section>
+
+      <ReliabilityCard
+        reliability={
+          reliability
+        }
+        error={
+          reliabilityError
+        }
+      />
 
       <section
         className="twin-patient-metric-grid"
@@ -277,6 +295,239 @@ function TwinOverviewTab({
       </div>
     </div>
   );
+}
+
+
+function ReliabilityCard({
+  reliability,
+  error,
+}: {
+  reliability:
+    TwinForecastReliability | null;
+  error: string | null;
+}) {
+  if (reliability === null) {
+    return (
+      <section
+        className="twin-reliability-card unavailable"
+      >
+        <div>
+          <span>
+            Pre-t2 quality gate
+          </span>
+
+          <strong>
+            Недоступен
+          </strong>
+        </div>
+
+        <p>
+          {error
+            ?? "Не удалось получить техническую оценку надёжности прогноза."}
+        </p>
+      </section>
+    );
+  }
+
+  return (
+    <section
+      className={
+        "twin-reliability-card "
+        + reliability.status
+      }
+    >
+      <div
+        className="twin-reliability-header"
+      >
+        <div>
+          <span>
+            Pre-t2 quality gate
+          </span>
+
+          <strong>
+            {
+              reliabilityStatusLabel(
+                reliability.status,
+              )
+            }
+          </strong>
+        </div>
+
+        <div
+          className="twin-reliability-model"
+        >
+          <b>
+            {reliability.model_version}
+          </b>
+
+          <span>
+            {reliability.protocol_version}
+          </span>
+        </div>
+      </div>
+
+      <div
+        className="twin-reliability-facts"
+      >
+        <span>
+          D/ρ идентифицируемы:{" "}
+          <strong>
+            {
+              reliability
+              .calibration_identifiable
+                ? "да"
+                : "нет"
+            }
+          </strong>
+        </span>
+
+        <span>
+          D на границе:{" "}
+          <strong>
+            {
+              reliability
+              .diffusion_at_boundary
+                ? "да"
+                : "нет"
+            }
+          </strong>
+        </span>
+
+        <span>
+          ρ на границе:{" "}
+          <strong>
+            {
+              reliability
+              .proliferation_at_boundary
+                ? "да"
+                : "нет"
+            }
+          </strong>
+        </span>
+
+        <span>
+          Горизонт:{" "}
+          <strong>
+            {
+              reliability
+              .forecast_horizon_days
+              .toFixed(0)
+            } дн.
+          </strong>
+        </span>
+      </div>
+
+      {reliability.factors.length > 0 ? (
+        <div
+          className="twin-reliability-factors"
+        >
+          {reliability.factors.map(
+            (factor) => (
+              <div
+                key={
+                  factor.code
+                }
+              >
+                <strong>
+                  {
+                    reliabilityFactorLabel(
+                      factor.code,
+                    )
+                  }
+                </strong>
+
+                <span>
+                  {
+                    reliabilityFactorMessage(
+                      factor.code,
+                      factor.message,
+                    )
+                  }
+                </span>
+              </div>
+            ),
+          )}
+        </div>
+      ) : (
+        <p>
+          Известных технических флагов, доступных до раскрытия t2, не обнаружено.
+        </p>
+      )}
+
+      <small>
+        Это не вероятность правильности и не клиническая уверенность. Статус не использует реальную опухоль на t2.
+      </small>
+    </section>
+  );
+}
+
+
+function reliabilityStatusLabel(
+  status:
+    TwinForecastReliability[
+      "status"
+    ],
+): string {
+  switch (status) {
+    case "nominal":
+      return "Без известных технических флагов";
+    case "caution":
+      return "Есть технические оговорки";
+    case "limited":
+      return "Надёжность ограничена";
+  }
+}
+
+
+function reliabilityFactorLabel(
+  code: string,
+): string {
+  switch (code) {
+    case "calibration_non_identifiable":
+      return "Калибровка неидентифицируема";
+    case "diffusion_at_boundary":
+      return "D на границе поиска";
+    case "proliferation_at_boundary":
+      return "ρ на границе поиска";
+    case "prediction_empty":
+      return "Пустой прогноз";
+    case "prediction_outside_t1_brain":
+      return "Прогноз выходит за t1 brain mask";
+    case "prediction_fragmented":
+      return "Фрагментированный прогноз";
+    case "dirty_source_tree":
+      return "Dirty provenance";
+    default:
+      return code.replaceAll(
+        "_",
+        " ",
+      );
+  }
+}
+
+
+function reliabilityFactorMessage(
+  code: string,
+  fallback: string,
+): string {
+  switch (code) {
+    case "calibration_non_identifiable":
+      return "По данным t0→t1 параметры D и ρ не были однозначно заключены внутри исследованной области параметров.";
+    case "diffusion_at_boundary":
+      return "Выбранный коэффициент диффузии находится на границе исследованной сетки.";
+    case "proliferation_at_boundary":
+      return "Выбранная скорость пролиферации находится на границе исследованной сетки.";
+    case "prediction_empty":
+      return "Зафиксированный прогноз не содержит положительных опухолевых вокселей.";
+    case "prediction_outside_t1_brain":
+      return "Часть зафиксированного прогноза лежит вне brain mask, доступной на t1.";
+    case "prediction_fragmented":
+      return "Прогноз состоит из нескольких пространственно разделённых компонент.";
+    case "dirty_source_tree":
+      return "Прогноз был зафиксирован из рабочего дерева с незакоммиченными изменениями.";
+    default:
+      return fallback;
+  }
 }
 
 

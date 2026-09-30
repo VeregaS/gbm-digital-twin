@@ -5,6 +5,7 @@ import './cohort-analysis.css'
 import App from './App.tsx'
 import './compare-stability.css'
 import './twin-anatomy.css'
+import './twin-reliability.css'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
