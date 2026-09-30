@@ -33,20 +33,52 @@ def _voxel_volume_cm3(
     )
 
 
-def _minimum_distance_to_region(
+def _distance_from_source(
     source_mask: np.ndarray,
-    region_mask: np.ndarray,
     *,
     spacing: tuple[
         float,
         float,
         float,
     ],
-) -> float | None:
+) -> np.ndarray | None:
     source = np.asarray(
         source_mask,
         dtype=bool,
     )
+
+    if not np.any(
+        source
+    ):
+        return None
+
+    result = (
+        distance_transform_edt(
+            ~source,
+            sampling=spacing,
+            return_distances=True,
+            return_indices=False,
+        )
+    )
+
+    if result is None:
+        raise RuntimeError(
+            "SciPy distance transform "
+            "did not return distances"
+        )
+
+    return np.asarray(
+        result,
+        dtype=np.float64,
+    )
+
+
+def _minimum_region_distance(
+    distance_from_source: np.ndarray | None,
+    region_mask: np.ndarray,
+) -> float | None:
+    if distance_from_source is None:
+        return None
 
     region = np.asarray(
         region_mask,
@@ -54,67 +86,29 @@ def _minimum_distance_to_region(
     )
 
     if (
-        source.shape
+        distance_from_source.shape
         != region.shape
     ):
         raise ValueError(
-            "source_mask and region_mask "
+            "distance map and region mask "
             "must use the same grid"
         )
 
-    if not np.any(
-        source
-    ):
-        return None
-
-    if not np.any(
-        region
-    ):
-        return None
-
-    if np.any(
-        source
-        & region
-    ):
-        return 0.0
-
-    distance_result = (
-        distance_transform_edt(
-            ~region,
-            sampling=spacing,
-            return_distances=True,
-            return_indices=False,
-        )
-    )
-
-    if distance_result is None:
-        raise RuntimeError(
-            "SciPy distance transform "
-            "did not return distances"
-        )
-
-    distance_to_region = (
-        np.asarray(
-            distance_result,
-            dtype=np.float64,
-        )
-    )
-
-    source_distances = (
-        distance_to_region[
-            source
+    region_distances = (
+        distance_from_source[
+            region
         ]
     )
 
     if (
-        source_distances.size
+        region_distances.size
         == 0
     ):
         return None
 
     return float(
         np.min(
-            source_distances
+            region_distances
         )
     )
 
@@ -345,6 +339,13 @@ def compute_anatomical_risk(
         )
     )
 
+    distance_from_observed = (
+        _distance_from_source(
+            observed,
+            spacing=spacing,
+        )
+    )
+
     warnings: list[
         AnatomicalWarning
     ] = []
@@ -393,10 +394,9 @@ def compute_anatomical_risk(
         )
 
         min_distance_mm = (
-            _minimum_distance_to_region(
-                observed,
+            _minimum_region_distance(
+                distance_from_observed,
                 region_mask,
-                spacing=spacing,
             )
         )
 
