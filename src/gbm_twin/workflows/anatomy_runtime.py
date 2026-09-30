@@ -190,6 +190,7 @@ def select_patient_atlas(
         float,
         float,
     ],
+    prepare_if_missing: bool = True,
 ) -> PatientAtlasSelection:
     normalized_timepoint = (
         timepoint_name
@@ -322,6 +323,22 @@ def select_patient_atlas(
             ),
         )
 
+    if (
+        not prepare_if_missing
+        and (
+            not candidate_path.is_file()
+            or not registration_path.is_file()
+        )
+    ):
+        return PatientAtlasSelection(
+            mode="unavailable",
+            labelmap_path=None,
+            automatic_qc_status=None,
+            status_message=(
+                "Atlas registration is not prepared yet."
+            ),
+        )
+
     with _REGISTRATION_LOCK:
         if (
             candidate_path.is_file()
@@ -411,4 +428,41 @@ def select_patient_atlas(
         status_message=(
             "Automatic-QC atlas preview. Manual review is still pending."
         ),
+    )
+
+
+
+def prepare_patient_atlas_preview(
+    *,
+    metadata_root: Path,
+    patients_root: Path,
+    atlas_root: Path,
+    patient_id: int,
+    timepoint_name: str,
+    target_spacing: tuple[
+        float,
+        float,
+        float,
+    ],
+) -> PatientAtlasSelection:
+    prepared_atlas_root = (
+        ensure_atlas_assets(
+            atlas_root
+        )
+    )
+
+    return select_patient_atlas(
+        metadata_root=metadata_root,
+        patients_root=patients_root,
+        atlas_root=(
+            prepared_atlas_root
+        ),
+        patient_id=patient_id,
+        timepoint_name=(
+            timepoint_name
+        ),
+        target_spacing=(
+            target_spacing
+        ),
+        prepare_if_missing=True,
     )
