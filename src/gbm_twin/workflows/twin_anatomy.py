@@ -22,7 +22,6 @@ from gbm_twin.models.latent_state import (
     latent_state_from_gtv,
 )
 from gbm_twin.workflows.anatomy_runtime import (
-    ensure_atlas_assets,
     select_patient_atlas,
 )
 from gbm_twin.workflows.cohort_results import (
@@ -506,12 +505,6 @@ def analyze_twin_anatomical_impact(
     )
 
     try:
-        atlas_root = (
-            ensure_atlas_assets(
-                atlas_root
-            )
-        )
-
         selection = (
             select_patient_atlas(
                 metadata_root=(
@@ -530,6 +523,7 @@ def analyze_twin_anatomical_impact(
                 target_spacing=(
                     spacing
                 ),
+                prepare_if_missing=False,
             )
         )
     except (
