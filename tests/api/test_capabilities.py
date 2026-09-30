@@ -186,7 +186,7 @@ def test_capabilities_report_available_features(
         ]["reason"]
 
 
-def test_capabilities_require_atlas(
+def test_capabilities_allow_on_demand_atlas(
     tmp_path: Path,
 ) -> None:
     settings = make_settings(
@@ -216,12 +216,9 @@ def test_capabilities_require_atlas(
         "viewer"
     ]["available"]
 
-    assert not payload[
-        "anatomy"
-    ]["available"]
-
     assert payload[
         "anatomy"
-    ]["reason"] == (
-        "Anatomical atlas is not configured."
-    )
+    ] == {
+        "available": True,
+        "reason": None,
+    }
