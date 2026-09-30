@@ -21,6 +21,10 @@ from gbm_twin.models.latent_state import (
     LatentStateParameters,
     latent_state_from_gtv,
 )
+from gbm_twin.workflows.anatomy_runtime import (
+    ensure_atlas_assets,
+    select_patient_atlas,
+)
 from gbm_twin.workflows.cohort_results import (
     load_sealed_cohort_evaluation,
 )
@@ -493,34 +497,123 @@ def analyze_twin_anatomical_impact(
                 forecast_timepoint
             ),
             status_message=(
-                "Atlas analysis is not configured. "
-                "Set GBM_TWIN_ATLAS_ROOT."
+                "Atlas analysis is disabled."
             ),
         )
 
-    registration = (
-        verify_t1_atlas_review(
-            atlas_root=atlas_root,
-            patient_id=patient_id,
-        )
+    spacing = target_spacing(
+        payload
     )
 
-    if not registration.verified:
+    try:
+        atlas_root = (
+            ensure_atlas_assets(
+                atlas_root
+            )
+        )
+
+        selection = (
+            select_patient_atlas(
+                metadata_root=(
+                    metadata_root
+                ),
+                patients_root=(
+                    patients_root
+                ),
+                atlas_root=(
+                    atlas_root
+                ),
+                patient_id=(
+                    patient_id
+                ),
+                timepoint_name="t1",
+                target_spacing=(
+                    spacing
+                ),
+            )
+        )
+    except (
+        FileNotFoundError,
+        RuntimeError,
+        ValueError,
+    ) as exc:
+        return _unavailable_report(
+            patient_id=patient_id,
+            forecast_timepoint=(
+                forecast_timepoint
+            ),
+            status_message=str(
+                exc
+            ),
+        )
+
+    if (
+        selection.labelmap_path
+        is None
+    ):
+        registration = (
+            _unavailable_review(
+                status_message=(
+                    selection
+                    .status_message
+                )
+            )
+        )
+
         return _unavailable_report(
             patient_id=patient_id,
             forecast_timepoint=(
                 forecast_timepoint
             ),
             status_message=(
-                registration
+                selection
                 .status_message
             ),
             registration=registration,
         )
 
-    spacing = target_spacing(
-        payload
-    )
+    if (
+        selection.mode
+        == "manual"
+    ):
+        registration = (
+            verify_t1_atlas_review(
+                atlas_root=atlas_root,
+                patient_id=patient_id,
+            )
+        )
+
+        if not registration.verified:
+            return _unavailable_report(
+                patient_id=patient_id,
+                forecast_timepoint=(
+                    forecast_timepoint
+                ),
+                status_message=(
+                    registration
+                    .status_message
+                ),
+                registration=registration,
+            )
+    else:
+        registration = (
+            TwinAtlasReviewEvidence(
+                timepoint_name="t1",
+                verified=False,
+                decision=(
+                    "automatic-preview"
+                ),
+                automatic_qc_status=(
+                    selection
+                    .automatic_qc_status
+                ),
+                reviewed_at_utc=None,
+                status_message=(
+                    selection
+                    .status_message
+                ),
+            )
+        )
 
     current = prepare_patient_timepoint(
         metadata_root=metadata_root,
@@ -539,6 +632,10 @@ def analyze_twin_anatomical_impact(
         ),
         expected_affine=(
             current.gtv.affine
+        ),
+        labelmap_path=(
+            selection
+            .labelmap_path
         ),
     )
 
@@ -657,7 +754,14 @@ def analyze_twin_anatomical_impact(
         atlas_name=atlas.name,
         status_message=(
             "Current t1 and frozen forecast were analyzed on the same "
-            "manually accepted patient-space t1 atlas."
+            + (
+                "manually accepted patient-space t1 atlas."
+                if registration.verified
+                else (
+                    "automatic-QC patient-space t1 atlas preview. "
+                    "Manual review is still pending."
+                )
+            )
         ),
         registration=registration,
         current=current_impacts,
