@@ -1,8 +1,8 @@
-from gbm_twin.workflows.stage10_model_family import (
-    build_stage10_candidates,
-)
 from gbm_twin.workflows.stage9_model_family import (
     Stage9DelayedCandidate,
+)
+from gbm_twin.workflows.stage10_model_family import (
+    build_stage10_candidates,
 )
 
 
