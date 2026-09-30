@@ -156,3 +156,72 @@ def test_twin_anatomical_impact_endpoint(
     ][0][
         "status"
     ] == "new"
+
+
+
+def test_twin_anatomy_prepare_endpoint(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    captured: dict[
+        str,
+        object,
+    ] = {}
+
+    monkeypatch.setattr(
+        twin_routes,
+        "_load_evaluation",
+        lambda settings: object(),
+    )
+
+    monkeypatch.setattr(
+        twin_routes,
+        "_find_patient",
+        lambda evaluation, patient_id: {
+            "patient_id": patient_id,
+        },
+    )
+
+    monkeypatch.setattr(
+        twin_routes,
+        "_require_twin_roots",
+        lambda settings: (
+            tmp_path / "freeze",
+            tmp_path / "evaluation",
+        ),
+    )
+
+    def fake_prepare(
+        **kwargs: object,
+    ) -> None:
+        captured.update(
+            kwargs
+        )
+
+    monkeypatch.setattr(
+        twin_routes,
+        "prepare_twin_anatomical_preview",
+        fake_prepare,
+    )
+
+    client = TestClient(
+        create_app(
+            _settings(
+                tmp_path
+            )
+        )
+    )
+
+    response = client.post(
+        "/api/twin/patients/42/"
+        "anatomical-impact/prepare"
+    )
+
+    assert response.status_code == 202
+    assert response.json() == {
+        "status": "preparing",
+    }
+
+    assert captured[
+        "patient_id"
+    ] == 42
