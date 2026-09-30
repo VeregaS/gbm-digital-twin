@@ -12,6 +12,7 @@ import {
 
 import {
   fetchAnatomicalRisk,
+  prepareAnatomicalRisk,
 } from "../api/client";
 
 import type {
@@ -30,6 +31,11 @@ type AnatomicalRiskRequestState =
   | {
       patientId: number;
       timepointName: string;
+      status: "preparing";
+    }
+  | {
+      patientId: number;
+      timepointName: string;
       status: "success";
       report: AnatomicalRiskReport;
     }
@@ -39,6 +45,32 @@ type AnatomicalRiskRequestState =
       status: "error";
       error: string;
     };
+
+
+function needsPreparation(
+  report: AnatomicalRiskReport,
+): boolean {
+  return (
+    !report.configured
+    && report.status_message.includes(
+      "not prepared yet",
+    )
+  );
+}
+
+
+function delay(
+  milliseconds: number,
+): Promise<void> {
+  return new Promise(
+    (resolve) => {
+      window.setTimeout(
+        resolve,
+        milliseconds,
+      );
+    },
+  );
+}
 
 
 function AnatomicalWarningsPanel({
@@ -56,46 +88,92 @@ function AnatomicalWarningsPanel({
   useEffect(() => {
     let cancelled = false;
 
-    fetchAnatomicalRisk(
-      patientId,
-      timepointName,
-    )
-      .then(
-        (result) => {
-          if (!cancelled) {
-            setRequest({
-              patientId,
-              timepointName,
-              status: "success",
-              report: result,
-            });
-          }
-        },
-      )
-      .catch(
-        (
-          requestError:
-            unknown,
-        ) => {
-          if (cancelled) {
-            return;
-          }
+    const load = async () => {
+      try {
+        let result =
+          await fetchAnatomicalRisk(
+            patientId,
+            timepointName,
+          );
 
+        if (
+          !cancelled
+          && needsPreparation(
+            result
+          )
+        ) {
           setRequest({
             patientId,
             timepointName,
-            status: "error",
-            error:
-              requestError
-                instanceof Error
+            status: "preparing",
+          });
+
+          await prepareAnatomicalRisk(
+            patientId,
+            timepointName,
+          );
+
+          for (
+            let attempt = 0;
+            attempt < 180;
+            attempt += 1
+          ) {
+            if (cancelled) {
+              return;
+            }
+
+            await delay(
+              2000,
+            );
+
+            result =
+              await fetchAnatomicalRisk(
+                patientId,
+                timepointName,
+              );
+
+            if (
+              !needsPreparation(
+                result
+              )
+            ) {
+              break;
+            }
+          }
+        }
+
+        if (!cancelled) {
+          setRequest({
+            patientId,
+            timepointName,
+            status: "success",
+            report: result,
+          });
+        }
+      } catch (
+        requestError: unknown
+      ) {
+        if (cancelled) {
+          return;
+        }
+
+        setRequest({
+          patientId,
+          timepointName,
+          status: "error",
+          error:
+            requestError
+              instanceof Error
                 ? requestError.message
                 : (
                   "Failed to load "
                   + "anatomical analysis"
                 ),
-          });
-        },
-      );
+        });
+      }
+    };
+
+    void load();
 
     return () => {
       cancelled = true;
@@ -128,6 +206,10 @@ function AnatomicalWarningsPanel({
   const loading =
     currentRequest === null;
 
+  const preparing =
+    currentRequest?.status
+    === "preparing";
+
 
   return (
     <aside className="anatomy-panel">
@@ -153,6 +235,10 @@ function AnatomicalWarningsPanel({
       {loading ? (
         <div className="anatomy-panel-state">
           Loading atlas analysis…
+        </div>
+      ) : preparing ? (
+        <div className="anatomy-panel-state">
+          Подготавливаем atlas preview и регистрацию пациента…
         </div>
       ) : error ? (
         <div className="anatomy-panel-state error">
