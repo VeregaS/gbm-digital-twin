@@ -22,6 +22,7 @@ from gbm_twin.models.latent_state import (
     latent_state_from_gtv,
 )
 from gbm_twin.workflows.anatomy_runtime import (
+    prepare_patient_atlas_preview,
     select_patient_atlas,
 )
 from gbm_twin.workflows.cohort_results import (
@@ -764,6 +765,47 @@ def analyze_twin_anatomical_impact(
             build_anatomical_changes(
                 current_impacts,
                 forecast_impacts,
+            )
+        ),
+    )
+
+
+
+def prepare_twin_anatomical_preview(
+    *,
+    metadata_root: Path,
+    patients_root: Path,
+    atlas_root: Path | None,
+    cohort_evaluation_root: Path,
+    patient_id: int,
+) -> None:
+    if atlas_root is None:
+        raise ValueError(
+            "Atlas analysis is disabled."
+        )
+
+    evaluation = (
+        load_sealed_cohort_evaluation(
+            cohort_evaluation_root
+        )
+    )
+
+    payload = evaluation.manifest
+
+    find_evaluated_patient(
+        payload,
+        patient_id,
+    )
+
+    prepare_patient_atlas_preview(
+        metadata_root=metadata_root,
+        patients_root=patients_root,
+        atlas_root=atlas_root,
+        patient_id=patient_id,
+        timepoint_name="t1",
+        target_spacing=(
+            target_spacing(
+                payload
             )
         ),
     )
