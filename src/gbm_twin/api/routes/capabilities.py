@@ -73,37 +73,13 @@ def capabilities(
             reason
         )
 
-    atlas_root = (
-        settings.atlas_root
-    )
-
-    anatomy_ready = (
-        atlas_root is not None
-        and (
-            atlas_root
-            / "manifest.json"
-        ).is_file()
-        and (
-            atlas_root
-            / "template_t1.nii.gz"
-        ).is_file()
-        and (
-            atlas_root
-            / "template_labels.nii.gz"
-        ).is_file()
-    )
-
     if not dataset_ready:
         anatomy = _no(
             "CFB-GBM dataset is not configured."
         )
-    elif not anatomy_ready:
-        anatomy = _no(
-            "Anatomical atlas is not configured."
-        )
     else:
         anatomy = _yes()
-        
+
     freeze_root = (
         settings.cohort_freeze_root
     )
