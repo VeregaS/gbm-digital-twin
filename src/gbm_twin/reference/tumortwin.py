@@ -10,7 +10,6 @@ from typing import Literal, cast
 
 import numpy as np
 
-
 TUMORTWIN_REPOSITORY = "https://github.com/OncologyModelingGroup/TumorTwin.git"
 TUMORTWIN_COMMIT = "bedf90a6d47ba48cf5cdb25901967d84730061d1"
 
