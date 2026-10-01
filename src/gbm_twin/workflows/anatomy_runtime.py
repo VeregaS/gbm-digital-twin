@@ -16,6 +16,7 @@ from gbm_twin.anatomy.bootstrap import (
 )
 from gbm_twin.anatomy.registration import (
     DEFAULT_REGISTRATION_CONFIG,
+    RegistrationQualityError,
 )
 from gbm_twin.workflows.anatomy_registration import (
     prepare_patient_registered_atlas,
@@ -112,6 +113,74 @@ def _quality_status(
         )
 
     return status
+
+
+def _registration_used_bspline(
+    registration_path: Path,
+) -> bool:
+    payload = _json_mapping(
+        registration_path
+    )
+
+    config = payload.get(
+        "config"
+    )
+
+    if not isinstance(
+        config,
+        dict,
+    ):
+        return False
+
+    return (
+        config.get(
+            "enable_bspline"
+        )
+        is True
+    )
+
+
+def _prepare_registration(
+    *,
+    metadata_root: Path,
+    patients_root: Path,
+    atlas_root: Path,
+    patient_id: int,
+    timepoint_name: str,
+    target_spacing: tuple[
+        float,
+        float,
+        float,
+    ],
+    full: bool,
+):
+    return (
+        prepare_patient_registered_atlas(
+            metadata_root=(
+                metadata_root
+            ),
+            patients_root=(
+                patients_root
+            ),
+            atlas_root=(
+                atlas_root
+            ),
+            patient_id=(
+                patient_id
+            ),
+            timepoint_name=(
+                timepoint_name
+            ),
+            target_spacing=(
+                target_spacing
+            ),
+            config=(
+                DEFAULT_REGISTRATION_CONFIG
+                if full
+                else PREVIEW_REGISTRATION_CONFIG
+            ),
+        )
+    )
 
 
 def ensure_atlas_assets(
@@ -409,32 +478,104 @@ def select_patient_atlas(
                     registration_path
                 )
             )
-        else:
-            result = (
-                prepare_patient_registered_atlas(
-                    metadata_root=(
-                        metadata_root
-                    ),
-                    patients_root=(
-                        patients_root
-                    ),
-                    atlas_root=(
-                        atlas_root
-                    ),
-                    patient_id=(
-                        patient_id
-                    ),
-                    timepoint_name=(
-                        normalized_timepoint
-                    ),
-                    target_spacing=(
-                        target_spacing
-                    ),
-                    config=(
-                        PREVIEW_REGISTRATION_CONFIG
-                    ),
+
+            if (
+                quality_status
+                == "fail"
+                and prepare_if_missing
+                and not (
+                    _registration_used_bspline(
+                        registration_path
+                    )
                 )
-            )
+            ):
+                result = (
+                    _prepare_registration(
+                        metadata_root=(
+                            metadata_root
+                        ),
+                        patients_root=(
+                            patients_root
+                        ),
+                        atlas_root=(
+                            atlas_root
+                        ),
+                        patient_id=(
+                            patient_id
+                        ),
+                        timepoint_name=(
+                            normalized_timepoint
+                        ),
+                        target_spacing=(
+                            target_spacing
+                        ),
+                        full=True,
+                    )
+                )
+
+                candidate_path = (
+                    result
+                    .candidate_labels_path
+                )
+
+                quality_status = (
+                    result
+                    .quality
+                    .status
+                    .strip()
+                    .lower()
+                )
+
+        else:
+            try:
+                result = (
+                    _prepare_registration(
+                        metadata_root=(
+                            metadata_root
+                        ),
+                        patients_root=(
+                            patients_root
+                        ),
+                        atlas_root=(
+                            atlas_root
+                        ),
+                        patient_id=(
+                            patient_id
+                        ),
+                        timepoint_name=(
+                            normalized_timepoint
+                        ),
+                        target_spacing=(
+                            target_spacing
+                        ),
+                        full=False,
+                    )
+                )
+
+            except RegistrationQualityError:
+                result = (
+                    _prepare_registration(
+                        metadata_root=(
+                            metadata_root
+                        ),
+                        patients_root=(
+                            patients_root
+                        ),
+                        atlas_root=(
+                            atlas_root
+                        ),
+                        patient_id=(
+                            patient_id
+                        ),
+                        timepoint_name=(
+                            normalized_timepoint
+                        ),
+                        target_spacing=(
+                            target_spacing
+                        ),
+                        full=True,
+                    )
+                )
 
             candidate_path = (
                 result
