@@ -1,6 +1,10 @@
 import json
 from pathlib import Path
+from types import SimpleNamespace
 
+import pytest
+
+import gbm_twin.workflows.anatomy_runtime as anatomy_runtime
 from gbm_twin.workflows.anatomy_runtime import (
     select_patient_atlas,
 )
@@ -278,4 +282,108 @@ def test_read_only_selection_reports_failed_preparation(
     assert (
         "synthetic failure"
         in selection.status_message
+    )
+
+
+
+def test_failed_linear_preview_retries_full_registration(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    registration_dir = (
+        tmp_path
+        / "patients"
+        / "42"
+        / "t1"
+    )
+
+    registration_dir.mkdir(
+        parents=True,
+    )
+
+    candidate = (
+        registration_dir
+        / "labels_candidate.nii.gz"
+    )
+
+    candidate.write_bytes(
+        b"candidate"
+    )
+
+    (
+        registration_dir
+        / "registration.json"
+    ).write_text(
+        json.dumps(
+            {
+                "quality": {
+                    "status": "fail",
+                },
+                "config": {
+                    "enable_bspline": False,
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    calls: list[
+        bool
+    ] = []
+
+    def fake_prepare(
+        **kwargs: object,
+    ) -> SimpleNamespace:
+        calls.append(
+            bool(
+                kwargs[
+                    "full"
+                ]
+            )
+        )
+
+        return SimpleNamespace(
+            candidate_labels_path=(
+                candidate
+            ),
+            quality=(
+                SimpleNamespace(
+                    status="warn"
+                )
+            ),
+        )
+
+    monkeypatch.setattr(
+        anatomy_runtime,
+        "_prepare_registration",
+        fake_prepare,
+    )
+
+    selection = (
+        select_patient_atlas(
+            metadata_root=tmp_path,
+            patients_root=tmp_path,
+            atlas_root=tmp_path,
+            patient_id=42,
+            timepoint_name="t1",
+            target_spacing=(
+                2.0,
+                2.0,
+                2.0,
+            ),
+        )
+    )
+
+    assert calls == [
+        True,
+    ]
+
+    assert (
+        selection.mode
+        == "automatic-preview"
+    )
+
+    assert (
+        selection.automatic_qc_status
+        == "warn"
     )
