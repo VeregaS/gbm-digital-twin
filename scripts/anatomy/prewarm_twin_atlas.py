@@ -3,6 +3,9 @@ from __future__ import annotations
 import argparse
 from typing import cast
 
+from gbm_twin.anatomy.registration import (
+    RegistrationQualityError,
+)
 from gbm_twin.api.config import ApiSettings
 from gbm_twin.workflows.anatomy_runtime import (
     prepare_patient_atlas_preview,
@@ -146,6 +149,13 @@ def main() -> int:
         payload
     )
 
+    blocked: list[
+        tuple[
+            int,
+            str,
+        ]
+    ] = []
+
     failures: list[
         tuple[
             int,
@@ -186,6 +196,23 @@ def main() -> int:
                 )
             )
 
+        except RegistrationQualityError as exc:
+            blocked.append(
+                (
+                    patient_id,
+                    str(
+                        exc
+                    ),
+                )
+            )
+
+            print(
+                f"[atlas]   blocked by QC: {exc}",
+                flush=True,
+            )
+
+            continue
+
         except Exception as exc:
             failures.append(
                 (
@@ -202,6 +229,21 @@ def main() -> int:
             )
 
             continue
+
+        if (
+            selection.mode
+            == "unavailable"
+            and selection
+            .automatic_qc_status
+            == "fail"
+        ):
+            blocked.append(
+                (
+                    patient_id,
+                    selection
+                    .status_message,
+                )
+            )
 
         print(
             "[atlas]   "
@@ -228,7 +270,23 @@ def main() -> int:
     )
 
     print(
-        "Failures:",
+        "Blocked by QC:",
+        len(
+            blocked
+        ),
+    )
+
+    if blocked:
+        for (
+            patient_id,
+            message,
+        ) in blocked:
+            print(
+                f"  {patient_id}: {message}"
+            )
+
+    print(
+        "Errors:",
         len(
             failures
         ),
