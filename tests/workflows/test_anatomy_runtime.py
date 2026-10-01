@@ -180,3 +180,102 @@ def test_read_only_selection_does_not_prepare_missing_registration(
         "not prepared yet"
         in selection.status_message
     )
+
+
+
+def test_read_only_selection_reports_running_preparation(
+    tmp_path: Path,
+) -> None:
+    registration_dir = (
+        tmp_path
+        / "patients"
+        / "42"
+        / "t1"
+    )
+
+    registration_dir.mkdir(
+        parents=True,
+    )
+
+    (
+        registration_dir
+        / "preparation.json"
+    ).write_text(
+        json.dumps(
+            {
+                "state": "running",
+                "message": "working",
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    selection = (
+        select_patient_atlas(
+            metadata_root=tmp_path,
+            patients_root=tmp_path,
+            atlas_root=tmp_path,
+            patient_id=42,
+            timepoint_name="t1",
+            target_spacing=(
+                2.0,
+                2.0,
+                2.0,
+            ),
+            prepare_if_missing=False,
+        )
+    )
+
+    assert (
+        "being prepared"
+        in selection.status_message
+    )
+
+
+def test_read_only_selection_reports_failed_preparation(
+    tmp_path: Path,
+) -> None:
+    registration_dir = (
+        tmp_path
+        / "patients"
+        / "42"
+        / "t1"
+    )
+
+    registration_dir.mkdir(
+        parents=True,
+    )
+
+    (
+        registration_dir
+        / "preparation.json"
+    ).write_text(
+        json.dumps(
+            {
+                "state": "failed",
+                "message": "synthetic failure",
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    selection = (
+        select_patient_atlas(
+            metadata_root=tmp_path,
+            patients_root=tmp_path,
+            atlas_root=tmp_path,
+            patient_id=42,
+            timepoint_name="t1",
+            target_spacing=(
+                2.0,
+                2.0,
+                2.0,
+            ),
+            prepare_if_missing=False,
+        )
+    )
+
+    assert (
+        "synthetic failure"
+        in selection.status_message
+    )
