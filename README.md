@@ -43,7 +43,7 @@ baselines + cohort metrics + failure analysis
 - Reference Fidelity v2;
 - Stage 10 decoupled-damage diagnostic implementation.
 
-Python и frontend проверяются GitHub Actions. После последнего Stage 10 integration patch полный Python suite содержит **438 passing tests**; frontend проходит ESLint и production build.
+Python и frontend проверяются GitHub Actions: Ruff + полный pytest suite, а также ESLint + production frontend build.
 
 ## Научный статус
 
@@ -119,6 +119,7 @@ results/cohort/stage10-decoupled-selection-v1/
     stage10_decoupled_selection.json
     stage10_decoupled_selection.csv
     stage10_decoupled_selection.sha256
+    STAGE10_RESULT.md
 ```
 
 Подробный protocol: [docs/STAGE10_DECOUPLED_DAMAGE_PROTOCOL.md](docs/STAGE10_DECOUPLED_DAMAGE_PROTOCOL.md).
@@ -131,12 +132,12 @@ results/cohort/stage10-decoupled-selection-v1/
 CURRENT
 observed t1 GTV + t1 latent state
               ↓
-      accepted t1 atlas
+ patient-space t1 atlas
 
 FORECAST
 frozen prediction field/mask
               ↓
-      same accepted t1 atlas
+ same patient-space t1 atlas
 ```
 
 Таким образом predicted anatomical impact **не использует observed t2 anatomy**.
@@ -156,26 +157,37 @@ frozen prediction field/mask
 
 ### Registration safety gate
 
-Функциональный анализ включается только для t1 atlas registration, которая прошла:
+Первое открытие anatomy больше не держит длинный HTTP-запрос. Если patient-space atlas ещё не готов, frontend запускает подготовку отдельно и опрашивает статус, сохраняя интерфейс доступным.
+
+Есть два уровня:
 
 ```text
 atlas registration candidate
         ↓
 automatic QC
+   pass / warn / fail
         ↓
-manual review
+research preview
+        ↓
+optional manual review
    accepted / rejected
         ↓
-canonical labels.nii.gz
+verified labels.nii.gz
 ```
 
-Accepted registration дополнительно проверяется по SHA-256:
+- `pass/warn` может использоваться как явно помеченный **automatic-QC research preview**;
+- `fail` никогда не используется;
+- manual `rejected` никогда не используется;
+- manual `accepted` создаёт verified canonical `labels.nii.gz`;
+- accepted registration дополнительно проверяется по SHA-256 candidate и registration provenance.
 
-- canonical `labels.nii.gz` должен совпадать с reviewed candidate;
-- `registration.json` должен совпадать с reviewed provenance;
-- automatic QC `fail` нельзя принять.
+Для быстрого показа sealed cohort atlas-кэш можно заранее прогреть:
 
-Без verified accepted t1 registration прогноз функциональных областей остаётся недоступным.
+```powershell
+python scripts\anatomy\prewarm_twin_atlas.py
+```
+
+Automatic preview использует linear registration; full deformable pipeline остаётся доступен для ручного verified workflow.
 
 ## Pre-t2 forecast quality gate
 
@@ -243,7 +255,7 @@ $env:GBM_TWIN_CFB_PATIENTS_ROOT = "D:\Datasets\CFB-GBM\patients"
 $env:GBM_TWIN_CFB_METADATA_ROOT = "D:\Datasets\CFB-GBM"
 ```
 
-Atlas является optional capability:
+По умолчанию atlas workspace используется из `data/anatomy/atlas` и при необходимости bootstrap'ится автоматически. Путь можно переопределить:
 
 ```powershell
 $env:GBM_TWIN_ATLAS_ROOT = "D:\Projects\gbm-digital-twin\data\anatomy\atlas"
@@ -349,6 +361,7 @@ Sealed evaluation verifies source freeze manifests and per-patient prediction ma
 - [REFERENCE_FIDELITY_V2.md](docs/REFERENCE_FIDELITY_V2.md) — predefined fidelity protocol;
 - [REFERENCE_FIDELITY_V2_RESULT.md](docs/REFERENCE_FIDELITY_V2_RESULT.md) — sealed fidelity result;
 - [STAGE10_DECOUPLED_DAMAGE_PROTOCOL.md](docs/STAGE10_DECOUPLED_DAMAGE_PROTOCOL.md) — текущий next experiment;
+- [OBSERVATION_MODEL_NEXT_CYCLE.md](docs/OBSERVATION_MODEL_NEXT_CYCLE.md) — заранее зафиксированный fallback, только если Stage 10 не проходит;
 - [MVP_PROTOCOL_V2.md](docs/MVP_PROTOCOL_V2.md) — исторический frozen V2 protocol.
 
 ## Ближайшая scientific развилка
