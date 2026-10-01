@@ -76,20 +76,6 @@ def analyze_patient_anatomy(
             "t0, t1 or t2"
         )
 
-    prepared = (
-        prepare_patient_timepoint(
-            metadata_root=metadata_root,
-            patients_root=patients_root,
-            patient_id=patient_id,
-            timepoint_name=(
-                normalized_timepoint
-            ),
-            target_spacing=(
-                DEFAULT_TARGET_SPACING
-            ),
-        )
-    )
-
     if atlas_root is None:
         return _unavailable_report(
             patient_id=patient_id,
@@ -140,6 +126,20 @@ def analyze_patient_anatomy(
                     .status_message
                 ),
             )
+
+        prepared = (
+            prepare_patient_timepoint(
+                metadata_root=metadata_root,
+                patients_root=patients_root,
+                patient_id=patient_id,
+                timepoint_name=(
+                    normalized_timepoint
+                ),
+                target_spacing=(
+                    DEFAULT_TARGET_SPACING
+                ),
+            )
+        )
 
         atlas = load_registered_atlas(
             atlas_root,
