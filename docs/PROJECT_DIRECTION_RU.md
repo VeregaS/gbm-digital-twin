@@ -165,6 +165,17 @@ Reference Fidelity v2 использовал ADC только на t0+t1 для 
 Reserve patients, untouched CFB holdout и Burdenko external-validation cohort
 остаются закрыты до завершения Stage 10 и заморозки следующей структуры.
 
+Stage 10 checkpoint автоматически формирует sealed JSON/CSV/SHA-256 и
+human-readable `STAGE10_RESULT.md`. Если решение равно
+`no_decoupled_candidate_advanced`, дальнейшее добавление RT compartments
+останавливается. Следующий цикл заранее ограничен observation-layer работой,
+описанной в `docs/OBSERVATION_MODEL_NEXT_CYCLE.md`: pre-t2 multimodal audit,
+defensible FLAIR representation, ADC только как дополнительная информация и
+uncertainty из near-optimal t0→t1 calibration solutions.
+
+Если Stage 10 candidate проходит gate, сначала фиксируется структура модели и
+пишется reserve-validation plan; новые reserve outcomes до этого не открываются.
+
 ## Направления развития платформы
 
 После стабилизации predictive core проект должен развиваться как исследовательская платформа.
