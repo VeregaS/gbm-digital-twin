@@ -8,7 +8,7 @@
 
 Актуальная линия разработки: `feat/twin-protocol`.
 
-На 30 сентября 2026 года проект включает полноценный longitudinal pipeline:
+На 1 октября 2026 года проект включает полноценный longitudinal pipeline:
 
 ```text
 t0 MRI/GTV
@@ -41,7 +41,8 @@ baselines + cohort metrics + failure analysis
 - Stage 8 / Stage 9 model-selection workflows;
 - published TumorTwin reference benchmark;
 - Reference Fidelity v2;
-- Stage 10 decoupled-damage diagnostic implementation.
+- завершённый Stage 10 decoupled-damage selection;
+- sealed Stage 10 reserve-validation workflow.
 
 Python и frontend проверяются GitHub Actions: Ruff + полный pytest suite, а также ESLint + production frontend build.
 
@@ -80,49 +81,63 @@ ROI cropping не улучшил reference result, а tested ADC branch не п�
 
 ### Stage 10
 
-По заранее заданному decision rule следующим experiment является Stage 10: разделение MRI-visible damaged burden и MRI-invisible inert occupancy.
+Stage 10 завершён на тех же 24 уже раскрытых development patients.
 
-Модель:
+Selected model:
 
-```text
-v — viable/proliferating density
-d — MRI-visible damaged burden
-q — MRI-invisible inert occupancy
-m — persistent proliferation modifier
+`stage10-decoupled-half-life-60d`
 
-visible = clip(v + d, 0, 1)
-occupancy = clip(v + d + q, 0, 1)
-```
+Sealed selection SHA-256:
 
-Stage 10:
+`2bff489685dd2d8ed9d28f8ce2abe55214475ade8ce287f73d0bc8e19f6b4326`
 
-- не добавляет новый patient-specific fitted parameter;
-- сохраняет frozen D/rho;
-- сохраняет frozen radiobiology;
-- использует exact Stage 9 v2 как control;
-- проверяет только predefined `14/30/60 d` visible-damage half-lives;
-- требует уменьшения catastrophic failures и улучшения regression subgroup;
-- не открывает reserve или untouched holdout.
+Результат:
 
-Код и checkpoint готовы. Реальный 24-patient run требует локальные medical data/artifacts и поэтому не выполняется в GitHub Actions.
+- mean Dice: `0.696845`;
+- median Dice: `0.755809`;
+- mean delta vs persistence: `+0.003649`;
+- mean HD95: `11.0844 mm`;
+- mean relative volume error: `0.663907`;
+- catastrophic failures: `0`;
+- regression mean delta vs persistence: `+0.006040`;
+- growth mean delta vs persistence: `+0.004390`.
 
-Запуск на машине с подготовленными CFB данными:
+Stage 9 control на тех же пациентах имел mean Dice `0.681404`, mean delta
+vs persistence `-0.011792` и `2` catastrophic failures.
+
+То есть Stage 10 прошёл заранее заданный development gate. Это ещё не
+подтверждение generalization: следующий обязательный шаг — проверка frozen
+модели на ранее не открытых reserve patients.
+
+Frozen model и reserve protocol:
+
+- `configs/research/stage10_frozen_model.yaml`;
+- `configs/research/stage10_reserve_validation.yaml`.
+
+Reserve checkpoint использует deterministic stratified subset из `16` из
+`48` unopened reserve patients и запечатывает cohort до чтения t2.
+
+Запуск:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File scripts\twin\run_stage10_checkpoint.ps1
+powershell -ExecutionPolicy Bypass -File scripts\twin\run_stage10_reserve_validation.ps1
 ```
 
-Ожидаемые артефакты:
+Expected outputs:
 
 ```text
-results/cohort/stage10-decoupled-selection-v1/
-    stage10_decoupled_selection.json
-    stage10_decoupled_selection.csv
-    stage10_decoupled_selection.sha256
-    STAGE10_RESULT.md
+results/cohort/stage10-reserve-validation-plan-v1/
+results/cohort/stage10-internal-validation-v1/
+    stage10_internal_validation.json
+    stage10_internal_validation.csv
+    stage10_internal_validation.sha256
+    STAGE10_VALIDATION_RESULT.md
 ```
 
-Подробный protocol: [docs/STAGE10_DECOUPLED_DAMAGE_PROTOCOL.md](docs/STAGE10_DECOUPLED_DAMAGE_PROTOCOL.md).
+Подробности:
+
+- [docs/STAGE10_RESULT.md](docs/STAGE10_RESULT.md);
+- [docs/STAGE10_RESERVE_VALIDATION_PROTOCOL.md](docs/STAGE10_RESERVE_VALIDATION_PROTOCOL.md).
 
 ## Anatomical / functional-region workspace
 
@@ -360,15 +375,20 @@ Sealed evaluation verifies source freeze manifests and per-patient prediction ma
 - [REFERENCE_BENCHMARK_V1_RESULT.md](docs/REFERENCE_BENCHMARK_V1_RESULT.md) — published-reference checkpoint;
 - [REFERENCE_FIDELITY_V2.md](docs/REFERENCE_FIDELITY_V2.md) — predefined fidelity protocol;
 - [REFERENCE_FIDELITY_V2_RESULT.md](docs/REFERENCE_FIDELITY_V2_RESULT.md) — sealed fidelity result;
-- [STAGE10_DECOUPLED_DAMAGE_PROTOCOL.md](docs/STAGE10_DECOUPLED_DAMAGE_PROTOCOL.md) — текущий next experiment;
-- [OBSERVATION_MODEL_NEXT_CYCLE.md](docs/OBSERVATION_MODEL_NEXT_CYCLE.md) — заранее зафиксированный fallback, только если Stage 10 не проходит;
+- [STAGE10_DECOUPLED_DAMAGE_PROTOCOL.md](docs/STAGE10_DECOUPLED_DAMAGE_PROTOCOL.md) — frozen development protocol;
+- [STAGE10_RESULT.md](docs/STAGE10_RESULT.md) — sealed Stage 10 development result;
+- [STAGE10_RESERVE_VALIDATION_PROTOCOL.md](docs/STAGE10_RESERVE_VALIDATION_PROTOCOL.md) — текущий next experiment;
+- [OBSERVATION_MODEL_NEXT_CYCLE.md](docs/OBSERVATION_MODEL_NEXT_CYCLE.md) — conditional fallback для будущего development cycle;
 - [MVP_PROTOCOL_V2.md](docs/MVP_PROTOCOL_V2.md) — исторический frozen V2 protocol.
 
 ## Ближайшая scientific развилка
 
-После реального Stage 10 run:
+Stage 10 development selection уже завершён и прошёл gate. Текущая развилка —
+**reserve internal validation frozen 60-day decoupled model**.
 
-- если decoupled candidate уменьшает catastrophic failures, улучшает regression subgroup и проходит guardrails — структура фиксируется до reserve validation;
-- если Stage 10 не проходит — дальнейшее добавление RT compartments прекращается, а следующий development cycle переносится на MRI observation model / defensible multimodal representation и uncertainty.
+- если reserve checkpoint проходит все pre-specified guardrails — модель может
+  двигаться к untouched CFB holdout без изменения параметров;
+- если checkpoint не проходит — revealed reserve patients используются только
+  для failure analysis; frozen Stage 10 нельзя post-hoc подстраивать под них.
 
-Reserve cohort и untouched holdout до этого не расходуются.
+Untouched holdout и Burdenko до решения по reserve validation остаются закрыты.
