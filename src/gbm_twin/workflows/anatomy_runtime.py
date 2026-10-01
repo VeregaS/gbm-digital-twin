@@ -227,6 +227,11 @@ def select_patient_atlas(
         / "review.json"
     )
 
+    preparation_path = (
+        registration_dir
+        / "preparation.json"
+    )
+
     if review_path.is_file():
         try:
             review = _json_mapping(
@@ -330,6 +335,61 @@ def select_patient_atlas(
             or not registration_path.is_file()
         )
     ):
+        if preparation_path.is_file():
+            try:
+                preparation = (
+                    _json_mapping(
+                        preparation_path
+                    )
+                )
+
+                state = str(
+                    preparation.get(
+                        "state",
+                        "",
+                    )
+                ).strip().lower()
+
+                message = str(
+                    preparation.get(
+                        "message",
+                        "",
+                    )
+                ).strip()
+
+                if state == "running":
+                    return PatientAtlasSelection(
+                        mode="unavailable",
+                        labelmap_path=None,
+                        automatic_qc_status=None,
+                        status_message=(
+                            "Atlas registration is being prepared."
+                        ),
+                    )
+
+                if state == "failed":
+                    return PatientAtlasSelection(
+                        mode="unavailable",
+                        labelmap_path=None,
+                        automatic_qc_status=None,
+                        status_message=(
+                            "Atlas preparation failed"
+                            + (
+                                f": {message}"
+                                if message
+                                else "."
+                            )
+                        ),
+                    )
+
+            except (
+                json.JSONDecodeError,
+                OSError,
+                TypeError,
+                ValueError,
+            ):
+                pass
+
         return PatientAtlasSelection(
             mode="unavailable",
             labelmap_path=None,
@@ -445,24 +505,101 @@ def prepare_patient_atlas_preview(
         float,
     ],
 ) -> PatientAtlasSelection:
-    prepared_atlas_root = (
-        ensure_atlas_assets(
-            atlas_root
-        )
+    normalized_timepoint = (
+        timepoint_name
+        .strip()
+        .lower()
     )
 
-    return select_patient_atlas(
-        metadata_root=metadata_root,
-        patients_root=patients_root,
-        atlas_root=(
-            prepared_atlas_root
-        ),
-        patient_id=patient_id,
-        timepoint_name=(
-            timepoint_name
-        ),
-        target_spacing=(
-            target_spacing
-        ),
-        prepare_if_missing=True,
+    registration_dir = (
+        atlas_root.resolve()
+        / "patients"
+        / str(
+            patient_id
+        )
+        / normalized_timepoint
     )
+
+    registration_dir.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
+    preparation_path = (
+        registration_dir
+        / "preparation.json"
+    )
+
+    preparation_path.write_text(
+        json.dumps(
+            {
+                "state": "running",
+                "message": (
+                    "Preparing atlas assets "
+                    "and patient registration."
+                ),
+            },
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    try:
+        prepared_atlas_root = (
+            ensure_atlas_assets(
+                atlas_root
+            )
+        )
+
+        selection = (
+            select_patient_atlas(
+                metadata_root=metadata_root,
+                patients_root=patients_root,
+                atlas_root=(
+                    prepared_atlas_root
+                ),
+                patient_id=patient_id,
+                timepoint_name=(
+                    normalized_timepoint
+                ),
+                target_spacing=(
+                    target_spacing
+                ),
+                prepare_if_missing=True,
+            )
+        )
+
+    except BaseException as exc:
+        preparation_path.write_text(
+            json.dumps(
+                {
+                    "state": "failed",
+                    "message": str(
+                        exc
+                    ),
+                },
+                indent=2,
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+
+        raise
+
+    preparation_path.write_text(
+        json.dumps(
+            {
+                "state": "ready",
+                "message": (
+                    selection
+                    .status_message
+                ),
+            },
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    return selection
