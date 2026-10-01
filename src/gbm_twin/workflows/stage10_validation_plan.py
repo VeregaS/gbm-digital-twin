@@ -362,10 +362,8 @@ def _required_paths(
                 "brain_mask",
             ):
                 paths.append(
-                    (
-                        f"{patient_id}/{timepoint}/"
-                        f"{prefix}_{suffix}.nii.gz"
-                    )
+                    f"{patient_id}/{timepoint}/"
+                    f"{prefix}_{suffix}.nii.gz"
                 )
 
         if require_spatial_rtdose:
