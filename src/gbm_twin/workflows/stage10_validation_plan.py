@@ -14,6 +14,9 @@ from gbm_twin.workflows.provenance import (
 from gbm_twin.workflows.stage8_data_audit import (
     load_sealed_stage8_data_audit,
 )
+from gbm_twin.workflows.stage8_selection_artifact import (
+    load_selected_stage8_model,
+)
 from gbm_twin.workflows.stage10_selection_artifact import (
     load_selected_stage10_model,
 )
@@ -401,6 +404,12 @@ def create_stage10_validation_plan(
         )
     )
 
+    selected_stage8 = (
+        load_selected_stage8_model(
+            stage8_selection_root
+        )
+    )
+
     selected = (
         load_selected_stage10_model(
             stage10_selection_root
@@ -444,6 +453,15 @@ def create_stage10_validation_plan(
             / "stage8_model_selection.json"
         )
     )
+
+    if (
+        selected_stage8
+        .stage8_data_audit_sha256
+        != audit_sha
+    ):
+        raise ValueError(
+            "Stage 8 selection does not match the sealed data audit"
+        )
 
     if (
         selected
@@ -646,38 +664,6 @@ def create_stage10_validation_plan(
             encoding="ascii",
         )
 
-        require_spatial_rtdose = False
-
-        raw_stage8 = json.loads(
-            (
-                stage8_selection_root.resolve()
-                / "stage8_model_selection.json"
-            ).read_text(
-                encoding="utf-8"
-            )
-        )
-
-        if isinstance(
-            raw_stage8,
-            dict,
-        ):
-            selected_candidate = (
-                raw_stage8.get(
-                    "selected_candidate"
-                )
-            )
-
-            if isinstance(
-                selected_candidate,
-                dict,
-            ):
-                require_spatial_rtdose = bool(
-                    selected_candidate.get(
-                        "use_spatial_rtdose",
-                        False,
-                    )
-                )
-
         (
             temporary
             / "stage10_validation_required_paths.txt"
@@ -687,7 +673,9 @@ def create_stage10_validation_plan(
                     _required_paths(
                         patient_ids,
                         require_spatial_rtdose=(
-                            require_spatial_rtdose
+                            selected_stage8
+                            .candidate
+                            .use_spatial_rtdose
                         ),
                     )
                 )
