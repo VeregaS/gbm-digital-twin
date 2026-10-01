@@ -243,7 +243,10 @@ def render_stage10_markdown(
         "",
         "## Summary",
         "",
-        "| Candidate | Kind | Mean Dice | Δ vs persistence | Catastrophic | Regression Δ | Growth Δ | RVE | HD95 mm |",
+        (
+            "| Candidate | Kind | Mean Dice | Δ vs persistence | "
+            "Catastrophic | Regression Δ | Growth Δ | RVE | HD95 mm |"
+        ),
         "| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
     ]
 
