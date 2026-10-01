@@ -52,8 +52,13 @@ function needsPreparation(
 ): boolean {
   return (
     !report.configured
-    && report.status_message.includes(
-      "not prepared yet",
+    && (
+      report.status_message.includes(
+        "not prepared yet",
+      )
+      || report.status_message.includes(
+        "being prepared",
+      )
     )
   );
 }
