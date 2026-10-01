@@ -75,106 +75,87 @@ population distributions → virtual patients → virtual cohort → in silico t
 
 Нельзя добавлять patient-specific свободные параметры только ради улучшения уже раскрытого t2.
 
-## Текущее научное состояние после Stage 9
+## Текущее научное состояние после Stage 10
 
-Stage 9 подтвердил, что delayed post-radiotherapy state полезен как
-mechanistic direction, но текущая однокомпартментная семантика недостаточна.
+Stage 10 завершил текущий development-only mechanistic cycle.
 
-На 24 уже раскрытых development patients Stage 9 v2 улучшил mean Dice
-относительно exact Stage 8 control с `0.667942` до `0.681404` и особенно
-улучшил regression subgroup. При этом mean delta vs persistence остаётся
-отрицательным (`-0.011792`), а две catastrophic failures сохраняются.
+На тех же 24 уже раскрытых development patients exact Stage 9 v2 control
+воспроизведён с mean Dice `0.681404`, mean delta vs persistence
+`-0.011792` и двумя catastrophic failures.
 
-Ключевой диагностический результат: half-life `60 -> 90 -> 120` дней давал
-монотонное улучшение, а `120 d` был выбран во всех 24 leave-one-out folds.
-По заранее заданному stop rule этот поиск нельзя продолжать в сторону
-`180/240/365 d`.
+Pre-specified decoupled candidates `14/30/60 d` все устранили catastrophic
+failures. По заранее заданному ranking выбран:
 
-Это означает, что текущий damaged compartment нельзя трактовать как найденную
-биологическую константу clearance. В существующей модели один параметр
-одновременно управляет:
+`stage10-decoupled-half-life-60d`.
 
-- исчезновением MRI-visible damaged burden;
-- освобождением logistic carrying capacity.
+Его development metrics:
 
-Следующий приоритет predictive core — **развязать visible clearance и
-post-treatment occupancy/growth suppression**. Для этого Stage 10 проверяет
-минимальное расширение с отдельным MRI-invisible inert occupancy state на тех
-же уже раскрытых development patients.
+- mean Dice = `0.696845`;
+- median Dice = `0.755809`;
+- mean delta vs persistence = `+0.003649`;
+- mean RVE = `0.663907`;
+- mean HD95 = `11.0844 mm`;
+- catastrophic failures = `0`;
+- regression mean delta vs persistence = `+0.006040`;
+- growth mean delta vs persistence = `+0.004390`.
 
-До завершения этого mechanistic diagnostic нельзя расходовать новые reserve
-patients или untouched holdout.
+Sealed selection SHA-256:
 
-## Reference-first checkpoint
+`2bff489685dd2d8ed9d28f8ce2abe55214475ade8ce287f73d0bc8e19f6b4326`.
 
-После Stage 9 v2 проект временно остановил наращивание собственных latent
-treatment states и провёл benchmark против опубликованной реализации
-TumorTwin на тех же 24 уже раскрытых development patients.
+Development evidence поддерживает гипотезу, что MRI-visible clearance и
+persistent post-treatment occupancy не должны управляться одним latent state.
+При этом `60 d` нельзя трактовать как подтверждённую биологическую константу:
+это выбранный model-family setting, который ещё должен пройти validation на
+новых пациентах.
 
-Reference benchmark v1 дал:
+Два Stage 9 catastrophic cases — patients 108 и 205 — перестали быть
+catastrophic under Stage 10. Это важный mechanistic signal, но он получен на
+уже раскрытом development cohort и сам по себе не доказывает generalization.
 
-- persistence mean Dice: `0.693196`;
-- Stage 9 v2 mean Dice: около `0.681404`;
-- TumorTwin frozen-kinetics mean Dice: `0.629097`;
-- TumorTwin LM mean Dice: `0.637488`;
-- TumorTwin frozen catastrophic failures: `5`;
-- TumorTwin LM catastrophic failures: `5`.
+## Текущий обязательный checkpoint — reserve internal validation
 
-Следовательно, простая замена собственного solver или grid/refinement
-calibration на опубликованные TumorTwin ReactionDiffusion3D + LM не решает
-текущую задачу при том же GTV-derived observation state.
+До открытия reserve outcomes модель полностью фиксируется:
 
-Benchmark v1 не был полной репликацией HGG workflow, поэтому был выполнен
-предварительно зарегистрированный **Reference Fidelity v2** на тех же уже
-раскрытых 24 development patients.
+- exact Stage 10 selection artifact;
+- model id `stage10-decoupled-half-life-60d`;
+- visible-damage half-life `60 d`;
+- full inert retention;
+- Stage 8 radiobiology и proliferation survival;
+- observation model;
+- calibration protocol;
+- validation cohort selection;
+- validation pass/fail criteria.
 
-Результат Reference Fidelity v2:
+Первый checkpoint использует deterministic stratified subset из `16` из
+`48` unopened reserve patients. Selection строится только по sealed audit
+metadata; t2 не читается до записи validation-plan artifact.
 
-- ROI-cropped TumorTwin LM, 24 patients:
-  mean Dice = `0.636752`, mean delta vs persistence = `-0.056445`,
-  catastrophic failures = `5`;
-- ROI-GTV на paired ADC subset, 9 patients:
-  mean Dice = `0.575452`, catastrophic failures = `3`;
-- TumorTwin-style ADC-derived enhancing cellularity на тех же 9 patients:
-  mean Dice = `0.393779`, mean delta vs persistence = `-0.253006`,
-  catastrophic failures = `5`.
+Для каждого reserve patient D/rho разрешено персонализировать только по
+`t0→t1`. После freeze D/rho открывается t2 и считается forecast.
 
-ROI cropping не улучшил опубликованный reference относительно benchmark v1,
-а ADC-derived branch в текущей постановке существенно ухудшил paired result.
-Следовательно, ни один из двух заранее заданных критериев перехода к
-calibration/observation rework не выполнен.
+Validation проходит только если одновременно:
 
-По pre-specified decision rule **Stage 10 теперь является следующим
-development-only mechanistic diagnostic**. Он реализован как decoupling
-MRI-visible damaged burden и MRI-invisible inert occupancy и использует только
-те же 24 уже раскрытых development patients.
+- mean delta vs persistence > `0`;
+- median delta vs persistence >= `0`;
+- catastrophic failures = `0`;
+- mean RVE не хуже persistence;
+- mean HD95 не хуже persistence.
 
-Stage 10 обязан:
+Bootstrap 95% CI paired mean delta выводится как uncertainty diagnostic, но не
+используется для post-hoc model selection.
 
-- бит-в-бит воспроизвести sealed Stage 9 v2 control;
-- проверить только заранее заданные half-life `14/30/60 d`;
-- сохранить D/rho и radiobiology замороженными;
-- продвигать decoupled candidate только при уменьшении catastrophic failures,
-  улучшении regression subgroup и отсутствии material global/growth
-  degradation.
+Если validation проходит, следующий шаг — untouched CFB holdout без изменения
+модели. Если validation не проходит, revealed reserve cases можно
+анализировать, но нельзя использовать для подбора Stage 10 half-life или
+других frozen global parameters.
 
-Reference Fidelity v2 использовал ADC только на t0+t1 для пациентов
-`25, 45, 65, 70, 76, 99, 112, 120, 214`. t2 ADC не загружался, raw FLAIR
-не thresholded.
+Conditional observation-model protocol остаётся подготовленным как будущий
+development path. Его нельзя запускать как скрытый post-hoc tuning на reserve
+outcomes.
 
-Reserve patients, untouched CFB holdout и Burdenko external-validation cohort
-остаются закрыты до завершения Stage 10 и заморозки следующей структуры.
-
-Stage 10 checkpoint автоматически формирует sealed JSON/CSV/SHA-256 и
-human-readable `STAGE10_RESULT.md`. Если решение равно
-`no_decoupled_candidate_advanced`, дальнейшее добавление RT compartments
-останавливается. Следующий цикл заранее ограничен observation-layer работой,
-описанной в `docs/OBSERVATION_MODEL_NEXT_CYCLE.md`: pre-t2 multimodal audit,
-defensible FLAIR representation, ADC только как дополнительная информация и
-uncertainty из near-optimal t0→t1 calibration solutions.
-
-Если Stage 10 candidate проходит gate, сначала фиксируется структура модели и
-пишется reserve-validation plan; новые reserve outcomes до этого не открываются.
+Reference Fidelity v2 и Stage 9 остаются важными отрицательными/диагностическими
+результатами, но текущий frozen predictive candidate — Stage 10 60 d.
 
 ## Направления развития платформы
 
