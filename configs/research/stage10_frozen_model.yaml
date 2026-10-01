@@ -1,0 +1,29 @@
+schema_version: 1
+model_id: stage10-decoupled-half-life-60d
+selection_artifact:
+  sha256: 2bff489685dd2d8ed9d28f8ce2abe55214475ade8ce287f73d0bc8e19f6b4326
+  decision: decoupled_candidate_advanced
+
+structure:
+  kind: decoupled
+  visible_damage_half_life_days: 60.0
+  damage_transfer_fraction: 1.0
+  damaged_visibility: 1.0
+  inert_retention_fraction: 1.0
+
+development_snapshot:
+  patient_count: 24
+  mean_dice: 0.696845
+  median_dice: 0.755809
+  mean_delta_vs_persistence: 0.003649
+  mean_relative_volume_error: 0.663907
+  mean_hd95_mm: 11.084416
+  catastrophic_failure_count: 0
+  regression_mean_delta_vs_persistence: 0.006040
+  growth_mean_delta_vs_persistence: 0.004390
+
+freeze:
+  patient_specific_d_rho_uses_t0_t1_only: true
+  reserve_t2_loaded: false
+  untouched_holdout_t2_loaded: false
+  allow_posthoc_parameter_changes_before_validation: false
