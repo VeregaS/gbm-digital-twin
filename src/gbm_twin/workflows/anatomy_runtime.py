@@ -570,7 +570,7 @@ def prepare_patient_atlas_preview(
             )
         )
 
-    except BaseException as exc:
+    except Exception as exc:
         preparation_path.write_text(
             json.dumps(
                 {
