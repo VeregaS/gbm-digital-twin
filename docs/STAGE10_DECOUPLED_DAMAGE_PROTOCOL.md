@@ -51,7 +51,12 @@ Expected outputs:
 
 - `results/cohort/stage10-decoupled-selection-v1/stage10_decoupled_selection.json`;
 - `results/cohort/stage10-decoupled-selection-v1/stage10_decoupled_selection.csv`;
-- `results/cohort/stage10-decoupled-selection-v1/stage10_decoupled_selection.sha256`.
+- `results/cohort/stage10-decoupled-selection-v1/stage10_decoupled_selection.sha256`;
+- `results/cohort/stage10-decoupled-selection-v1/STAGE10_RESULT.md`.
+
+The Markdown report is rendered from the sealed JSON only after SHA-256
+verification. It states the pre-specified decision and the permitted next
+scientific direction.
 
 ## Failure in the Stage 9 state semantics
 
@@ -233,7 +238,9 @@ After this diagnostic:
   structure before opening any new reserve patients;
 - if all decoupled candidates fail, stop adding latent RT compartments and
   move the next development cycle to the MRI observation model / multimodal
-  information rather than adding more treatment-response parameters;
+  information rather than adding more treatment-response parameters; the
+  conditional protocol is pre-registered in
+  `docs/OBSERVATION_MODEL_NEXT_CYCLE.md`;
 - do not reopen the 120-day half-life sweep.
 
 ## Leakage control
