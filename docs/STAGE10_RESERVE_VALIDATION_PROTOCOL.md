@@ -106,7 +106,9 @@ The checkpoint:
 1. runs targeted tests and full Python quality gates;
 2. verifies the exact frozen Stage 10 selection SHA;
 3. creates and seals the 16-patient validation plan if it does not exist;
-4. verifies local materialization before any t2 image content is loaded;
+4. [materializes only the verified sealed reserve cohort](STAGE10_RESERVE_MATERIALIZATION.md)
+   from the official NIfTI source and verifies local inputs before any t2 image
+   content is loaded;
 5. calibrates each patient D/rho from t0→t1;
 6. freezes D/rho and then reveals t2;
 7. evaluates the frozen Stage 10 forecast against persistence;

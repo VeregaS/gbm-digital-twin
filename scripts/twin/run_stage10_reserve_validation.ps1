@@ -1,13 +1,16 @@
 param(
     [string]$PlanDir = "results\cohort\stage10-reserve-validation-plan-v1",
     [string]$OutputDir = "results\cohort\stage10-internal-validation-v1",
-    [int]$Workers = 1
+    [int]$Workers = 1,
+    [string]$SourceDataRoot = "",
+    [ValidateSet("auto", "hardlink", "copy")]
+    [string]$MaterializationMode = "auto"
 )
 
 $ErrorActionPreference = "Stop"
 
 Write-Host "== Stage 10 reserve-validation targeted tests =="
-& python -m pytest -q tests\workflows\test_stage10_validation_protocol.py tests\workflows\test_stage10_validation_plan.py tests\workflows\test_stage10_validation.py tests\workflows\test_stage10_validation_report.py
+& python -m pytest -q tests\workflows\test_stage10_validation_protocol.py tests\workflows\test_stage10_validation_plan.py tests\workflows\test_stage10_validation.py tests\workflows\test_stage10_validation_report.py tests\workflows\test_stage10_materialization.py
 if ($LASTEXITCODE -ne 0) {
     throw "Stage 10 reserve-validation targeted tests failed with exit code $LASTEXITCODE"
 }
@@ -54,6 +57,17 @@ else {
 
 if (Test-Path $OutputDir) {
     throw "Stage 10 validation output already exists: $OutputDir"
+}
+
+Write-Host ""
+Write-Host "== Materialize sealed Stage 10 reserve cohort =="
+$materializationArgs = @("--repo-root", ".", "--validation-plan-root", $PlanDir, "--mode", $MaterializationMode)
+if ($SourceDataRoot) {
+    $materializationArgs += @("--source-data-root", $SourceDataRoot)
+}
+& python scripts\twin\materialize_stage10_reserve.py @materializationArgs
+if ($LASTEXITCODE -ne 0) {
+    throw "Stage 10 reserve materialization failed with exit code $LASTEXITCODE; sealed patients were not replaced"
 }
 
 Write-Host ""

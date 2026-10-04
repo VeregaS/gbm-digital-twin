@@ -139,6 +139,11 @@ results/cohort/stage10-internal-validation-v1/
 - [docs/STAGE10_RESULT.md](docs/STAGE10_RESULT.md);
 - [docs/STAGE10_RESERVE_VALIDATION_PROTOCOL.md](docs/STAGE10_RESERVE_VALIDATION_PROTOCOL.md).
 
+Runner автоматически материализует только sealed reserve cohort из официального
+CFB-GBM NIfTI `data/` после проверки plan. Для другого расположения исходников
+передайте `-SourceDataRoot`; подготовка и dry run описаны в
+[STAGE10_RESERVE_MATERIALIZATION.md](docs/STAGE10_RESERVE_MATERIALIZATION.md).
+
 ## Anatomical / functional-region workspace
 
 Проект умеет сравнивать:
