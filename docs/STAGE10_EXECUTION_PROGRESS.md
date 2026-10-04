@@ -58,3 +58,25 @@ The first downloader CI run completed frontend lint/build successfully and found
 one overlong Python comment. That comment was wrapped; the root data ignore rule
 is anchored to `/data/` so new source/test modules under `data` are included in
 both Git and lint discovery. The full local Ruff check now includes those files.
+
+### Acquisition and preparation complete
+
+All 144 official files for the exact sealed cohort were acquired successfully:
+2,356,539,655 bytes (about 2.20 GiB). All 144 prepared inputs were created as
+hardlinks under `D:/Datasets/CFB-GBM/patients`, without duplicating the source
+storage. The acquisition receipt and its SHA seal are saved under
+`D:/Datasets/CFB-GBM/data`. No MRI image content was decoded by acquisition.
+Receipt SHA-256:
+`900768007d358a25659db1503a62f92ccca6954a5d67503b330aa3c4eaddaf20`.
+
+The corrected downloader CI is green:
+https://github.com/VeregaS/gbm-digital-twin/actions/runs/37241838045
+
+Full tests also passed in the original project environment: Python 3.11.9,
+NumPy 2.4.6, SciPy 1.17.1; 483 tests passed. Validation will use this environment
+with the clean isolated checkout's code, four calibration workers, the original
+sealed plan/configs, and the standard cache/result locations. Workers affect
+execution concurrency only; no scientific parameter or selection rule changes.
+
+Next checkpoint: run the frozen reserve experiment and seal its verdict. The
+untouched holdout and remaining 32 reserve cases remain unopened.
