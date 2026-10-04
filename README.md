@@ -143,6 +143,8 @@ Runner автоматически материализует только sealed
 CFB-GBM NIfTI `data/` после проверки plan. Для другого расположения исходников
 передайте `-SourceDataRoot`; подготовка и dry run описаны в
 [STAGE10_RESERVE_MATERIALIZATION.md](docs/STAGE10_RESERVE_MATERIALIZATION.md).
+Если исходники ещё не скачаны, `-DownloadMissing` выборочно загружает только
+required files этих 16 пациентов с TCIA через установленную Aspera.
 
 ## Anatomical / functional-region workspace
 

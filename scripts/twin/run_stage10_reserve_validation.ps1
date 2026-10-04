@@ -4,13 +4,15 @@ param(
     [int]$Workers = 1,
     [string]$SourceDataRoot = "",
     [ValidateSet("auto", "hardlink", "copy")]
-    [string]$MaterializationMode = "auto"
+    [string]$MaterializationMode = "auto",
+    [switch]$DownloadMissing,
+    [string]$AscpPath = ""
 )
 
 $ErrorActionPreference = "Stop"
 
 Write-Host "== Stage 10 reserve-validation targeted tests =="
-& python -m pytest -q tests\workflows\test_stage10_validation_protocol.py tests\workflows\test_stage10_validation_plan.py tests\workflows\test_stage10_validation.py tests\workflows\test_stage10_validation_report.py tests\workflows\test_stage10_materialization.py
+& python -m pytest -q tests\workflows\test_stage10_validation_protocol.py tests\workflows\test_stage10_validation_plan.py tests\workflows\test_stage10_validation.py tests\workflows\test_stage10_validation_report.py tests\workflows\test_stage10_materialization.py tests\data\test_cfb_acquisition.py
 if ($LASTEXITCODE -ne 0) {
     throw "Stage 10 reserve-validation targeted tests failed with exit code $LASTEXITCODE"
 }
@@ -64,6 +66,12 @@ Write-Host "== Materialize sealed Stage 10 reserve cohort =="
 $materializationArgs = @("--repo-root", ".", "--validation-plan-root", $PlanDir, "--mode", $MaterializationMode)
 if ($SourceDataRoot) {
     $materializationArgs += @("--source-data-root", $SourceDataRoot)
+}
+if ($DownloadMissing) {
+    $materializationArgs += "--download-missing"
+}
+if ($AscpPath) {
+    $materializationArgs += @("--ascp-path", $AscpPath)
 }
 & python scripts\twin\materialize_stage10_reserve.py @materializationArgs
 if ($LASTEXITCODE -ne 0) {

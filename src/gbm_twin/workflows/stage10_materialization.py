@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from pathlib import Path
 
+from gbm_twin.data.cfb_acquisition import acquire_cfb_files
 from gbm_twin.evaluation.config import load_cohort_experiment_config
 from gbm_twin.workflows.provenance import sha256_file
 from gbm_twin.workflows.stage8_data_audit import load_sealed_stage8_data_audit
@@ -44,6 +45,8 @@ def materialize_stage10_reserve(
     source_data_root: Path | None = None,
     mode: MaterializationMode = "auto",
     dry_run: bool = False,
+    download_missing: bool = False,
+    ascp_path: Path | None = None,
     progress: Callable[[str], None] | None = None,
 ) -> Stage8MaterializationResult:
     if mode not in {"auto", "hardlink", "copy"}:
@@ -93,6 +96,29 @@ def materialize_stage10_reserve(
     source = resolve_stage8_source_data_root(explicit=source_data_root, patients_root=destination)
     if source == destination or source in destination.parents or destination in source.parents:
         raise ValueError("Source and prepared patient roots must be separate, non-nested trees")
+    if download_missing:
+        acquisition = acquire_cfb_files(
+            source_root=source,
+            patient_ids=plan.patient_ids,
+            require_rtdose=stage8.candidate.use_spatial_rtdose,
+            plan_sha256=sha256_file(validation_plan_root / "stage10_validation_plan.json"),
+            ascp_path=ascp_path,
+            dry_run=dry_run,
+            progress=progress,
+        )
+        if dry_run and acquisition.get("missing_paths"):
+            return Stage8MaterializationResult(
+                source_root=source,
+                destination_root=destination,
+                patient_ids=plan.patient_ids,
+                required_count=len(plan.patient_ids)
+                * (10 if stage8.candidate.use_spatial_rtdose else 9),
+                created_count=0,
+                reused_count=0,
+                hardlink_count=0,
+                copy_count=0,
+                dry_run=True,
+            )
     items = build_stage8_materialization_plan(
         source_root=source,
         destination_root=destination,

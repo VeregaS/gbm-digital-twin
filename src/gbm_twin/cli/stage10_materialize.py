@@ -28,6 +28,12 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--source-data-root", type=Path)
     parser.add_argument("--mode", choices=("auto", "hardlink", "copy"), default="auto")
     parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument(
+        "--download-missing",
+        action="store_true",
+        help="Fetch only sealed required files from official TCIA version 4.",
+    )
+    parser.add_argument("--ascp-path", type=Path, help="Installed Aspera ascp executable.")
     args = parser.parse_args(argv)
     repo = args.repo_root.resolve()
 
@@ -50,6 +56,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             ),
             mode=args.mode,
             dry_run=args.dry_run,
+            download_missing=args.download_missing,
+            ascp_path=args.ascp_path,
             progress=lambda message: print(message, flush=True),
         )
     except (OSError, ValueError, RuntimeError) as exc:

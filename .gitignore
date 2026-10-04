@@ -19,7 +19,7 @@ __pycache__/
 .env.*
 
 # Data and generated results
-data/
+/data/
 results/
 
 # Medical imaging / registration artifacts

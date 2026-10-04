@@ -53,6 +53,37 @@ D/rho have been frozen from t0/t1. Scientific criteria, model parameters,
 bootstrap settings and validation outcome rules are unchanged.
 
 If `data/` is absent, preparation stops before creating patient files and lists
-the expected missing paths. Extract the official NIfTI package and rerun with
-its data root. The workflow does not download a dataset or launch the expensive
-validation experiment during development checks.
+the expected missing paths. The official source can now be fetched selectively:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\twin\run_stage10_reserve_validation.ps1 `
+  -SourceDataRoot D:\Datasets\CFB-GBM\data -DownloadMissing
+```
+
+For preparation alone, add `--download-missing` to `materialize_stage10_reserve.py`;
+combine it with `--dry-run` to verify remote availability without downloading.
+An installed Aspera `ascp` is required. Use `-AscpPath`/`--ascp-path` or
+`GBM_TWIN_ASCP` when it is not found automatically. The public TCIA Faspex link
+is authenticated through the standard public-link OAuth flow. This workflow
+pins package 1345 (version 4); a changed published package requires an explicit
+dataset/provenance review. It does not refresh the frozen experiment metadata.
+
+Only the sealed required paths are requested. The official folder `015` maps to
+local `15` while the original filename `15_t0_t1gd.nii.gz` is preserved. Remote
+symbolic links are transferred as opaque files. The acquisition creates
+`stage10_acquisition.json` and `.sha256` under the source root, recording the
+plan SHA, package/version, requested patient IDs, remote paths, byte sizes and
+local SHA-256. These hashes attest to acquired local bytes; TCIA does not expose
+per-file checksums in its directory listing, so they are not advertised as
+independent publisher checksums.
+
+Tokens are excluded from the receipt and process arguments. The well-known SSH
+transport key is fetched from the official IBM CLI repository and checked
+against a pinned checksum; the scoped TCIA token provides dataset permission.
+Downloads use temporary partial filenames, never overwrite an existing input,
+and retain receipts for completed files if a batch fails. Rerunning resumes the
+missing files. Unverified existing source files are rejected; use an empty
+source root for automatic acquisition, or use the ordinary materializer for
+manually extracted official data. Keep source and patients on the same volume
+for hardlinks. The workflow requires at least 4 GiB free before transfer; the
+server's symlink listing does not provide sizes for an exact preflight estimate.

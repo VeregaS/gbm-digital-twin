@@ -199,3 +199,13 @@ def test_auto_falls_back_to_copy(cohort, monkeypatch):
     result = workflow.materialize_stage10_reserve(**kwargs)
     assert result.copy_count == 18
     assert result.hardlink_count == 0
+
+
+def test_download_cannot_start_before_sealed_plan_verification(cohort, monkeypatch):
+    kwargs, _, _ = cohort
+    (kwargs["validation_plan_root"] / "stage10_validation_plan.json").write_text("{}")
+    monkeypatch.setattr(
+        workflow, "acquire_cfb_files", lambda **_: pytest.fail("Download before seal verification")
+    )
+    with pytest.raises(ValueError, match="checksum"):
+        workflow.materialize_stage10_reserve(**kwargs, download_missing=True)
