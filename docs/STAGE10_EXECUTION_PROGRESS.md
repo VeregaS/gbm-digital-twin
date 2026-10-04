@@ -50,8 +50,7 @@ files are rejected.
 Targeted acquisition/materialization tests: 20 passed; full suite: 483 passed;
 Ruff and PowerShell syntax passed. Frozen artifacts were copied byte-for-byte
 into the isolated checkout so validation can record a clean committed revision.
-Actual
-144-file acquisition and hardlink preparation have now been started. Reserve
+At this checkpoint, 144-file acquisition and hardlink preparation were started. Reserve
 evaluation remains pending until preparation and full code checks complete.
 
 The first downloader CI run completed frontend lint/build successfully and found
@@ -80,3 +79,23 @@ execution concurrency only; no scientific parameter or selection rule changes.
 
 Next checkpoint: run the frozen reserve experiment and seal its verdict. The
 untouched holdout and remaining 32 reserve cases remain unopened.
+
+### Interim execution checkpoint — first five patients
+
+The real run has completed patients 15, 47, 57, 71 and 73. The log records D/rho
+freeze before each t2 reveal. Patient 73 has Dice delta `-0.3621` versus
+persistence, below the prespecified catastrophic threshold `-0.10`. Therefore
+the zero-catastrophic-failure advancement condition cannot pass for this cohort.
+
+The experiment continues through all 16 prespecified patients without changing
+parameters or selecting alternatives. Aggregate metrics and the formal verdict
+will be recorded only after the complete result is sealed. Untouched holdout
+will not be opened; failure analysis must not tune on these reserve outcomes.
+
+### Preparation reuse verified during execution
+
+The real acquisition/materialization dry run with `--download-missing` verified
+the sealed receipt and all local source hashes. It reported `created: 0`,
+`reused: 144`, with the same 16 patient IDs. No network transfer, MRI decoding,
+or additional data writes were needed. After ten completed patients the
+experiment continues unchanged; all final metrics remain pending.
