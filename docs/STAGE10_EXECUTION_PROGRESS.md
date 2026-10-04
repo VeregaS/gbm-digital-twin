@@ -53,3 +53,8 @@ into the isolated checkout so validation can record a clean committed revision.
 Actual
 144-file acquisition and hardlink preparation have now been started. Reserve
 evaluation remains pending until preparation and full code checks complete.
+
+The first downloader CI run completed frontend lint/build successfully and found
+one overlong Python comment. That comment was wrapped; the root data ignore rule
+is anchored to `/data/` so new source/test modules under `data` are included in
+both Git and lint discovery. The full local Ruff check now includes those files.

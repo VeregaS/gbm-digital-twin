@@ -296,7 +296,8 @@ def acquire_cfb_files(
             )
         except subprocess.TimeoutExpired:
             completed = subprocess.CompletedProcess(command, 124, "", "Transfer timed out")
-        # Ascp publishes final names only after completion; retain receipts for an interrupted batch.
+        # Ascp publishes final names only after completion.
+        # Retain receipts for finalized files in an interrupted batch.
         for relative in missing:
             target = root / relative
             if target.is_file() and target.stat().st_size > 0:
