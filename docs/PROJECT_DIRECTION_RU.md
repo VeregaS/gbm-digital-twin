@@ -106,16 +106,33 @@ Sealed selection SHA-256:
 Development evidence поддерживает гипотезу, что MRI-visible clearance и
 persistent post-treatment occupancy не должны управляться одним latent state.
 При этом `60 d` нельзя трактовать как подтверждённую биологическую константу:
-это выбранный model-family setting, который ещё должен пройти validation на
-новых пациентах.
+это выбранный model-family setting. На новых reserve patients он не прошёл
+validation gate, как описано ниже.
 
 Два Stage 9 catastrophic cases — patients 108 и 205 — перестали быть
 catastrophic under Stage 10. Это важный mechanistic signal, но он получен на
 уже раскрытом development cohort и сам по себе не доказывает generalization.
 
-## Текущий обязательный checkpoint — reserve internal validation
+## Завершённый checkpoint — reserve internal validation
 
-До открытия reserve outcomes модель полностью фиксируется:
+2026-10-05 frozen модель прошла полный расчёт на исходных 16 reserve patients,
+но **не прошла scientific validation gate**: mean Dice `0.708427` против
+`0.742571` у persistence, mean delta `-0.034144`, catastrophic failures `2`
+(patients `73`, `254`). Средние RVE и HD95 улучшились, median delta равен нулю,
+но для advancement должны одновременно пройти все пять условий.
+
+Sealed result SHA-256:
+`f565a0713de52666b3c5a7624486b8bfa32280cb45b69fd3816c809d89aa885a`.
+Полный [результат](STAGE10_VALIDATION_RESULT.md) и
+[разбор ошибок](STAGE10_RESERVE_FAILURE_ANALYSIS.md) сохранены.
+
+Текущий научный этап — development failure analysis без reserve tuning.
+Эти 16 пациентов теперь раскрыты; 32 оставшихся reserve patients и untouched
+holdout остаются закрытыми. Frozen Stage 10 не допускается к holdout.
+Новая модель требует отдельного development cycle и нового заранее заданного
+evaluation protocol. Ниже сохранены исходные условия завершённого checkpoint.
+
+До открытия reserve outcomes модель была полностью зафиксирована:
 
 - exact Stage 10 selection artifact;
 - model id `stage10-decoupled-half-life-60d`;

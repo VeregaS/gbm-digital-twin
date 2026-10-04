@@ -105,9 +105,14 @@ Sealed selection SHA-256:
 Stage 9 control на тех же пациентах имел mean Dice `0.681404`, mean delta
 vs persistence `-0.011792` и `2` catastrophic failures.
 
-То есть Stage 10 прошёл заранее заданный development gate. Это ещё не
-подтверждение generalization: следующий обязательный шаг — проверка frozen
-модели на ранее не открытых reserve patients.
+Stage 10 прошёл заранее заданный development gate. **Reserve internal
+validation завершена 2026-10-05 и не прошла gate**: mean Dice `0.708427`
+против `0.742571` у persistence, mean delta `-0.034144`, catastrophic failures
+`2` (patients `73`, `254`). Mean RVE и HD95 улучшились, но два обязательных
+условия advancement не выполнены. Holdout остаётся закрытым.
+
+Итог: [STAGE10_VALIDATION_RESULT.md](docs/STAGE10_VALIDATION_RESULT.md);
+разбор ошибок: [STAGE10_RESERVE_FAILURE_ANALYSIS.md](docs/STAGE10_RESERVE_FAILURE_ANALYSIS.md).
 
 Frozen model и reserve protocol:
 
@@ -115,9 +120,10 @@ Frozen model и reserve protocol:
 - `configs/research/stage10_reserve_validation.yaml`.
 
 Reserve checkpoint использует deterministic stratified subset из `16` из
-`48` unopened reserve patients и запечатывает cohort до чтения t2.
+`48` unopened reserve patients и запечатывает cohort до чтения t2. Исходные
+16 пациентов уже рассчитаны; оставшиеся 32 reserve patients закрыты.
 
-Запуск:
+Воспроизводимый запуск checkpoint (runner запрещает перезапись существующего результата):
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts\twin\run_stage10_reserve_validation.ps1
@@ -384,18 +390,20 @@ Sealed evaluation verifies source freeze manifests and per-patient prediction ma
 - [REFERENCE_FIDELITY_V2_RESULT.md](docs/REFERENCE_FIDELITY_V2_RESULT.md) — sealed fidelity result;
 - [STAGE10_DECOUPLED_DAMAGE_PROTOCOL.md](docs/STAGE10_DECOUPLED_DAMAGE_PROTOCOL.md) — frozen development protocol;
 - [STAGE10_RESULT.md](docs/STAGE10_RESULT.md) — sealed Stage 10 development result;
-- [STAGE10_RESERVE_VALIDATION_PROTOCOL.md](docs/STAGE10_RESERVE_VALIDATION_PROTOCOL.md) — текущий next experiment;
+- [STAGE10_VALIDATION_RESULT.md](docs/STAGE10_VALIDATION_RESULT.md) — завершённая reserve validation, gate не пройден;
+- [STAGE10_RESERVE_FAILURE_ANALYSIS.md](docs/STAGE10_RESERVE_FAILURE_ANALYSIS.md) — все 16 paired outcomes и catastrophic cases;
+- [STAGE10_EXECUTION_PROGRESS.md](docs/STAGE10_EXECUTION_PROGRESS.md) — контрольные точки acquisition, подготовки и расчёта;
+- [STAGE10_RESERVE_VALIDATION_PROTOCOL.md](docs/STAGE10_RESERVE_VALIDATION_PROTOCOL.md) — неизменённый протокол завершённого эксперимента;
 - [OBSERVATION_MODEL_NEXT_CYCLE.md](docs/OBSERVATION_MODEL_NEXT_CYCLE.md) — conditional fallback для будущего development cycle;
 - [MVP_PROTOCOL_V2.md](docs/MVP_PROTOCOL_V2.md) — исторический frozen V2 protocol.
 
-## Ближайшая scientific развилка
+## Текущий scientific этап
 
-Stage 10 development selection уже завершён и прошёл gate. Текущая развилка —
-**reserve internal validation frozen 60-day decoupled model**.
+**Development failure analysis без reserve tuning.** Frozen 60-day Stage 10
+не прошёл reserve checkpoint и не допускается к untouched holdout. Раскрытые
+16 reserve patients используются только для анализа ошибок; подбирать по ним
+half-life, global parameters, новые кандидаты или baseline gate нельзя.
 
-- если reserve checkpoint проходит все pre-specified guardrails — модель может
-  двигаться к untouched CFB holdout без изменения параметров;
-- если checkpoint не проходит — revealed reserve patients используются только
-  для failure analysis; frozen Stage 10 нельзя post-hoc подстраивать под них.
-
-Untouched holdout и Burdenko до решения по reserve validation остаются закрыты.
+Новая модель должна пройти отдельно заданный development cycle до нового
+prospective evaluation plan. Оставшиеся 32 reserve patients, untouched holdout
+и Burdenko остаются закрытыми. Scientific guardrails сохранены.

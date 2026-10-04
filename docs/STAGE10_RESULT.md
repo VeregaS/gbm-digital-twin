@@ -1,5 +1,11 @@
 # Stage 10 result — decoupled damage advanced
 
+Current status, 2026-10-05: the development gate below passed, but the frozen
+model subsequently **failed reserve internal validation**. See the
+[sealed reserve result](STAGE10_VALIDATION_RESULT.md) and
+[failure analysis](STAGE10_RESERVE_FAILURE_ANALYSIS.md). It must not advance
+to untouched holdout. The development selection below remains unchanged.
+
 ## Sealed development result
 
 Stage 10 was executed on the same 24 already exposed development patients.

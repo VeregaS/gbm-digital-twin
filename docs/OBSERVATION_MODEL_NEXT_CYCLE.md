@@ -4,6 +4,12 @@
 
 This protocol is **conditional**.
 
+2026-10-05 checkpoint: the frozen Stage 10 candidate failed its separate
+[reserve validation](STAGE10_VALIDATION_RESULT.md). The permitted current work
+is [failure analysis without reserve tuning](STAGE10_RESERVE_FAILURE_ANALYSIS.md).
+This does not automatically activate or change the conditional gate below;
+a revised development cycle requires an explicitly defined protocol.
+
 It may be activated only when the sealed Stage 10 artifact reports:
 
 `decision = no_decoupled_candidate_advanced`.

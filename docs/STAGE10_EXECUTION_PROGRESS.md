@@ -99,3 +99,34 @@ the sealed receipt and all local source hashes. It reported `created: 0`,
 `reused: 144`, with the same 16 patient IDs. No network transfer, MRI decoding,
 or additional data writes were needed. After ten completed patients the
 experiment continues unchanged; all final metrics remain pending.
+
+### Frozen reserve experiment complete and sealed
+
+All 16 prespecified patients completed successfully using the clean execution
+commit `f02a553ad548d70997d5f32df4a0880d7adb9e30`. Computational execution
+completed; the scientific decision is `validation_failed`.
+
+- Mean Twin / persistence Dice: `0.708427 / 0.742571`.
+- Mean / median paired delta: `-0.034144 / 0.000000`.
+- Bootstrap 95% CI: `[-0.087773, +0.005257]`.
+- Catastrophic failures: `2`, patients `73` and `254`.
+- Mean Twin / persistence RVE: `0.352656 / 0.387454`.
+- Mean Twin / persistence HD95: `7.838010 / 8.465184 mm`.
+- Better/equal/worse counts: `3/6/7`.
+
+The positive-mean-delta and zero-catastrophic-failure criteria failed; the other
+three criteria passed. JSON SHA-256:
+`f565a0713de52666b3c5a7624486b8bfa32280cb45b69fd3816c809d89aa885a`.
+JSON/CSV identity, source/config hashes, paired summaries and all 16
+freeze-before-reveal log entries were verified. The sealed originals and
+generated MD are preserved at the standard result location in the user's
+`D:/Projects/gbm-digital-twin` checkout.
+
+[Result](STAGE10_VALIDATION_RESULT.md) and
+[failure analysis](STAGE10_RESERVE_FAILURE_ANALYSIS.md) record the negative
+result without a new candidate search. The remaining 32 reserve patients and
+untouched holdout remain closed. Frozen protocols/configs have not changed.
+
+The acquisition, preparation and real frozen-validation work is complete.
+Final checkpoint: push the result/status documentation, verify latest GitHub
+Actions, and fast-forward the clean original checkout.
