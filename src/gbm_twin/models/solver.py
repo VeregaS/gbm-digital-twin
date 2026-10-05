@@ -662,7 +662,7 @@ def simulate_reaction_diffusion(
             domain_crop
             .crop(domain)
         )
-    
+
     if duration_days == 0:
         return domain_crop.restore(field) if domain_crop is not None else field
 

@@ -11,7 +11,7 @@ class CFBMetadata:
         self.metadata_dir = metadata_dir
 
         self.mri = self._read_single("CFB-GBM_mri_availability_*.tsv")
-        
+
         self.treatment_imaging = self._read_single(
             "CFB-GBM_treatment_imaging_availability_*.tsv"
         )
@@ -50,7 +50,7 @@ class CFBMetadata:
             for patient_id in self.patient_ids()
             if required_timepoints.issubset(self.timepoints(patient_id))
         ]
-        
+
     def gtv_type(self, patient_id: int, timepoint: str) -> str | None:
         rows = self.treatment_imaging[
             (self.treatment_imaging["id_patient"] == patient_id)
@@ -66,7 +66,7 @@ class CFBMetadata:
             return None
 
         return str(value)
-        
+
     def prediction_cohort(self) -> list[int]:
         required_columns = [
             "size_t0 (cm3)",
@@ -80,7 +80,7 @@ class CFBMetadata:
         longitudinal_patient_ids = set(self.longitudinal_patients())
 
         return sorted(longitudinal_patient_ids & rano_patient_ids)
-    
+
     def patient_timeline(self, patient_id: int) -> list[Timepoint]:
         rows = self.mri[self.mri["id_patient"] == patient_id].copy()
 
@@ -102,7 +102,7 @@ class CFBMetadata:
             )
 
         return timeline
-    
+
     def patient(self, patient_id: int) -> Patient:
         patient = Patient(patient_id=str(patient_id))
 
@@ -110,7 +110,7 @@ class CFBMetadata:
             patient.add_timepoint(timepoint)
 
         return patient
-    
+
     def has_modality(
         self,
         patient_id: int,
@@ -151,7 +151,7 @@ class CFBMetadata:
                 eligible.append(patient_id)
 
         return eligible
-    
+
     def cohort_table(self) -> pd.DataFrame:
         rows: list[dict[str, object]] = []
 

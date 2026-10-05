@@ -70,7 +70,7 @@ def create_test_metadata(metadata_dir: Path) -> None:
         sep="\t",
         index=False,
     )
-    
+
     treatment_imaging = pd.DataFrame(
         [
             {
@@ -150,7 +150,7 @@ def test_prediction_cohort(tmp_path: Path) -> None:
     metadata = CFBMetadata(tmp_path)
 
     assert metadata.prediction_cohort() == [1]
-    
+
 def test_patient_timeline(tmp_path: Path) -> None:
     create_test_metadata(tmp_path)
 
@@ -165,7 +165,7 @@ def test_patient_timeline(tmp_path: Path) -> None:
         84,
         175,
     ]
-    
+
 def test_metadata_builds_patient(tmp_path: Path) -> None:
     create_test_metadata(tmp_path)
 
@@ -175,7 +175,7 @@ def test_metadata_builds_patient(tmp_path: Path) -> None:
     assert patient.patient_id == "1"
     assert patient.interval_days("t0", "t1") == 84
     assert patient.interval_days("t1", "t2") == 91
-    
+
 def test_imaging_cohort_requires_t1gd_at_all_timepoints(
     tmp_path: Path,
 ) -> None:
@@ -184,7 +184,7 @@ def test_imaging_cohort_requires_t1gd_at_all_timepoints(
     metadata = CFBMetadata(tmp_path)
 
     assert metadata.imaging_cohort({"t1gd"}) == [1]
-    
+
 def test_gtv_type(tmp_path: Path) -> None:
     create_test_metadata(tmp_path)
 

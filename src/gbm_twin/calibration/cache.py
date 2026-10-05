@@ -86,7 +86,7 @@ def treatment_signature(
                 treatment.decay_time_days
             ),
         }
-        
+
     if isinstance(
         treatment,
         PIRTFractionatedRadiotherapy,
