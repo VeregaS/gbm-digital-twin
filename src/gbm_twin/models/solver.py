@@ -561,6 +561,21 @@ def _next_treatment_boundary(
     )
 
 
+def validate_simulation_timing(
+    *, duration_days: float, dt: float, start_time_day: float,
+) -> None:
+    if not math.isfinite(duration_days) or duration_days < 0:
+        raise ValueError("duration_days must be finite and non-negative")
+    if not math.isfinite(dt) or dt <= 0:
+        raise ValueError("dt must be finite and positive")
+    if dt <= _TOLERANCE:
+        raise ValueError("dt must exceed the integration time resolution of 1e-9 days")
+    if not math.isfinite(start_time_day) or start_time_day < 0:
+        raise ValueError("start_time_day must be finite and non-negative")
+    if not math.isfinite(start_time_day + duration_days):
+        raise ValueError("simulation end time must be finite")
+
+
 def simulate_reaction_diffusion(
     initial_field: np.ndarray,
     params: ReactionDiffusionParameters,
@@ -573,20 +588,9 @@ def simulate_reaction_diffusion(
     start_time_day: float = 0.0,
     crop_to_domain: bool = True,
 ) -> np.ndarray:
-    if duration_days < 0:
-        raise ValueError(
-            "duration_days must be non-negative"
-        )
-
-    if dt <= 0:
-        raise ValueError(
-            "dt must be positive"
-        )
-
-    if start_time_day < 0:
-        raise ValueError(
-            "start_time_day must be non-negative"
-        )
+    validate_simulation_timing(
+        duration_days=duration_days, dt=dt, start_time_day=start_time_day,
+    )
 
     initial_array = np.asarray(
         initial_field
@@ -609,12 +613,13 @@ def simulate_reaction_diffusion(
         )
 
     if (
-        np.any(field < 0)
+        not np.all(np.isfinite(field))
+        or np.any(field < 0)
         or np.any(field > 1)
     ):
         raise ValueError(
             "Initial concentration must be "
-            "within [0, 1]"
+            "finite and within [0, 1]"
         )
 
     domain: np.ndarray | None = None
@@ -659,7 +664,7 @@ def simulate_reaction_diffusion(
         )
     
     if duration_days == 0:
-        return field
+        return domain_crop.restore(field) if domain_crop is not None else field
 
     continuous_treatment = (
         _continuous_treatment(

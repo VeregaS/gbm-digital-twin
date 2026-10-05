@@ -127,6 +127,11 @@ Sealed result SHA-256:
 [разбор ошибок](STAGE10_RESERVE_FAILURE_ANALYSIS.md) сохранены.
 
 Текущий научный этап — development failure analysis без reserve tuning.
+Аудит текущего predictive core и порядок следующего accuracy cycle:
+[MODEL_CODE_AUDIT.md](MODEL_CODE_AUDIT.md). Код исправлен в части входных
+проверок, геометрии, sealed cohort и воспроизводимости кэша; преимущество модели
+по точности этим не установлено. Новые dynamics/calibration/observation
+проверяются только в отдельном development protocol.
 Эти 16 пациентов теперь раскрыты; 32 оставшихся reserve patients и untouched
 holdout остаются закрытыми. Frozen Stage 10 не допускается к holdout.
 Новая модель требует отдельного development cycle и нового заранее заданного

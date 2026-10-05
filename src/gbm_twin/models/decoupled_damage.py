@@ -10,6 +10,7 @@ from gbm_twin.models.solver import (
     explicit_stability_limit,
     laplacian_3d,
     masked_laplacian_3d,
+    validate_simulation_timing,
 )
 
 SurvivalValue = float | np.ndarray
@@ -745,15 +746,9 @@ def simulate_decoupled_damage(
     ] = (),
     domain_mask: np.ndarray | None = None,
 ) -> DecoupledDamageState:
-    if duration_days < 0.0:
-        raise ValueError(
-            "duration_days must be non-negative"
-        )
-
-    if start_time_day < 0.0:
-        raise ValueError(
-            "start_time_day must be non-negative"
-        )
+    validate_simulation_timing(
+        duration_days=duration_days, dt=dt, start_time_day=start_time_day,
+    )
 
     ordered = tuple(
         sorted(

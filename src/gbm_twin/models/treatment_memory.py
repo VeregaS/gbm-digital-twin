@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 
 import numpy as np
@@ -9,6 +10,7 @@ from gbm_twin.models.solver import (
     explicit_stability_limit,
     laplacian_3d,
     masked_laplacian_3d,
+    validate_simulation_timing,
 )
 from gbm_twin.models.spatial_radiotherapy import apply_spatial_pirt_fraction
 
@@ -22,8 +24,8 @@ class FractionResponseEvent:
     proliferation_survival: SurvivalValue = 1.0
 
     def __post_init__(self) -> None:
-        if self.day < 0.0:
-            raise ValueError("fraction response day must be non-negative")
+        if not math.isfinite(self.day) or self.day < 0.0:
+            raise ValueError("fraction response day must be finite and non-negative")
 
 
 @dataclass(frozen=True)
@@ -40,15 +42,18 @@ class TreatmentMemoryState:
                 "proliferation_modifier must match field shape"
             )
 
+        if not np.all(np.isfinite(self.field)):
+            raise ValueError("field must contain finite values")
         if np.any(self.field < 0.0) or np.any(self.field > 1.0):
             raise ValueError("field must be within [0, 1]")
 
         if (
-            np.any(self.proliferation_modifier < 0.0)
+            not np.all(np.isfinite(self.proliferation_modifier))
+            or np.any(self.proliferation_modifier < 0.0)
             or np.any(self.proliferation_modifier > 1.0)
         ):
             raise ValueError(
-                "proliferation_modifier must be within [0, 1]"
+                "proliferation_modifier must be finite and within [0, 1]"
             )
 
 
@@ -258,11 +263,9 @@ def simulate_with_treatment_memory(
     fraction_events: tuple[FractionResponseEvent, ...] = (),
     domain_mask: np.ndarray | None = None,
 ) -> TreatmentMemoryState:
-    if duration_days < 0.0:
-        raise ValueError("duration_days must be non-negative")
-
-    if start_time_day < 0.0:
-        raise ValueError("start_time_day must be non-negative")
+    validate_simulation_timing(
+        duration_days=duration_days, dt=dt, start_time_day=start_time_day,
+    )
 
     ordered = tuple(sorted(fraction_events, key=lambda item: item.day))
 

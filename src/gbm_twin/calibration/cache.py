@@ -255,8 +255,12 @@ def load_cached_metrics(
         )
     except (
         OSError,
+        UnicodeDecodeError,
         json.JSONDecodeError,
     ):
+        return None
+
+    if not isinstance(payload, dict):
         return None
 
     if (
@@ -280,10 +284,12 @@ def load_cached_metrics(
     ):
         return None
 
-    return (
-        dice,
-        volume_error,
-    )
+    if not np.isfinite(dice) or not np.isfinite(volume_error):
+        return None
+    if not 0.0 <= dice <= 1.0 or volume_error < 0.0:
+        return None
+
+    return (dice, volume_error)
 
 
 def save_cached_metrics(

@@ -1,3 +1,5 @@
+import pytest
+
 from gbm_twin.workflows.stage10_validation import (
     evaluate_stage10_validation_summary,
 )
@@ -53,6 +55,27 @@ def test_stage10_validation_passes_only_when_all_guardrails_pass(
 
     assert decision == "validation_passed"
     assert failed == ()
+
+
+@pytest.mark.parametrize("key", [
+    "mean_delta_vs_persistence", "median_delta_vs_persistence",
+    "mean_twin_relative_volume_error", "mean_persistence_relative_volume_error",
+    "mean_twin_hd95_mm", "mean_persistence_hd95_mm",
+])
+@pytest.mark.parametrize("value", [float("nan"), float("inf"), -float("inf")])
+def test_validation_never_passes_nonfinite_metrics(key: str, value: float) -> None:
+    summary = _summary()
+    summary[key] = value
+    with pytest.raises(ValueError, match=key):
+        evaluate_stage10_validation_summary(summary, _config())
+
+
+@pytest.mark.parametrize("value", [-1, 0.5, True])
+def test_validation_rejects_invalid_failure_counts(value: object) -> None:
+    summary = _summary()
+    summary["catastrophic_failure_count"] = value
+    with pytest.raises(ValueError, match="catastrophic_failure_count"):
+        evaluate_stage10_validation_summary(summary, _config())
 
 
 def test_stage10_validation_fails_without_posthoc_ranking(

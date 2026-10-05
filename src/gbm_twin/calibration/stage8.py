@@ -225,6 +225,11 @@ def _load_cached_result(
     ):
         return None
 
+    if not all(np.isfinite(value) for value in (dice, volume_error, loss)):
+        return None
+    if not 0.0 <= dice <= 1.0 or volume_error < 0.0 or loss < 0.0:
+        return None
+
     return CalibrationResult(
         diffusion=candidate.diffusion,
         proliferation=candidate.proliferation,
@@ -472,6 +477,12 @@ def _evaluate_grid(
             )
             results.append(result)
 
+    # Preserve the uncached grid order for exact ties, including partial resume.
+    order = {
+        (candidate.diffusion, candidate.proliferation): index
+        for index, candidate in enumerate(candidates)
+    }
+    results.sort(key=lambda item: order[(item.diffusion, item.proliferation)])
     return _deduplicate(results)
 
 

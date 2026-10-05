@@ -340,6 +340,33 @@ def select_stage10_reserve_patient_ids(
     return result
 
 
+def verify_stage10_validation_cohort(
+    plan: Stage10ValidationPlan,
+    *,
+    audit_manifest: dict[str, object],
+    reserve_patient_ids: tuple[int, ...],
+    untouched_holdout_patient_ids: tuple[int, ...],
+    count: int,
+    seed: int,
+) -> None:
+    """Check membership and the entire selection rule before accessing images."""
+    expected = select_stage10_reserve_patient_ids(
+        audit_manifest=audit_manifest,
+        reserve_patient_ids=reserve_patient_ids,
+        untouched_holdout_patient_ids=untouched_holdout_patient_ids,
+        count=count,
+        seed=seed,
+    )
+    if (
+        plan.patient_ids != expected
+        or plan.seed != seed
+        or plan.remaining_reserve_patient_ids
+        != tuple(sorted(set(reserve_patient_ids) - set(expected)))
+        or plan.untouched_holdout_patient_ids != untouched_holdout_patient_ids
+    ):
+        raise ValueError("Stage 10 sealed cohort differs from the prespecified reserve plan")
+
+
 def _required_paths(
     patient_ids: tuple[int, ...],
     *,

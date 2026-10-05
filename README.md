@@ -48,6 +48,10 @@ Python и frontend проверяются GitHub Actions: Ruff + полный py
 
 ## Научный статус
 
+Аудит текущей модели, подтверждённые ограничения точности и порядок дальнейшей
+работы: [docs/MODEL_CODE_AUDIT.md](docs/MODEL_CODE_AUDIT.md).
+Исправления технических проверок не меняют scientific verdict Stage 10.
+
 ### Stage 9 v2
 
 Текущий лучший завершённый собственный development candidate:

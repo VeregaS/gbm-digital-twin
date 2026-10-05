@@ -1,5 +1,7 @@
 from pathlib import Path
 
+import pytest
+
 from gbm_twin.workflows.stage10_model_family import (
     Stage10Candidate,
 )
@@ -101,6 +103,18 @@ structure:
         .visible_damage_half_life_days
         == 60.0
     )
+
+
+@pytest.mark.parametrize("value", [".nan", ".inf", "-.inf"])
+def test_frozen_config_rejects_nonfinite_half_life(tmp_path: Path, value: str) -> None:
+    config = tmp_path / "frozen.yaml"
+    config.write_text(
+        "schema_version: 1\nmodel_id: test\nselection_artifact:\n  sha256: abc\n"
+        "structure:\n  kind: decoupled\n  visible_damage_half_life_days: " + value + "\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(ValueError, match="finite"):
+        load_frozen_stage10_model_config(config)
 
 
 def test_stage10_validation_config_loads_guardrails(

@@ -7,6 +7,7 @@ from types import SimpleNamespace
 import pytest
 
 from gbm_twin.workflows import stage10_materialization as workflow
+from gbm_twin.workflows import stage10_validation as validation_workflow
 from gbm_twin.workflows.provenance import sha256_file
 from gbm_twin.workflows.stage10_validation_plan import select_stage10_reserve_patient_ids
 
@@ -187,6 +188,39 @@ def test_resealed_substituted_patient_is_rejected(cohort):
     (manifest.parent / "stage10_validation_plan.sha256").write_text(sha256_file(manifest))
     with pytest.raises(ValueError, match="prespecified reserve plan"):
         workflow.materialize_stage10_reserve(**kwargs)
+
+
+def test_direct_validation_rejects_resealed_subset_before_patient_access(cohort, monkeypatch):
+    kwargs, ids, selected = cohort
+    selection = kwargs["stage10_selection_root"] / "stage10_decoupled_selection.json"
+    selection.write_text("{}")
+    selected.source_manifest_sha256 = sha256_file(selection)
+    manifest = kwargs["validation_plan_root"] / "stage10_validation_plan.json"
+    payload = json.loads(manifest.read_text())
+    payload["source"]["stage10_selection_sha256"] = selected.source_manifest_sha256
+    payload["patient_ids"] = list(ids[:1])
+    manifest.write_text(json.dumps(payload))
+    (manifest.parent / "stage10_validation_plan.sha256").write_text(sha256_file(manifest))
+    for name in (
+        "load_sealed_stage8_data_audit", "load_selected_stage8_model",
+        "load_selected_stage10_model", "verify_frozen_stage10_model",
+        "load_stage10_validation_config",
+    ):
+        monkeypatch.setattr(validation_workflow, name, getattr(workflow, name))
+    monkeypatch.setattr(
+        validation_workflow, "read_repository_state", lambda _: SimpleNamespace(dirty=False),
+    )
+    monkeypatch.setattr(
+        validation_workflow, "load_cohort_experiment_config",
+        lambda _: pytest.fail("Patient configuration accessed before cohort check"),
+    )
+    direct_kwargs = {key: value for key, value in kwargs.items() if key != "source_data_root"}
+    with pytest.raises(ValueError, match="prespecified reserve plan"):
+        validation_workflow.validate_stage10_model(
+            **direct_kwargs, cache_root=kwargs["repo_root"] / "cache",
+            output_dir=kwargs["repo_root"] / "result",
+        )
+    assert not (kwargs["repo_root"] / "result").exists()
 
 
 def test_auto_falls_back_to_copy(cohort, monkeypatch):

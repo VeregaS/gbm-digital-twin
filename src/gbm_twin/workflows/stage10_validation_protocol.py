@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 from pathlib import Path
 from typing import cast
@@ -129,9 +130,10 @@ def _number(
             f"{key} must be numeric"
         )
 
-    return float(
-        value
-    )
+    result = float(value)
+    if not math.isfinite(result):
+        raise ValueError(f"{key} must be finite")
+    return result
 
 
 def _boolean(

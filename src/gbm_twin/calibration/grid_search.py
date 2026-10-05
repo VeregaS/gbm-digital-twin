@@ -753,8 +753,18 @@ def grid_search(
         + computed_results
     )
 
+    order = {
+        (float(diffusion), float(proliferation)): index
+        for index, (diffusion, proliferation) in enumerate(
+            (diffusion, proliferation)
+            for diffusion in diffusion_values
+            for proliferation in proliferation_values
+        )
+    }
     results.sort(
-        key=lambda result: result.loss
+        key=lambda result: (
+            result.loss, order[(result.diffusion, result.proliferation)],
+        )
     )
 
     return results

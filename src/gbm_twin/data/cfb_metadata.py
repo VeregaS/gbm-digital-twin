@@ -1,3 +1,4 @@
+from functools import cached_property
 from pathlib import Path
 
 import pandas as pd
@@ -10,11 +11,15 @@ class CFBMetadata:
         self.metadata_dir = metadata_dir
 
         self.mri = self._read_single("CFB-GBM_mri_availability_*.tsv")
-        self.rano = self._read_single("CFB-GBM_rano_criteria_*.tsv")
         
         self.treatment_imaging = self._read_single(
             "CFB-GBM_treatment_imaging_availability_*.tsv"
         )
+
+    @cached_property
+    def rano(self) -> pd.DataFrame:
+        # Outcomes are loaded only by callers explicitly requesting them.
+        return self._read_single("CFB-GBM_rano_criteria_*.tsv")
 
     def _read_single(self, pattern: str) -> pd.DataFrame:
         files = list(self.metadata_dir.glob(pattern))

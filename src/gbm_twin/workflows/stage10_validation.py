@@ -77,6 +77,7 @@ from gbm_twin.workflows.stage10_selection_artifact import (
 )
 from gbm_twin.workflows.stage10_validation_plan import (
     load_stage10_validation_plan,
+    verify_stage10_validation_cohort,
 )
 from gbm_twin.workflows.stage10_validation_protocol import (
     Stage10ValidationConfig,
@@ -265,6 +266,33 @@ def evaluate_stage10_validation_summary(
     str,
     tuple[str, ...],
 ]:
+    numeric_keys = (
+        "mean_delta_vs_persistence",
+        "median_delta_vs_persistence",
+        "mean_twin_relative_volume_error",
+        "mean_persistence_relative_volume_error",
+    )
+    for key in numeric_keys:
+        value = summary[key]
+        if (
+            isinstance(value, bool)
+            or not isinstance(value, (int, float))
+            or not np.isfinite(value)
+        ):
+            raise ValueError(f"{key} must be a finite number")
+    for key in ("mean_twin_hd95_mm", "mean_persistence_hd95_mm"):
+        value = summary.get(key)
+        if value is not None and (
+            isinstance(value, bool)
+            or not isinstance(value, (int, float))
+            or not np.isfinite(value)
+            or value < 0.0
+        ):
+            raise ValueError(f"{key} must be finite and non-negative or None")
+    count = summary["catastrophic_failure_count"]
+    if type(count) is not int or count < 0:
+        raise ValueError("catastrophic_failure_count must be a non-negative integer")
+
     reasons: list[str] = []
 
     mean_delta = float(
@@ -484,7 +512,7 @@ def validate_stage10_model(
             "Stage 10 reserve validation requires a clean Git tree"
         )
 
-    load_sealed_stage8_data_audit(
+    audit = load_sealed_stage8_data_audit(
         data_audit_root
     )
 
@@ -656,25 +684,14 @@ def validate_stage10_model(
             "Stage 10 validation plan does not match validation config"
         )
 
-    if not set(
-        plan.patient_ids
-    ).issubset(
-        selected_stage10
-        .reserve_patient_ids
-    ):
-        raise ValueError(
-            "Stage 10 validation plan contains a non-reserve patient"
-        )
-
-    if set(
-        plan.patient_ids
-    ) & set(
-        selected_stage10
-        .untouched_holdout_patient_ids
-    ):
-        raise ValueError(
-            "Stage 10 validation plan intersects untouched holdout"
-        )
+    verify_stage10_validation_cohort(
+        plan,
+        audit_manifest=audit.manifest,
+        reserve_patient_ids=selected_stage10.reserve_patient_ids,
+        untouched_holdout_patient_ids=selected_stage10.untouched_holdout_patient_ids,
+        count=validation.patient_count,
+        seed=validation.seed,
+    )
 
     experiment = (
         load_cohort_experiment_config(

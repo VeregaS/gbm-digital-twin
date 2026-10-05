@@ -23,7 +23,7 @@ from gbm_twin.workflows.stage8_selection_artifact import load_selected_stage8_mo
 from gbm_twin.workflows.stage10_selection_artifact import load_selected_stage10_model
 from gbm_twin.workflows.stage10_validation_plan import (
     load_stage10_validation_plan,
-    select_stage10_reserve_patient_ids,
+    verify_stage10_validation_cohort,
 )
 from gbm_twin.workflows.stage10_validation_protocol import (
     load_stage10_validation_config,
@@ -74,22 +74,14 @@ def materialize_stage10_reserve(
     )
     if any(actual != expected for actual, expected in checks):
         raise ValueError("Stage 10 materialization provenance mismatch")
-    expected_ids = select_stage10_reserve_patient_ids(
+    verify_stage10_validation_cohort(
+        plan,
         audit_manifest=audit.manifest,
         reserve_patient_ids=selected.reserve_patient_ids,
         untouched_holdout_patient_ids=selected.untouched_holdout_patient_ids,
         count=validation.patient_count,
         seed=validation.seed,
     )
-    if (
-        plan.patient_ids != expected_ids
-        or plan.seed != validation.seed
-        or plan.remaining_reserve_patient_ids
-        != tuple(sorted(set(selected.reserve_patient_ids) - set(expected_ids)))
-        or plan.untouched_holdout_patient_ids != selected.untouched_holdout_patient_ids
-    ):
-        raise ValueError("Stage 10 sealed cohort differs from the prespecified reserve plan")
-
     experiment = load_cohort_experiment_config(experiment_config_path)
     patients = experiment.patients_root
     destination = (patients if patients.is_absolute() else repo_root / patients).resolve()
