@@ -10,7 +10,7 @@ function Topbar({
     <header className="topbar">
       <div>
         <div className="topbar-context">
-          Digital Twin Workbench
+          Исследовательская среда цифрового двойника
         </div>
 
         <h1>{pageTitle}</h1>

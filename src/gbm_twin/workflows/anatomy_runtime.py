@@ -1,0 +1,746 @@
+from __future__ import annotations
+
+import json
+import shutil
+from dataclasses import (
+    dataclass,
+    replace,
+)
+from pathlib import Path
+from tempfile import TemporaryDirectory
+from threading import Lock
+from typing import Literal, cast
+
+from gbm_twin.anatomy.bootstrap import (
+    bootstrap_harvard_oxford_atlas,
+)
+from gbm_twin.anatomy.registration import (
+    DEFAULT_REGISTRATION_CONFIG,
+    RegistrationQualityError,
+)
+from gbm_twin.workflows.anatomy_registration import (
+    prepare_patient_registered_atlas,
+)
+
+AtlasSelectionMode = Literal[
+    "manual",
+    "automatic-preview",
+    "unavailable",
+]
+
+_REQUIRED_ATLAS_FILES = (
+    "manifest.json",
+    "template_t1.nii.gz",
+    "template_brain_mask.nii.gz",
+    "template_labels.nii.gz",
+)
+
+_BOOTSTRAP_LOCK = Lock()
+_REGISTRATION_LOCK = Lock()
+
+PREVIEW_REGISTRATION_CONFIG = (
+    replace(
+        DEFAULT_REGISTRATION_CONFIG,
+        enable_bspline=False,
+    )
+)
+
+
+@dataclass(frozen=True)
+class PatientAtlasSelection:
+    mode: AtlasSelectionMode
+    labelmap_path: Path | None
+    automatic_qc_status: str | None
+    status_message: str
+
+
+def _json_mapping(
+    path: Path,
+) -> dict[str, object]:
+    raw: object = json.loads(
+        path.read_text(
+            encoding="utf-8"
+        )
+    )
+
+    if not isinstance(
+        raw,
+        dict,
+    ):
+        raise ValueError(
+            f"{path.name} must contain a JSON object"
+        )
+
+    return cast(
+        dict[str, object],
+        raw,
+    )
+
+
+def _quality_status(
+    registration_path: Path,
+) -> str:
+    payload = _json_mapping(
+        registration_path
+    )
+
+    quality = payload.get(
+        "quality"
+    )
+
+    if not isinstance(
+        quality,
+        dict,
+    ):
+        raise ValueError(
+            "registration.json is missing quality"
+        )
+
+    status = str(
+        quality.get(
+            "status",
+            "",
+        )
+    ).strip().lower()
+
+    if status not in {
+        "pass",
+        "warn",
+        "fail",
+    }:
+        raise ValueError(
+            "registration.json contains an invalid quality status"
+        )
+
+    return status
+
+
+def _registration_used_bspline(
+    registration_path: Path,
+) -> bool:
+    payload = _json_mapping(
+        registration_path
+    )
+
+    config = payload.get(
+        "config"
+    )
+
+    if not isinstance(
+        config,
+        dict,
+    ):
+        return False
+
+    return (
+        config.get(
+            "enable_bspline"
+        )
+        is True
+    )
+
+
+def _prepare_registration(
+    *,
+    metadata_root: Path,
+    patients_root: Path,
+    atlas_root: Path,
+    patient_id: int,
+    timepoint_name: str,
+    target_spacing: tuple[
+        float,
+        float,
+        float,
+    ],
+    full: bool,
+):
+    return (
+        prepare_patient_registered_atlas(
+            metadata_root=(
+                metadata_root
+            ),
+            patients_root=(
+                patients_root
+            ),
+            atlas_root=(
+                atlas_root
+            ),
+            patient_id=(
+                patient_id
+            ),
+            timepoint_name=(
+                timepoint_name
+            ),
+            target_spacing=(
+                target_spacing
+            ),
+            config=(
+                DEFAULT_REGISTRATION_CONFIG
+                if full
+                else PREVIEW_REGISTRATION_CONFIG
+            ),
+        )
+    )
+
+
+def ensure_atlas_assets(
+    atlas_root: Path,
+) -> Path:
+    atlas_root = (
+        atlas_root.resolve()
+    )
+
+    required = tuple(
+        atlas_root / filename
+        for filename in (
+            _REQUIRED_ATLAS_FILES
+        )
+    )
+
+    if all(
+        path.is_file()
+        for path in required
+    ):
+        return atlas_root
+
+    with _BOOTSTRAP_LOCK:
+        if all(
+            path.is_file()
+            for path in required
+        ):
+            return atlas_root
+
+        atlas_root.parent.mkdir(
+            parents=True,
+            exist_ok=True,
+        )
+
+        atlas_root.mkdir(
+            parents=True,
+            exist_ok=True,
+        )
+
+        with TemporaryDirectory(
+            prefix="gbm-twin-atlas-bootstrap-",
+            dir=str(
+                atlas_root.parent
+            ),
+        ) as temporary_directory:
+            temporary_root = Path(
+                temporary_directory
+            )
+
+            bootstrap_harvard_oxford_atlas(
+                temporary_root
+            )
+
+            for filename in (
+                _REQUIRED_ATLAS_FILES
+            ):
+                shutil.copy2(
+                    temporary_root
+                    / filename,
+                    atlas_root
+                    / filename,
+                )
+
+    return atlas_root
+
+
+def select_patient_atlas(
+    *,
+    metadata_root: Path,
+    patients_root: Path,
+    atlas_root: Path,
+    patient_id: int,
+    timepoint_name: str,
+    target_spacing: tuple[
+        float,
+        float,
+        float,
+    ],
+    prepare_if_missing: bool = True,
+) -> PatientAtlasSelection:
+    normalized_timepoint = (
+        timepoint_name
+        .strip()
+        .lower()
+    )
+
+    registration_dir = (
+        atlas_root.resolve()
+        / "patients"
+        / str(
+            patient_id
+        )
+        / normalized_timepoint
+    )
+
+    canonical_path = (
+        registration_dir
+        / "labels.nii.gz"
+    )
+
+    candidate_path = (
+        registration_dir
+        / "labels_candidate.nii.gz"
+    )
+
+    registration_path = (
+        registration_dir
+        / "registration.json"
+    )
+
+    review_path = (
+        registration_dir
+        / "review.json"
+    )
+
+    preparation_path = (
+        registration_dir
+        / "preparation.json"
+    )
+
+    if review_path.is_file():
+        try:
+            review = _json_mapping(
+                review_path
+            )
+
+            decision = str(
+                review.get(
+                    "decision",
+                    "",
+                )
+            ).strip().lower()
+
+        except (
+            json.JSONDecodeError,
+            OSError,
+            TypeError,
+            ValueError,
+        ) as exc:
+            return PatientAtlasSelection(
+                mode="unavailable",
+                labelmap_path=None,
+                automatic_qc_status=None,
+                status_message=(
+                    "Atlas review metadata is invalid: "
+                    f"{exc}"
+                ),
+            )
+
+        if decision == "rejected":
+            return PatientAtlasSelection(
+                mode="unavailable",
+                labelmap_path=None,
+                automatic_qc_status=None,
+                status_message=(
+                    "The patient atlas registration was manually rejected."
+                ),
+            )
+
+        if decision == "accepted":
+            if (
+                not canonical_path.is_file()
+                or not registration_path.is_file()
+            ):
+                return PatientAtlasSelection(
+                    mode="unavailable",
+                    labelmap_path=None,
+                    automatic_qc_status=None,
+                    status_message=(
+                        "Accepted atlas review is incomplete."
+                    ),
+                )
+
+            try:
+                quality_status = (
+                    _quality_status(
+                        registration_path
+                    )
+                )
+            except (
+                json.JSONDecodeError,
+                OSError,
+                TypeError,
+                ValueError,
+            ) as exc:
+                return PatientAtlasSelection(
+                    mode="unavailable",
+                    labelmap_path=None,
+                    automatic_qc_status=None,
+                    status_message=str(
+                        exc
+                    ),
+                )
+
+            return PatientAtlasSelection(
+                mode="manual",
+                labelmap_path=(
+                    canonical_path
+                ),
+                automatic_qc_status=(
+                    quality_status
+                ),
+                status_message=(
+                    "Manually accepted patient-space atlas registration."
+                ),
+            )
+
+        return PatientAtlasSelection(
+            mode="unavailable",
+            labelmap_path=None,
+            automatic_qc_status=None,
+            status_message=(
+                "Atlas review has an unsupported decision."
+            ),
+        )
+
+    if (
+        not prepare_if_missing
+        and (
+            not candidate_path.is_file()
+            or not registration_path.is_file()
+        )
+    ):
+        if preparation_path.is_file():
+            try:
+                preparation = (
+                    _json_mapping(
+                        preparation_path
+                    )
+                )
+
+                state = str(
+                    preparation.get(
+                        "state",
+                        "",
+                    )
+                ).strip().lower()
+
+                message = str(
+                    preparation.get(
+                        "message",
+                        "",
+                    )
+                ).strip()
+
+                if state == "running":
+                    return PatientAtlasSelection(
+                        mode="unavailable",
+                        labelmap_path=None,
+                        automatic_qc_status=None,
+                        status_message=(
+                            "Atlas registration is being prepared."
+                        ),
+                    )
+
+                if state == "failed":
+                    return PatientAtlasSelection(
+                        mode="unavailable",
+                        labelmap_path=None,
+                        automatic_qc_status=None,
+                        status_message=(
+                            "Atlas preparation failed"
+                            + (
+                                f": {message}"
+                                if message
+                                else "."
+                            )
+                        ),
+                    )
+
+            except (
+                json.JSONDecodeError,
+                OSError,
+                TypeError,
+                ValueError,
+            ):
+                pass
+
+        return PatientAtlasSelection(
+            mode="unavailable",
+            labelmap_path=None,
+            automatic_qc_status=None,
+            status_message=(
+                "Atlas registration is not prepared yet."
+            ),
+        )
+
+    with _REGISTRATION_LOCK:
+        if (
+            candidate_path.is_file()
+            and registration_path.is_file()
+        ):
+            quality_status = (
+                _quality_status(
+                    registration_path
+                )
+            )
+
+            if (
+                quality_status
+                == "fail"
+                and prepare_if_missing
+                and not (
+                    _registration_used_bspline(
+                        registration_path
+                    )
+                )
+            ):
+                result = (
+                    _prepare_registration(
+                        metadata_root=(
+                            metadata_root
+                        ),
+                        patients_root=(
+                            patients_root
+                        ),
+                        atlas_root=(
+                            atlas_root
+                        ),
+                        patient_id=(
+                            patient_id
+                        ),
+                        timepoint_name=(
+                            normalized_timepoint
+                        ),
+                        target_spacing=(
+                            target_spacing
+                        ),
+                        full=True,
+                    )
+                )
+
+                candidate_path = (
+                    result
+                    .candidate_labels_path
+                )
+
+                quality_status = (
+                    result
+                    .quality
+                    .status
+                    .strip()
+                    .lower()
+                )
+
+        else:
+            try:
+                result = (
+                    _prepare_registration(
+                        metadata_root=(
+                            metadata_root
+                        ),
+                        patients_root=(
+                            patients_root
+                        ),
+                        atlas_root=(
+                            atlas_root
+                        ),
+                        patient_id=(
+                            patient_id
+                        ),
+                        timepoint_name=(
+                            normalized_timepoint
+                        ),
+                        target_spacing=(
+                            target_spacing
+                        ),
+                        full=False,
+                    )
+                )
+
+            except RegistrationQualityError:
+                result = (
+                    _prepare_registration(
+                        metadata_root=(
+                            metadata_root
+                        ),
+                        patients_root=(
+                            patients_root
+                        ),
+                        atlas_root=(
+                            atlas_root
+                        ),
+                        patient_id=(
+                            patient_id
+                        ),
+                        timepoint_name=(
+                            normalized_timepoint
+                        ),
+                        target_spacing=(
+                            target_spacing
+                        ),
+                        full=True,
+                    )
+                )
+
+            candidate_path = (
+                result
+                .candidate_labels_path
+            )
+
+            quality_status = (
+                result
+                .quality
+                .status
+                .strip()
+                .lower()
+            )
+
+    if quality_status == "fail":
+        return PatientAtlasSelection(
+            mode="unavailable",
+            labelmap_path=None,
+            automatic_qc_status=(
+                quality_status
+            ),
+            status_message=(
+                "Automatic atlas registration QC failed. "
+                "The candidate is not used."
+            ),
+        )
+
+    if quality_status not in {
+        "pass",
+        "warn",
+    }:
+        return PatientAtlasSelection(
+            mode="unavailable",
+            labelmap_path=None,
+            automatic_qc_status=(
+                quality_status
+            ),
+            status_message=(
+                "Automatic atlas registration returned an unsupported QC status."
+            ),
+        )
+
+    return PatientAtlasSelection(
+        mode="automatic-preview",
+        labelmap_path=(
+            candidate_path
+        ),
+        automatic_qc_status=(
+            quality_status
+        ),
+        status_message=(
+            "Automatic-QC atlas preview. Manual review is still pending."
+        ),
+    )
+
+
+
+def prepare_patient_atlas_preview(
+    *,
+    metadata_root: Path,
+    patients_root: Path,
+    atlas_root: Path,
+    patient_id: int,
+    timepoint_name: str,
+    target_spacing: tuple[
+        float,
+        float,
+        float,
+    ],
+) -> PatientAtlasSelection:
+    normalized_timepoint = (
+        timepoint_name
+        .strip()
+        .lower()
+    )
+
+    registration_dir = (
+        atlas_root.resolve()
+        / "patients"
+        / str(
+            patient_id
+        )
+        / normalized_timepoint
+    )
+
+    registration_dir.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
+    preparation_path = (
+        registration_dir
+        / "preparation.json"
+    )
+
+    preparation_path.write_text(
+        json.dumps(
+            {
+                "state": "running",
+                "message": (
+                    "Preparing atlas assets "
+                    "and patient registration."
+                ),
+            },
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    try:
+        prepared_atlas_root = (
+            ensure_atlas_assets(
+                atlas_root
+            )
+        )
+
+        selection = (
+            select_patient_atlas(
+                metadata_root=metadata_root,
+                patients_root=patients_root,
+                atlas_root=(
+                    prepared_atlas_root
+                ),
+                patient_id=patient_id,
+                timepoint_name=(
+                    normalized_timepoint
+                ),
+                target_spacing=(
+                    target_spacing
+                ),
+                prepare_if_missing=True,
+            )
+        )
+
+    except Exception as exc:
+        preparation_path.write_text(
+            json.dumps(
+                {
+                    "state": "failed",
+                    "message": str(
+                        exc
+                    ),
+                },
+                indent=2,
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+
+        raise
+
+    preparation_path.write_text(
+        json.dumps(
+            {
+                "state": "ready",
+                "message": (
+                    selection
+                    .status_message
+                ),
+            },
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    return selection

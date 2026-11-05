@@ -1,0 +1,23 @@
+schema_version: 1
+design: stage10_reserve_internal_validation_v1
+
+cohort:
+  patient_count: 16
+  seed: 20261001
+  selection_method: deterministic_stratified_reserve_v1
+
+evaluation:
+  catastrophic_delta_vs_persistence: -0.10
+  bootstrap_samples: 10000
+  bootstrap_seed: 20261001
+
+advancement:
+  min_mean_delta_vs_persistence: 0.0
+  min_median_delta_vs_persistence: 0.0
+  max_catastrophic_failure_count: 0
+  require_mean_rve_not_worse_than_persistence: true
+  require_mean_hd95_not_worse_than_persistence: true
+
+next_step:
+  if_passed: proceed_to_untouched_holdout_without_model_changes
+  if_failed: return_to_development_failure_analysis_without_reserve_tuning

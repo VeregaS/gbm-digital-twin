@@ -12,13 +12,14 @@ __pycache__/
 
 # Local caches
 .cache/
+.reference/
 
 # Environment
 .env
 .env.*
 
 # Data and generated results
-data/
+/data/
 results/
 
 # Medical imaging / registration artifacts
@@ -35,3 +36,8 @@ frontend/dist/
 .idea/
 .vscode/
 .DS_Store
+
+# Browser and build diagnostics
+frontend/playwright-report/
+frontend/test-results/
+*.tsbuildinfo

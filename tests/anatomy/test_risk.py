@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 
+import gbm_twin.anatomy.risk as risk_module
 from gbm_twin.anatomy.models import (
     AtlasRegionDefinition,
 )
@@ -318,3 +319,109 @@ def test_far_region_is_not_reported() -> None:
     )
 
     assert result.warnings == ()
+
+
+def test_distance_transform_is_reused_for_all_regions(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    shape = (
+        20,
+        20,
+        20,
+    )
+
+    labels = np.zeros(
+        shape,
+        dtype=np.int32,
+    )
+
+    labels[
+        10,
+        10,
+        10,
+    ] = 1
+
+    labels[
+        12,
+        10,
+        10,
+    ] = 2
+
+    gtv = np.zeros(
+        shape,
+        dtype=bool,
+    )
+
+    gtv[
+        8,
+        10,
+        10,
+    ] = True
+
+    latent = (
+        gtv.astype(
+            np.float32
+        )
+    )
+
+    regions = (
+        AtlasRegionDefinition(
+            label=1,
+            name="Region one",
+            category="motor",
+        ),
+        AtlasRegionDefinition(
+            label=2,
+            name="Region two",
+            category="visual",
+        ),
+    )
+
+    original = (
+        risk_module
+        .distance_transform_edt
+    )
+
+    calls = 0
+
+    def counted(
+        *args: object,
+        **kwargs: object,
+    ) -> object:
+        nonlocal calls
+        calls += 1
+
+        return original(
+            *args,
+            **kwargs,
+        )
+
+    monkeypatch.setattr(
+        risk_module,
+        "distance_transform_edt",
+        counted,
+    )
+
+    result = (
+        compute_anatomical_risk(
+            patient_id=1,
+            timepoint_name="t1",
+            labelmap=labels,
+            regions=regions,
+            gtv_mask=gtv,
+            latent_state=latent,
+            spacing=(
+                2.0,
+                2.0,
+                2.0,
+            ),
+            atlas_name="Test",
+            proximity_threshold_mm=10.0,
+        )
+    )
+
+    assert len(
+        result.warnings
+    ) == 2
+
+    assert calls == 1

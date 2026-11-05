@@ -37,7 +37,7 @@ _TEMPLATEFLOW_CLIENT = (
 class ManifestRegion(
     TypedDict,
 ):
-    label_value: int
+    label: int
     name: str
     category: str
     laterality: str | None
@@ -389,7 +389,7 @@ def _region_entries(
 
         result.append(
             {
-                "label_value": (
+                "label": (
                     atlas_label
                     + label_offset
                 ),
@@ -663,7 +663,7 @@ def bootstrap_harvard_oxford_atlas(
 
     regions.sort(
         key=lambda region: (
-            region["label_value"]
+            region["label"]
         )
     )
 

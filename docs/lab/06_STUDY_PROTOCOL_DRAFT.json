@@ -1,0 +1,158 @@
+{
+  "schema_version": 1,
+  "spec_version": "2.0",
+  "status": "draft_not_executable",
+  "notice_ru": "Шаблон не готов к freeze. Null поля заполняются и валидируются на CP09 до основной серии.",
+  "study_id": null,
+  "kind": "scenario_ranking_robustness",
+  "question": null,
+  "engine": {
+    "id": "tumortwin",
+    "upstream_commit": "bedf90a6d47ba48cf5cdb25901967d84730061d1",
+    "source_sha256": null,
+    "adapter_version": null,
+    "environment_sha256": null
+  },
+  "case": {
+    "id": "HGG_demo_001",
+    "kind": "synthetic_hgg",
+    "version": null,
+    "manifest_sha256": null,
+    "geometry_count": 1
+  },
+  "context_of_use": "in_silico_hypothesis_generation",
+  "observations": {
+    "mode": "scenario_simulation",
+    "cutoff_days": null,
+    "initial_state_ref": null,
+    "allowed_visit_ids": [],
+    "future_truth_access": "evaluator_only_if_forecast_is_claimed"
+  },
+  "scenarios": {
+    "baseline_version_ref": null,
+    "comparator_version_refs": [],
+    "constraints": {
+      "same_total_rt_dose": true,
+      "same_rt_fraction_count": true,
+      "same_ct_background": true,
+      "same_initial_state": true,
+      "same_horizon": true
+    }
+  },
+  "parameters": [],
+  "initial_state_perturbations": {
+    "enabled": false,
+    "kind": null,
+    "bounds": null,
+    "assumption_label_required": true
+  },
+  "primary_endpoint": {
+    "key": null,
+    "unit": null,
+    "direction": "lower_is_better",
+    "scalar_sampling_days": null,
+    "formula_version": null
+  },
+  "primary_statistic": {
+    "key": "resolved_preference_reversal_fraction",
+    "nominal_pair_ref": null,
+    "nominal_unresolved_policy": "undefined_with_reason_do_not_force_ranking",
+    "denominator": "all_planned_subjects_with_explicit_failure_bounds"
+  },
+  "secondary_endpoints": [],
+  "ranking_epsilon": {
+    "absolute": null,
+    "relative": null,
+    "scale": null,
+    "numerical_error_bound": null,
+    "pilot_artifact_sha256": null
+  },
+  "sampling": {
+    "generator": "latin_hypercube",
+    "generator_version": null,
+    "independence_assumption": true,
+    "factors": [],
+    "pilot_seed": 1105,
+    "development_seed": 2205,
+    "evaluation_seed": 3305,
+    "subject_count": null,
+    "subject_table_sha256": null,
+    "sample_matrix_sha256": null
+  },
+  "morris": {
+    "enabled": true,
+    "levels": null,
+    "trajectories": null,
+    "factors": [],
+    "seed": null,
+    "matrix_sha256": null
+  },
+  "numerics": {
+    "solver": null,
+    "dt_days": null,
+    "precision": null,
+    "device": "cpu",
+    "convergence_ref": null,
+    "field_times_days": []
+  },
+  "budget": {
+    "max_wall_seconds": 43200,
+    "max_new_output_bytes": 4294967296,
+    "max_concurrency": 1,
+    "max_child_submit": 256,
+    "estimated_solves": null,
+    "estimated_upper_cost_seconds": null,
+    "safety_margin_fraction": 0.3,
+    "design_choice_reason": null
+  },
+  "failures": {
+    "max_transient_retries": null,
+    "replacement_subjects_allowed": false,
+    "max_failure_fraction_for_primary_claim": null,
+    "missing_outcome_policy": null,
+    "budget_stopping_rule": null
+  },
+  "analysis": {
+    "version": null,
+    "bootstrap_replicates": 2000,
+    "bootstrap_seed": null,
+    "sampling_unit": null,
+    "interval_interpretation": null,
+    "script_ref": null
+  },
+  "frozen": {
+    "at_utc": null,
+    "git_commit": null,
+    "dirty": null,
+    "protocol_sha256": null,
+    "freeze_receipt_ref": null
+  },
+  "longitudinal_forecast_demo": {
+    "publication_study_ref": "S-A",
+    "status": "draft_not_executable",
+    "kind": "synthetic_forecast",
+    "fit_visit_rule": "first_five_chronological_visits",
+    "cutoff": "time_of_fifth_visit",
+    "crop_allowed_data": "static_brain_and_allowed_fit_observations_only",
+    "upstream_optimizer_config": null,
+    "forecast_seal_before_target_decoding": true,
+    "future_targets": "remaining_chronological_visits_evaluator_only",
+    "comparators": [
+      "last_observed_density_persistence",
+      "author_fixed_parameters"
+    ],
+    "primary_metric": "normalized_density_rmse",
+    "metric_scale": null,
+    "future_tuning_allowed": false
+  },
+  "protected_clinical_data": {
+    "open_reserve": false,
+    "open_holdout": false,
+    "download_patient_collection": false
+  },
+  "result_policy": {
+    "negative_result_allowed": true,
+    "posthoc_candidate_changes_allowed": false,
+    "clinical_effectiveness_claim_allowed": false
+  }
+}

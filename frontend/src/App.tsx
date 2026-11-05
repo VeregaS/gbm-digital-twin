@@ -3,7 +3,8 @@ import {
   useState,
 } from "react";
 
-import "./App.css";
+import "./styles/App.css";
+import "./styles/ux-russian.css";
 
 import {
   fetchHealth,
@@ -20,18 +21,27 @@ import type {
 import {
   fetchCapabilities,
 } from "./api/capabilities";
+
 import type {
   Capabilities,
 } from "./api/capabilities";
 
+import {
+  fetchTwinPatients,
+} from "./api/twin";
+
 import Sidebar from "./components/layout/Sidebar";
+
 import {
   sectionLabel,
 } from "./components/layout/navigation";
+
 import type {
   WorkbenchSection,
 } from "./components/layout/navigation";
+
 import Topbar from "./components/layout/Topbar";
+
 import WorkbenchContent from "./components/workbench/WorkbenchContent";
 
 
@@ -52,66 +62,88 @@ function App() {
   const [
     activeSection,
     setActiveSection,
-  ] = useState<WorkbenchSection>(
+  ] = useState<
+    WorkbenchSection
+  >(
     "patients",
   );
 
   const [
     health,
     setHealth,
-  ] = useState<HealthResponse | null>(
-    null,
-  );
+  ] = useState<
+    HealthResponse | null
+  >(null);
 
   const [
     backendError,
     setBackendError,
-  ] = useState(false);
+  ] = useState(
+    false,
+  );
 
   const [
     capabilities,
     setCapabilities,
-  ] = useState<Capabilities | null>(
-    null,
-  );
+  ] = useState<
+    Capabilities | null
+  >(null);
 
   const [
     capabilitiesError,
     setCapabilitiesError,
-  ] = useState<string | null>(
-    null,
-  );
+  ] = useState<
+    string | null
+  >(null);
 
   const [
     patients,
     setPatients,
-  ] = useState<PatientListItem[]>([]);
+  ] = useState<
+    PatientListItem[]
+  >([]);
 
   const [
     patientsLoading,
     setPatientsLoading,
-  ] = useState(true);
+  ] = useState(
+    true,
+  );
 
   const [
     patientsError,
     setPatientsError,
-  ] = useState<string | null>(
-    null,
-  );
+  ] = useState<
+    string | null
+  >(null);
 
   const [
     selectedPatientId,
     setSelectedPatientId,
-  ] = useState<number | null>(
-    null,
-  );
+  ] = useState<
+    number | null
+  >(null);
 
   const [
     patientRequest,
     setPatientRequest,
-  ] = useState<PatientRequestState | null>(
-    null,
-  );
+  ] = useState<
+    PatientRequestState | null
+  >(null);
+
+  const [
+    twinPatientIds,
+    setTwinPatientIds,
+  ] = useState<
+    number[] | null
+  >(null);
+
+  const [
+    twinPatientsError,
+    setTwinPatientsError,
+  ] = useState<
+    string | null
+  >(null);
 
   useEffect(() => {
     fetchHealth()
@@ -128,77 +160,149 @@ function App() {
         setCapabilities(data);
         setCapabilitiesError(null);
       })
-      .catch((error: unknown) => {
-        setCapabilitiesError(
-          error instanceof Error
-            ? error.message
-            : (
-              "Failed to load backend "
-              + "capabilities"
-            ),
-        );
-      });
+      .catch(
+        (error: unknown) => {
+          setCapabilitiesError(
+            error instanceof Error
+              ? error.message
+              : "Не удалось получить возможности сервера",
+          );
+        },
+      );
 
     fetchPatients()
       .then((data) => {
-        setPatients(data.patients);
-        setPatientsError(null);
-      })
-      .catch((error: unknown) => {
+        setPatients(
+          data.patients,
+        );
+
         setPatientsError(
-          error instanceof Error
-            ? error.message
-            : "Failed to load patients",
+          null,
         );
       })
+      .catch(
+        (error: unknown) => {
+          setPatientsError(
+            error instanceof Error
+              ? error.message
+              : "Не удалось загрузить список пациентов",
+          );
+        },
+      )
       .finally(() => {
-        setPatientsLoading(false);
+        setPatientsLoading(
+          false,
+        );
       });
   }, []);
 
   useEffect(() => {
-    if (selectedPatientId === null) {
+    if (
+      capabilities
+      ?.digital_twin
+      .available
+      !== true
+    ) {
       return;
     }
 
     let cancelled = false;
 
-    fetchPatient(selectedPatientId)
+    fetchTwinPatients()
+      .then((data) => {
+        if (cancelled) {
+          return;
+        }
+
+        setTwinPatientIds(
+          data.patients.map(
+            (item) =>
+              item.patient_id,
+          ),
+        );
+
+        setTwinPatientsError(
+          null,
+        );
+      })
+      .catch(
+        (error: unknown) => {
+          if (cancelled) {
+            return;
+          }
+
+          setTwinPatientsError(
+            error instanceof Error
+              ? error.message
+              : "Не удалось загрузить список пациентов с цифровым двойником",
+          );
+        },
+      );
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    capabilities
+    ?.digital_twin
+    .available,
+  ]);
+
+  useEffect(() => {
+    if (
+      selectedPatientId === null
+    ) {
+      return;
+    }
+
+    let cancelled = false;
+
+    fetchPatient(
+      selectedPatientId,
+    )
       .then((data) => {
         if (cancelled) {
           return;
         }
 
         setPatientRequest({
-          patientId: selectedPatientId,
+          patientId:
+            selectedPatientId,
           status: "success",
           patient: data,
         });
       })
-      .catch((error: unknown) => {
-        if (cancelled) {
-          return;
-        }
+      .catch(
+        (error: unknown) => {
+          if (cancelled) {
+            return;
+          }
 
-        setPatientRequest({
-          patientId: selectedPatientId,
-          status: "error",
-          error:
-            error instanceof Error
-              ? error.message
-              : "Failed to load patient",
-        });
-      });
+          setPatientRequest({
+            patientId:
+              selectedPatientId,
+            status: "error",
+            error:
+              error instanceof Error
+                ? error.message
+                : "Не удалось загрузить данные пациента",
+          });
+        },
+      );
 
     return () => {
       cancelled = true;
     };
-  }, [selectedPatientId]);
+  }, [
+    selectedPatientId,
+  ]);
 
   const selectedPatientRequest =
     selectedPatientId !== null
-    && patientRequest?.patientId
+    && (
+      patientRequest?.patientId
       === selectedPatientId
+    )
       ? patientRequest
       : null;
 
@@ -210,7 +314,8 @@ function App() {
 
   const patientLoading =
     selectedPatientId !== null
-    && selectedPatientRequest === null;
+    && selectedPatientRequest
+    === null;
 
   const patientError =
     selectedPatientRequest?.status
@@ -218,27 +323,63 @@ function App() {
       ? selectedPatientRequest.error
       : null;
 
+  const selectedPatientHasTwin:
+    boolean | null =
+      selectedPatientId === null
+        ? false
+        : twinPatientIds === null
+          ? null
+          : twinPatientIds.includes(
+            selectedPatientId,
+          );
+
   function selectPatient(
     patientId: number | null,
   ) {
-    setPatientRequest(null);
-    setSelectedPatientId(patientId);
+    setPatientRequest(
+      null,
+    );
+
+    setSelectedPatientId(
+      patientId,
+    );
   }
 
   return (
-    <div className="app-shell">
+    <div
+      className="app-shell"
+    >
       <Sidebar
-        activeSection={activeSection}
-        onNavigate={setActiveSection}
+        activeSection={
+          activeSection
+        }
+        onNavigate={
+          setActiveSection
+        }
         health={health}
-        backendError={backendError}
-        capabilities={capabilities}
+        backendError={
+          backendError
+        }
+        capabilities={
+          capabilities
+        }
         capabilitiesError={
           capabilitiesError
         }
+        selectedPatientId={
+          selectedPatientId
+        }
+        selectedPatientHasTwin={
+          selectedPatientHasTwin
+        }
+        twinPatientsError={
+          twinPatientsError
+        }
       />
 
-      <main className="workspace">
+      <main
+        className="workspace"
+      >
         <Topbar
           pageTitle={
             sectionLabel(
@@ -247,16 +388,28 @@ function App() {
           }
         />
 
-        <div className="workspace-content">
+        <div
+          className="workspace-content"
+        >
           <WorkbenchContent
-            section={activeSection}
-            capabilities={capabilities}
+            section={
+              activeSection
+            }
+            capabilities={
+              capabilities
+            }
             capabilitiesError={
               capabilitiesError
             }
             patients={patients}
             selectedPatientId={
               selectedPatientId
+            }
+            selectedPatientHasTwin={
+              selectedPatientHasTwin
+            }
+            twinPatientsError={
+              twinPatientsError
             }
             patient={patient}
             patientsLoading={
@@ -272,8 +425,15 @@ function App() {
             onSelectPatient={
               selectPatient
             }
+            onChangePatient={() =>
+              setActiveSection(
+                "patients",
+              )
+            }
             onOpenViewer={() =>
-              setActiveSection("viewer")
+              setActiveSection(
+                "viewer",
+              )
             }
           />
         </div>

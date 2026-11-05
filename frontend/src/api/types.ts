@@ -100,6 +100,18 @@ export type ViewerVolumeMetadata = {
 };
 
 
+export type ViewerFocusMetadata = {
+  patient_id: number;
+  timepoint_name: string;
+
+  axial_index: number | null;
+  coronal_index: number | null;
+  sagittal_index: number | null;
+
+  gtv_voxels: number;
+};
+
+
 export type SurfaceMesh = {
   name: string;
 

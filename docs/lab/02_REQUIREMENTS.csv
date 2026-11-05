@@ -1,0 +1,257 @@
+﻿id,group,priority,checkpoint,requirement,acceptance_id,acceptance,verification_method,evidence_required,status
+GOV-001,Управление и исходное состояние,MUST,CP00,"Зафиксировать фактические HEAD, ветку и dirty status перед изменениями.",AT-GOV-001,BASELINE.md содержит значения из Git и время проверки.,manual,CP00/evidence/GOV-001,pending
+GOV-002,Управление и исходное состояние,MUST,CP00,Прочитать применимые AGENTS.md до реализации.,AT-GOV-002,BASELINE.md перечисляет прочитанные файлы и применимые ограничения.,manual,CP00/evidence/GOV-002,pending
+GOV-003,Управление и исходное состояние,MUST,CP00,Составить список защищенных старых протоколов и результатов.,AT-GOV-003,PROTECTED_ARTIFACTS.md перечисляет frozen configs и scientific reports.,manual,CP00/evidence/GOV-003,pending
+GOV-004,Управление и исходное состояние,MUST,CP00,Сохранить пользовательские изменения при внедрении ТЗ.,AT-GOV-004,Diff не удаляет и не перезаписывает unrelated changes.,manual,CP00/evidence/GOV-004,pending
+GOV-005,Управление и исходное состояние,MUST,CP00,Связать старое ТЗ с версией 2.0 без удаления истории.,AT-GOV-005,Старый документ содержит ссылку на действующую спецификацию.,manual,CP00/evidence/GOV-005,pending
+GOV-006,Управление и исходное состояние,MUST,CP00,Инвентаризировать оставшиеся локальные данные без загрузки коллекций.,AT-GOV-006,"В BASELINE.md отдельно отмечены absent, present и unverified assets.",manual,CP00/evidence/GOV-006,pending
+GOV-007,Управление и исходное состояние,MUST,CP00,Зарегистрировать audit baseline отдельно от новых результатов.,AT-GOV-007,Исторический прогон 571 теста не обозначен приемкой лаборатории.,manual,CP00/evidence/GOV-007,pending
+GOV-008,Управление и исходное состояние,MUST,CP00,Использовать первый непринятый checkpoint как текущую задачу.,AT-GOV-008,Progress содержит один current_checkpoint и его зависимости.,manual,CP00/evidence/GOV-008,pending
+GOV-009,Управление и исходное состояние,MUST,CP12,Сохранять историю принятия и изменений требований.,AT-GOV-009,"Для каждого изменения есть version, affected IDs и причина.",manual,CP12/evidence/GOV-009,pending
+GOV-010,Управление и исходное состояние,MUST,CP12,Не открывать защищенные reserve/holdout при lab tests.,AT-GOV-010,Regression spy фиксирует ноль вызовов загрузчика закрытых cohorts.,integration,CP12/evidence/GOV-010,pending
+SRC-001,Источники и самостоятельный вклад,MUST,CP01,Зафиксировать поисковые запросы и дату литературной проверки.,AT-SRC-001,"SEARCH_LOG содержит запрос, источник и результат поиска.",manual,CP01/evidence/SRC-001,pending
+SRC-002,Источники и самостоятельный вклад,MUST,CP01,Разобрать опубликованный TumorTwin как ближайшую software работу.,AT-SRC-002,Матрица содержит проверенные capabilities и границу собственного вклада.,manual,CP01/evidence/SRC-002,pending
+SRC-003,Источники и самостоятельный вклад,MUST,CP01,Разобрать полную работу о risk-aware HGG twin 2023 года.,AT-SRC-003,"Матрица сопоставляет cohort, uncertainty и treatment comparison.",manual,CP01/evidence/SRC-003,pending
+SRC-004,Источники и самостоятельный вклад,MUST,CP01,Проверить полный текст Pash et al. до окончательного novelty claim.,AT-SRC-004,В матрице указан full-text status; недоступное содержание отмечено unknown.,manual,CP01/evidence/SRC-004,pending
+SRC-005,Источники и самостоятельный вклад,MUST,CP01,Привязать каждое заявленное отличие к проверяемому эксперименту.,AT-SRC-005,"CONTRIBUTION_MATRIX содержит claim, baseline и artifact target.",manual,CP01/evidence/SRC-005,pending
+SRC-006,Источники и самостоятельный вклад,MUST,CP01,Ограничить выводы клинического характера доступными данными.,AT-SRC-006,Claims ledger не содержит доказанной клинической эффективности по синтетике.,manual,CP01/evidence/SRC-006,pending
+SRC-007,Источники и самостоятельный вклад,MUST,CP01,Разделить основные результаты статей A и B.,AT-SRC-007,PUBLICATION_PLAN перечисляет самостоятельные questions и primary tables.,manual,CP01/evidence/SRC-007,pending
+SRC-008,Источники и самостоятельный вклад,MUST,CP01,Записать statement of need для исследователя.,AT-SRC-008,"Документ объясняет задачу, alternatives и причину отдельной среды.",manual,CP01/evidence/SRC-008,pending
+SRC-009,Источники и самостоятельный вклад,MUST,CP02,Описать условия использования upstream кода и demo assets.,AT-SRC-009,LICENSE_AND_DATA_USE содержит источники и разрешенные способы использования.,manual,CP02/evidence/SRC-009,pending
+SRC-010,Источники и самостоятельный вклад,MUST,CP02,Отделить публичный hosting от приемки локальной среды.,AT-SRC-010,Неясный hosting status не запрещает разрешенный local workflow.,manual,CP02/evidence/SRC-010,pending
+ENG-001,Движок и эталон,MUST,CP02,Закрепить upstream commit в engine descriptor.,AT-ENG-001,Descriptor содержит bedf90a6d47ba48cf5cdb25901967d84730061d1.,unit,CP02/evidence/ENG-001,pending
+ENG-002,Движок и эталон,MUST,CP02,Проверять фактический source fingerprint установленного движка.,AT-ENG-002,Изменение source при неизменном marker обнаруживается проверкой.,integration,CP02/evidence/ENG-002,pending
+ENG-003,Движок и эталон,MUST,CP02,Сохранять точные версии resolved engine dependencies.,AT-ENG-003,"Environment manifest содержит Python, Torch, NumPy и solver versions.",integration,CP02/evidence/ENG-003,pending
+ENG-004,Движок и эталон,MUST,CP02,Изолировать engine environment от основного backend.,AT-ENG-004,Backend imports работают без установленного Torch в app environment.,integration,CP02/evidence/ENG-004,pending
+ENG-005,Движок и эталон,MUST,CP02,Публиковать поддерживаемые параметры через descriptor.,AT-ENG-005,Unsupported key отклоняется до queue и отсутствует в editor controls.,unit,CP02/evidence/ENG-005,pending
+ENG-006,Движок и эталон,MUST,CP02,Публиковать поддерживаемые treatment modalities.,AT-ENG-006,CT нельзя silently omit при faithful reproduction с CT input.,engine,CP02/evidence/ENG-006,pending
+ENG-007,Движок и эталон,MUST,CP03,Получить эталон отдельным прямым upstream запуском.,AT-ENG-007,Reference receipt содержит отдельную команду и независимые output hashes.,engine,CP03/evidence/ENG-007,pending
+ENG-008,Движок и эталон,MUST,CP03,Воспроизвести author preprocessing в reproduction режиме.,AT-ENG-008,"Сравнение фиксирует те же visits, cropping и initial density.",engine,CP03/evidence/ENG-008,pending
+ENG-009,Движок и эталон,MUST,CP03,Возвращать trajectory с фактическими временами.,AT-ENG-009,Adapter outputs содержат более одного distinct time и соответствующие fields.,engine,CP03/evidence/ENG-009,pending
+ENG-010,Движок и эталон,MUST,CP03,Сохранять полную физическую геометрию author case.,AT-ENG-010,Origin и orientation не заменены diagonal spacing-only affine.,engine,CP03/evidence/ENG-010,pending
+ENG-011,Движок и эталон,MUST,CP03,Запускать CPU mode без требования GPU.,AT-ENG-011,Author case завершается на документированном CPU environment.,engine,CP03/evidence/ENG-011,pending
+ENG-012,Движок и эталон,MUST,CP03,Измерить peak memory и wall time pilot.,AT-ENG-012,PILOT_PROFILE содержит hardware и measured resource values.,engine,CP03/evidence/ENG-012,pending
+ENG-013,Движок и эталон,MUST,CP03,Отделять unsupported gradient capability от finite differences.,AT-ENG-013,Descriptor сообщает autograd=false при detached adapter.,unit,CP03/evidence/ENG-013,pending
+ENG-014,Движок и эталон,MUST,CP05,Запускать worker через разрешенные argv без shell execution.,AT-ENG-014,Пользовательский executable/module не принимается API.,integration,CP05/evidence/ENG-014,pending
+DAT-001,Подготовка данных,MUST,CP02,Подготавливать только явно выбранный author case.,AT-DAT-001,"Acquisition receipt не содержит CFB, Burdenko или atlas files.",integration,CP02/evidence/DAT-001,pending
+DAT-002,Подготовка данных,MUST,CP02,Показывать expected download size перед загрузкой.,AT-DAT-002,CLI dry-run выводит whitelisted files и total bytes либо unknown reason.,integration,CP02/evidence/DAT-002,pending
+DAT-003,Подготовка данных,MUST,CP02,Создавать immutable manifest подготовленного случая.,AT-DAT-003,Повтор записи иной версии не изменяет старый manifest.,integration,CP02/evidence/DAT-003,pending
+DAT-004,Подготовка данных,MUST,CP02,Проверять checksum каждого подготовленного файла.,AT-DAT-004,Измененный fixture переводит case в corrupt и блокирует run.,integration,CP02/evidence/DAT-004,pending
+DAT-005,Подготовка данных,MUST,CP02,Сохранять provenance исходного case.,AT-DAT-005,"Manifest содержит source URI, pinned ref и acquisition timestamp.",unit,CP02/evidence/DAT-005,pending
+DAT-006,Подготовка данных,MUST,CP02,"Различать fitted, assumed и generative parameters.",AT-DAT-006,Case metadata сохраняет origin каждого известного parameter.,unit,CP02/evidence/DAT-006,pending
+DAT-007,Подготовка данных,MUST,CP02,Проверять согласованность shapes связанных volumes.,AT-DAT-007,Несовпадающая маска отклоняется до model execution.,unit,CP02/evidence/DAT-007,pending
+DAT-008,Подготовка данных,MUST,CP02,Проверять nonsingular affine и physical units.,AT-DAT-008,Singular affine и unknown units требуют явного разрешенного преобразования.,unit,CP02/evidence/DAT-008,pending
+DAT-009,Подготовка данных,MUST,CP02,Оставлять incomplete download недоступным для расчетов.,AT-DAT-009,Прерванная подготовка не создает available case.,integration,CP02/evidence/DAT-009,pending
+DAT-010,Подготовка данных,MUST,CP02,Не затирать пользовательский файл при hash mismatch.,AT-DAT-010,"Оригинальный файл сохраняется, ошибка указывает путь и expected hash.",integration,CP02/evidence/DAT-010,pending
+DAT-011,Подготовка данных,MUST,CP06,Различать synthetic case и реальные пациентские записи.,AT-DAT-011,HGG_demo_001 не получает фиктивный CFB patient_id.,unit,CP06/evidence/DAT-011,pending
+DAT-012,Подготовка данных,MUST,CP03,Сохранять список visits использованных author reproduction.,AT-DAT-012,Отчет содержит observation roles и предупреждение о retrospective reproduction.,engine,CP03/evidence/DAT-012,pending
+DAT-013,Подготовка данных,MUST,CP09,Применять observation cutoff в заявленном forecast experiment.,AT-DAT-013,Spy evaluator target не читается initialization/calibration кодом.,integration,CP09/evidence/DAT-013,pending
+DAT-014,Подготовка данных,MUST,CP06,Открывать lab при полностью отсутствующих CFB directories.,AT-DAT-014,Browser smoke достигает case catalog без patient loader calls.,browser,CP06/evidence/DAT-014,pending
+DOM-001,Доменные контракты,MUST,CP04,Создавать серверный immutable snapshot научного сценария.,AT-DOM-001,Изменение draft после POST не меняет существующий RunPlan.,integration,CP04/evidence/DOM-001,pending
+DOM-002,Доменные контракты,MUST,CP04,Присваивать новую версию при scientific edit.,AT-DOM-002,Старый ScenarioVersion byte-identical после редактирования.,unit,CP04/evidence/DOM-002,pending
+DOM-003,Доменные контракты,MUST,CP04,Вычислять canonical scientific hash независимо от display name.,AT-DOM-003,Изменение name сохраняет scientific hash.,unit,CP04/evidence/DOM-003,pending
+DOM-004,Доменные контракты,MUST,CP04,Менять scientific hash при изменении dose или timing.,AT-DOM-004,Mutation fixture получает другой hash.,unit,CP04/evidence/DOM-004,pending
+DOM-005,Доменные контракты,MUST,CP04,Учитывать input geometry digest в научной идентичности.,AT-DOM-005,Иной affine меняет scientific hash при том же array shape.,unit,CP04/evidence/DOM-005,pending
+DOM-006,Доменные контракты,MUST,CP04,Учитывать численно значимые engine и solver versions.,AT-DOM-006,Иная numerical version исключает exact cache reuse.,unit,CP04/evidence/DOM-006,pending
+DOM-007,Доменные контракты,MUST,CP04,Разделять scientific hash и execution/output identity.,AT-DOM-007,Изменение retention policy отражается в execution identity.,unit,CP04/evidence/DOM-007,pending
+DOM-008,Доменные контракты,MUST,CP04,Отклонять NaN и Inf во всех научных numeric inputs.,AT-DOM-008,"Schema test покрывает parameters, times и doses.",unit,CP04/evidence/DOM-008,pending
+DOM-009,Доменные контракты,MUST,CP04,Запрещать запись NaN и Inf как валидного результата.,AT-DOM-009,Writer завершает проверку ошибкой и не публикует result.,unit,CP04/evidence/DOM-009,pending
+DOM-010,Доменные контракты,MUST,CP04,Сохранять event units отдельно от отображаемой подписи.,AT-DOM-010,Unit mapping test обнаруживает несовместимую CT/RT единицу.,unit,CP04/evidence/DOM-010,pending
+DOM-011,Доменные контракты,MUST,CP04,Различать solver step и output sampling.,AT-DOM-011,Изменение frame interval не изменяет заданный solver dt.,unit,CP04/evidence/DOM-011,pending
+DOM-012,Доменные контракты,MUST,CP04,Сохранять события RT и CT в одно время.,AT-DOM-012,Validator не удаляет cross-modality simultaneous events.,unit,CP04/evidence/DOM-012,pending
+DOM-013,Доменные контракты,MUST,CP04,Отклонять unsupported combination до постановки в очередь.,AT-DOM-013,API возвращает field error и не создает RunAttempt.,integration,CP04/evidence/DOM-013,pending
+DOM-014,Доменные контракты,MUST,CP04,Хранить UTC timestamps и отдельную научную ось времени.,AT-DOM-014,Serialization round-trip сохраняет origin и days_from_origin.,unit,CP04/evidence/DOM-014,pending
+JOB-001,Очередь и выполнение,MUST,CP05,Возвращать run_id до выполнения тяжелого solver.,AT-JOB-001,Controlled slow worker не задерживает POST до завершения.,integration,CP05/evidence/JOB-001,pending
+JOB-002,Очередь и выполнение,MUST,CP05,Ограничивать default concurrency одним worker.,AT-JOB-002,Три queued задачи никогда не создают два active workers.,integration,CP05/evidence/JOB-002,pending
+JOB-003,Очередь и выполнение,MUST,CP05,Захватывать queued attempt атомарно.,AT-JOB-003,Два supervisors получают только один valid claim на одну задачу.,integration,CP05/evidence/JOB-003,pending
+JOB-004,Очередь и выполнение,MUST,CP05,Требовать ownership token для worker state updates.,AT-JOB-004,Update с чужим token не изменяет статус.,integration,CP05/evidence/JOB-004,pending
+JOB-005,Очередь и выполнение,MUST,CP05,Сохранять terminal state при позднем heartbeat.,AT-JOB-005,Поздний running update после cancelled отклоняется.,integration,CP05/evidence/JOB-005,pending
+JOB-006,Очередь и выполнение,MUST,CP05,Возвращать прежний run по одинаковому idempotency key.,AT-JOB-006,Два concurrent POST создают один attempt.,integration,CP05/evidence/JOB-006,pending
+JOB-007,Очередь и выполнение,MUST,CP05,Отклонять новый payload со старым idempotency key.,AT-JOB-007,API возвращает 409 и сохраняет первый plan.,integration,CP05/evidence/JOB-007,pending
+JOB-008,Очередь и выполнение,MUST,CP05,Отменять queued задачу без запуска worker.,AT-JOB-008,Контролируемый worker для отмененной queued задачи не вызывается.,integration,CP05/evidence/JOB-008,pending
+JOB-009,Очередь и выполнение,MUST,CP05,Отменять running задачу через cancel_requested.,AT-JOB-009,В event log присутствует корректный переход к cancelled.,integration,CP05/evidence/JOB-009,pending
+JOB-010,Очередь и выполнение,MUST,CP05,Ограничивать termination деревом процессов данного запуска.,AT-JOB-010,Unrelated sentinel process остается жив после cancel.,integration,CP05/evidence/JOB-010,pending
+JOB-011,Очередь и выполнение,MUST,CP05,Завершать timeout отдельной диагностируемой причиной.,AT-JOB-011,Slow worker получает timed_out с сохраненным elapsed time.,integration,CP05/evidence/JOB-011,pending
+JOB-012,Очередь и выполнение,MUST,CP05,Обнаруживать stale lease после restart.,AT-JOB-012,Задача не остается running без живого владельца.,integration,CP05/evidence/JOB-012,pending
+JOB-013,Очередь и выполнение,MUST,CP05,Не восстанавливать ownership только по совпавшему PID.,AT-JOB-013,Reused PID без token не признается принадлежащим run.,integration,CP05/evidence/JOB-013,pending
+JOB-014,Очередь и выполнение,MUST,CP05,Создавать новый attempt при retry.,AT-JOB-014,Старый failed attempt и error log остаются доступны.,integration,CP05/evidence/JOB-014,pending
+JOB-015,Очередь и выполнение,MUST,CP05,Публиковать succeeded после artifact validation.,AT-JOB-015,Поврежденный output worker не приводит к succeeded.,integration,CP05/evidence/JOB-015,pending
+JOB-016,Очередь и выполнение,MUST,CP05,Сохранять этапы и подтвержденные счетчики прогресса.,AT-JOB-016,"Unknown total отображается как indeterminate, не fake percentage.",integration,CP05/evidence/JOB-016,pending
+JOB-017,Очередь и выполнение,MUST,CP05,Продолжать supervisor heartbeat во время долгого solver step.,AT-JOB-017,Длительный controlled solve не объявляется stale при живом supervisor.,integration,CP05/evidence/JOB-017,pending
+JOB-018,Очередь и выполнение,MUST,CP08,Использовать один executor для runs и study children.,AT-JOB-018,Concurrency limit соблюдается при одновременных run и cohort.,integration,CP08/evidence/JOB-018,pending
+JOB-019,Очередь и выполнение,MUST,CP08,Переиспользовать завершенные child tasks по проверенному identity.,AT-JOB-019,Retry study не пересчитывает verified completed rows без явного rerun.,integration,CP08/evidence/JOB-019,pending
+JOB-020,Очередь и выполнение,MUST,CP08,Сохранять соответствие child result строке sample matrix.,AT-JOB-020,Изменение порядка completion не меняет порядок outcomes.,integration,CP08/evidence/JOB-020,pending
+STO-001,Хранение и экспорт,MUST,CP04,Применять versioned database migrations.,AT-STO-001,Новая установка и upgrade fixture дают одинаковую schema version.,integration,CP04/evidence/STO-001,pending
+STO-002,Хранение и экспорт,MUST,CP04,Включать foreign key checks в SQLite connections.,AT-STO-002,Удаление referenced immutable entity отклоняется.,integration,CP04/evidence/STO-002,pending
+STO-003,Хранение и экспорт,MUST,CP04,Публиковать result directory атомарно.,AT-STO-003,Crash до rename не дает читателю complete result.,integration,CP04/evidence/STO-003,pending
+STO-004,Хранение и экспорт,MUST,CP04,Проверять payload hashes при загрузке артефакта.,AT-STO-004,Corrupted frame не обслуживается как verified field.,integration,CP04/evidence/STO-004,pending
+STO-005,Хранение и экспорт,MUST,CP04,Сверять completeness и expected frames при cache hit.,AT-STO-005,Неполный result не переиспользуется.,integration,CP04/evidence/STO-005,pending
+STO-006,Хранение и экспорт,MUST,CP04,Обнаруживать orphan temporary files при startup.,AT-STO-006,Reconciliation report перечисляет temp без auto-success.,integration,CP04/evidence/STO-006,pending
+STO-007,Хранение и экспорт,MUST,CP04,Запрещать выход artifact path за LAB_ROOT.,AT-STO-007,Traversal и junction fixture отклоняются до file operation.,integration,CP04/evidence/STO-007,pending
+STO-008,Хранение и экспорт,MUST,CP07,Считать runtime output quota до запуска.,AT-STO-008,Plan выше 1 GiB per-run default rejected с budget reason.,integration,CP07/evidence/STO-008,pending
+STO-009,Хранение и экспорт,MUST,CP07,Сохранять reserve свободного места во время записи.,AT-STO-009,Low-disk fixture завершает run с disk_limit без удаления старых файлов.,integration,CP07/evidence/STO-009,pending
+STO-010,Хранение и экспорт,MUST,CP07,Хранить scalar series независимо от dense frames.,AT-STO-010,Удаление разрешенных frames не удаляет metrics.csv.,integration,CP07/evidence/STO-010,pending
+STO-011,Хранение и экспорт,MUST,CP07,Защищать publication-pinned artifacts от cleanup.,AT-STO-011,Cleanup выбранного pinned result rejected.,integration,CP07/evidence/STO-011,pending
+STO-012,Хранение и экспорт,MUST,CP07,Защищать active-run files от cleanup.,AT-STO-012,Cleanup active attempt rejected при существующей lease.,integration,CP07/evidence/STO-012,pending
+STO-013,Хранение и экспорт,MUST,CP07,Предварительно показывать точный состав cleanup.,AT-STO-013,Preview token соответствует списку и размерам удаляемых files.,integration,CP07/evidence/STO-013,pending
+STO-014,Хранение и экспорт,MUST,CP07,Удалять только проверенные элементы cleanup selection.,AT-STO-014,Измененный selection token требует нового preview.,integration,CP07/evidence/STO-014,pending
+STO-015,Хранение и экспорт,MUST,CP07,Отмечать недоступность удаленных кадров в manifest metadata.,AT-STO-015,UI не предлагает загрузить удаленный frame как available.,integration,CP07/evidence/STO-015,pending
+STO-016,Хранение и экспорт,MUST,CP07,Создавать consistent backup SQLite через backup mechanism.,AT-STO-016,Restore test восстанавливает committed rows при active WAL.,integration,CP07/evidence/STO-016,pending
+STO-017,Хранение и экспорт,MUST,CP07,Исключать restricted upstream assets из compact export.,AT-STO-017,Archive inspection не содержит source/volumes с запрещенной передачей.,integration,CP07/evidence/STO-017,pending
+STO-018,Хранение и экспорт,MUST,CP07,Проверять import size и пути до распаковки.,AT-STO-018,Zip traversal и decompression limit fixture rejected.,integration,CP07/evidence/STO-018,pending
+STO-019,Хранение и экспорт,MUST,CP07,Импортировать пакеты как данные без исполнения кода.,AT-STO-019,Payload с script/pickle не исполняется и rejected по schema.,integration,CP07/evidence/STO-019,pending
+STO-020,Хранение и экспорт,MUST,CP07,Выполнять replay в новом workspace по export plan.,AT-STO-020,Replay report содержит сравнение endpoints и hashes allowed inputs.,engine,CP07/evidence/STO-020,pending
+API-001,API,MUST,CP04,Публиковать отдельные lab capabilities.,AT-API-001,CFB unavailable не делает lab unavailable при готовом author case.,integration,CP04/evidence/API-001,pending
+API-002,API,MUST,CP04,Не запускать вычисления в GET endpoints.,AT-API-002,GET suite не вызывает worker/download/calibration.,integration,CP04/evidence/API-002,pending
+API-003,API,MUST,CP04,Возвращать field_errors для невалидного сценария.,AT-API-003,422 body указывает точное поле и понятную русскую причину.,integration,CP04/evidence/API-003,pending
+API-004,API,MUST,CP04,Возвращать 404 для неизвестного UUID.,AT-API-004,Ответ не раскрывает traceback или произвольный file path.,integration,CP04/evidence/API-004,pending
+API-005,API,MUST,CP04,Возвращать 409 для несовместимого сравнения.,AT-API-005,Ответ содержит mismatch fields.,integration,CP04/evidence/API-005,pending
+API-006,API,MUST,CP04,Ограничивать pagination списков.,AT-API-006,Limit выше server maximum rejected либо явно capped по контракту.,integration,CP04/evidence/API-006,pending
+API-007,API,MUST,CP04,Согласовать OpenAPI и TypeScript enums.,AT-API-007,Contract test обнаруживает неизвестный terminal status.,integration,CP04/evidence/API-007,pending
+API-008,API,MUST,CP05,Сохранять request_id в ошибке и диагностическом журнале.,AT-API-008,ID связывает response и server log entry.,integration,CP05/evidence/API-008,pending
+API-009,API,MUST,CP06,Передавать только запрошенный slice/frame descriptor.,AT-API-009,Один запрос 2D не передает всю 4D trajectory.,integration,CP06/evidence/API-009,pending
+API-010,API,MUST,CP06,Проверять bounds slice и frame index.,AT-API-010,Out-of-range request возвращает 422 без тяжелой обработки.,integration,CP06/evidence/API-010,pending
+API-011,API,MUST,CP06,Помечать время и geometry каждого view response.,AT-API-011,Response metadata связывает изображение с run/frame.,integration,CP06/evidence/API-011,pending
+API-012,API,MUST,CP07,Упаковывать большой export фоновой задачей.,AT-API-012,Download GET не пересобирает archive.,integration,CP07/evidence/API-012,pending
+UI-001,Интерфейс,MUST,CP06,Открывать лабораторию независимо от selectedPatientId.,AT-UI-001,No-CFB browser startup показывает lab catalog.,browser,CP06/evidence/UI-001,pending
+UI-002,Интерфейс,MUST,CP06,Скрывать еще не реализованные navigation actions.,AT-UI-002,До capability нет активной кнопки с пустым обработчиком.,browser,CP06/evidence/UI-002,pending
+UI-003,Интерфейс,MUST,CP06,Показывать synthetic label на карточке и result page.,AT-UI-003,Label виден без открытия technical diagnostics.,browser,CP06/evidence/UI-003,pending
+UI-004,Интерфейс,MUST,CP06,Показывать источник и цитирование case.,AT-UI-004,Case details содержит доступный source link.,browser,CP06/evidence/UI-004,pending
+UI-005,Интерфейс,MUST,CP06,Объяснять missing case data конкретным действием.,AT-UI-005,Empty state содержит preparation command и размер/оценку.,browser,CP06/evidence/UI-005,pending
+UI-006,Интерфейс,MUST,CP06,Делать baseline read-only.,AT-UI-006,Изменение baseline открывает копию с новым identity.,browser,CP06/evidence/UI-006,pending
+UI-007,Интерфейс,MUST,CP06,Сохранять точный numeric input помимо slider.,AT-UI-007,Ввод scientific notation round-trip сохраняет значение.,browser,CP06/evidence/UI-007,pending
+UI-008,Интерфейс,MUST,CP06,Показывать единицу у каждого numeric parameter.,AT-UI-008,Editor labels содержат descriptor unit.,browser,CP06/evidence/UI-008,pending
+UI-009,Интерфейс,MUST,CP06,Показывать источник default parameter.,AT-UI-009,"Author, assumed и fitted различаются в editor info.",browser,CP06/evidence/UI-009,pending
+UI-010,Интерфейс,MUST,CP06,Обрабатывать десятичную запятую явно.,AT-UI-010,"Ввод 0,01 либо корректно нормализован, либо объяснимо rejected.",browser,CP06/evidence/UI-010,pending
+UI-011,Интерфейс,MUST,CP06,Показывать validation error рядом с полем.,AT-UI-011,Invalid value не приводит к общей бессодержательной ошибке.,browser,CP06/evidence/UI-011,pending
+UI-012,Интерфейс,MUST,CP06,Предотвращать запуск invalid scenario.,AT-UI-012,Кнопка недоступна до успешной server validation.,browser,CP06/evidence/UI-012,pending
+UI-013,Интерфейс,MUST,CP06,Показывать scientific diff перед запуском.,AT-UI-013,Измененная доза или параметр видны в preview.,browser,CP06/evidence/UI-013,pending
+UI-014,Интерфейс,MUST,CP06,Разделять интеграционный шаг и время сохранения кадров.,AT-UI-014,Два controls имеют разные подписи и independent values.,browser,CP06/evidence/UI-014,pending
+UI-015,Интерфейс,MUST,CP06,Редактировать treatment events таблично.,AT-UI-015,Add/delete изменяют только выбранную draft row.,browser,CP06/evidence/UI-015,pending
+UI-016,Интерфейс,MUST,CP06,Сохранять draft при ошибке сети.,AT-UI-016,После failed submit значения остаются в редакторе.,browser,CP06/evidence/UI-016,pending
+UI-017,Интерфейс,MUST,CP06,Обозначать несохраненный draft при уходе.,AT-UI-017,Navigation предоставляет возможность вернуться без потери ввода.,browser,CP06/evidence/UI-017,pending
+UI-018,Интерфейс,MUST,CP06,Блокировать повторный submit до ответа.,AT-UI-018,Double click не создает два видимых независимых запуска.,browser,CP06/evidence/UI-018,pending
+UI-019,Интерфейс,MUST,CP06,Показывать truthful state при неизвестном прогрессе.,AT-UI-019,Unknown denominator дает spinner и phase без процентов.,browser,CP06/evidence/UI-019,pending
+UI-020,Интерфейс,MUST,CP06,Показывать elapsed time отдельно от ETA.,AT-UI-020,ETA отсутствует без measured cost profile.,browser,CP06/evidence/UI-020,pending
+UI-021,Интерфейс,MUST,CP06,Обновлять status без ручного reload.,AT-UI-021,Polling отображает terminal state и прекращается после завершения.,browser,CP06/evidence/UI-021,pending
+UI-022,Интерфейс,MUST,CP06,Показывать actionable failed/interrupted state.,AT-UI-022,Result page содержит reason и допустимый retry action.,browser,CP06/evidence/UI-022,pending
+UI-023,Интерфейс,MUST,CP06,Отображать partial outputs с отдельным статусом.,AT-UI-023,Partial не имеет подписи complete result.,browser,CP06/evidence/UI-023,pending
+UI-024,Интерфейс,MUST,CP06,Выбирать только фактически сохраненные frame times.,AT-UI-024,Slider labels совпадают с frames endpoint.,browser,CP06/evidence/UI-024,pending
+UI-025,Интерфейс,MUST,CP06,Синхронизировать график и пространственные views по frame.,AT-UI-025,"Выбранный time одинаков в graph marker, slice metadata и 3D metadata.",browser,CP06/evidence/UI-025,pending
+UI-026,Интерфейс,MUST,CP06,Игнорировать устаревшие frame responses.,AT-UI-026,Быстрое переключение оставляет последний выбранный frame.,browser,CP06/evidence/UI-026,pending
+UI-027,Интерфейс,MUST,CP06,Не подписывать старое изображение новым временем при loading.,AT-UI-027,Во время pending response виден loading с прежним frame identity.,browser,CP06/evidence/UI-027,pending
+UI-028,Интерфейс,MUST,CP06,Проигрывать только сохраненную trajectory.,AT-UI-028,Play меняет saved index без fake solver progress.,browser,CP06/evidence/UI-028,pending
+UI-029,Интерфейс,MUST,CP06,Предоставлять управление slice с клавиатуры.,AT-UI-029,Arrow keys меняют разрешенный slice index.,browser,CP06/evidence/UI-029,pending
+UI-030,Интерфейс,MUST,CP06,Отображать physical location и plane.,AT-UI-030,Plane name и координата получены из geometry.,browser,CP06/evidence/UI-030,pending
+UI-031,Интерфейс,MUST,CP06,Разделять MRI window и density color scale.,AT-UI-031,Изменение MRI window не меняет scientific threshold.,browser,CP06/evidence/UI-031,pending
+UI-032,Интерфейс,MUST,CP06,Показывать L/R только после orientation validation.,AT-UI-032,Fixture с неподтвержденной orientation не показывает произвольные L/R.,browser,CP06/evidence/UI-032,pending
+UI-033,Интерфейс,MUST,CP06,Оставлять график и 2D доступными при WebGL failure.,AT-UI-033,Ошибка 3D не блокирует прочие вкладки.,browser,CP06/evidence/UI-033,pending
+UI-034,Интерфейс,MUST,CP06,Объяснять отсутствие isosurface при threshold.,AT-UI-034,Пустой mesh дает текст без общей ошибки run.,browser,CP06/evidence/UI-034,pending
+UI-035,Интерфейс,MUST,CP06,Предоставлять reset camera.,AT-UI-035,Кнопка возвращает воспроизводимый initial view.,browser,CP06/evidence/UI-035,pending
+UI-036,Интерфейс,MUST,CP07,Использовать общую density scale в paired view по умолчанию.,AT-UI-036,Одинаковая density имеет одинаковый цвет в обеих панелях.,browser,CP07/evidence/UI-036,pending
+UI-037,Интерфейс,MUST,CP07,Показывать различия параметров paired scenarios.,AT-UI-037,Diff table перечисляет все scientific mismatches.,browser,CP07/evidence/UI-037,pending
+UI-038,Интерфейс,MUST,CP07,Обозначать политику несовпадающих времен.,AT-UI-038,Nearest/interpolated scalar value подписан явно.,browser,CP07/evidence/UI-038,pending
+UI-039,Интерфейс,MUST,CP07,Показывать unresolved вместо принудительного победителя.,AT-UI-039,Delta внутри epsilon не получает positive winner badge.,browser,CP07/evidence/UI-039,pending
+UI-040,Интерфейс,MUST,CP07,Показывать расчетный характер preference.,AT-UI-040,Result text не содержит клинического назначения лечения.,browser,CP07/evidence/UI-040,pending
+UI-041,Интерфейс,MUST,CP07,Показывать размер и тип export до скачивания.,AT-UI-041,Compact/full options имеют состав и asset restrictions.,browser,CP07/evidence/UI-041,pending
+UI-042,Интерфейс,MUST,CP07,Показывать storage usage по категориям.,AT-UI-042,"Overview разделяет raw data, outputs, cache и environment estimate.",browser,CP07/evidence/UI-042,pending
+UI-043,Интерфейс,MUST,CP07,Подтверждать cleanup после dependency preview.,AT-UI-043,Удаление требует выбора конкретного набора artifacts.,browser,CP07/evidence/UI-043,pending
+UI-044,Интерфейс,MUST,CP08,Проводить study setup через последовательный wizard.,AT-UI-044,Пропуск обязательного endpoint/seed не позволяет freeze.,browser,CP08/evidence/UI-044,pending
+UI-045,Интерфейс,MUST,CP08,Показывать число evaluations до запуска study.,AT-UI-045,Число совпадает с замороженной execution matrix.,browser,CP08/evidence/UI-045,pending
+UI-046,Интерфейс,MUST,CP08,Оставлять frozen protocol read-only.,AT-UI-046,Изменение settings создает новый draft version.,browser,CP08/evidence/UI-046,pending
+UI-047,Интерфейс,MUST,CP08,Показывать requested/completed/failed/paired counts.,AT-UI-047,"Counts сверяются с child table, failures не скрыты.",browser,CP08/evidence/UI-047,pending
+UI-048,Интерфейс,MUST,CP08,Отличать viewport filter от primary scientific summary.,AT-UI-048,Фильтр плохих rows не меняет frozen primary aggregate.,browser,CP08/evidence/UI-048,pending
+UI-049,Интерфейс,MUST,CP08,Отображать assumptions распределения виртуальных subjects.,AT-UI-049,Cohort page не называет uniform samples реальной популяцией.,browser,CP08/evidence/UI-049,pending
+UI-050,Интерфейс,MUST,CP08,Показывать метод и диапазоны sensitivity chart.,AT-UI-050,"Chart subtitle содержит endpoint, parameter ranges и sample count.",browser,CP08/evidence/UI-050,pending
+UI-051,Интерфейс,MUST,CP06,Иметь labels и видимый focus для interactive controls.,AT-UI-051,Keyboard smoke проходит основной путь без мыши.,browser,CP06/evidence/UI-051,pending
+UI-052,Интерфейс,MUST,CP06,Передавать статус текстом помимо цвета.,AT-UI-052,Color-disabled screenshot сохраняет смысл queued/failed/succeeded.,browser,CP06/evidence/UI-052,pending
+UI-053,Интерфейс,MUST,CP06,Сохранять основной путь на 1366×768.,AT-UI-053,"Основные actions видны, body не требует горизонтального scroll.",browser,CP06/evidence/UI-053,pending
+UI-054,Интерфейс,MUST,CP06,Обрабатывать unavailable и error отдельно.,AT-UI-054,Missing engine и network failure имеют разные сообщения.,browser,CP06/evidence/UI-054,pending
+NUM-001,Численная корректность,MUST,CP03,Пройти fidelity TCC на всех контрольных временах.,AT-NUM-001,Max relative TCC error ≤1e−3 по declared near-zero policy.,engine,CP03/evidence/NUM-001,pending
+NUM-002,Численная корректность,MUST,CP03,Пройти fidelity normalized fields.,AT-NUM-002,RMSE/carrying-capacity scale ≤1e−4 на каждом контрольном кадре.,engine,CP03/evidence/NUM-002,pending
+NUM-003,Численная корректность,MUST,CP03,Проверить logistic ODE против аналитического решения.,AT-NUM-003,Уменьшение dt дает ожидаемую convergence и recorded error.,numerical,CP03/evidence/NUM-003,pending
+NUM-004,Численная корректность,MUST,CP03,Проверить mass balance чистой no-flux диффузии.,AT-NUM-004,Mass error укладывается в dtype-specific declared tolerance.,numerical,CP03/evidence/NUM-004,pending
+NUM-005,Численная корректность,MUST,CP03,Применять fraction на границе один раз.,AT-NUM-005,Сегментированный и цельный расчет имеют одинаковый event count.,numerical,CP03/evidence/NUM-005,pending
+NUM-006,Численная корректность,MUST,CP03,Сопоставить RT/CT semantics с pinned upstream.,AT-NUM-006,Same-time events дают совпадающий direct/adapter result.,engine,CP03/evidence/NUM-006,pending
+NUM-007,Численная корректность,MUST,CP03,"Измерить time convergence на dt, dt/2 и dt/4.",AT-NUM-007,Report содержит endpoint differences на одном physical case.,numerical,CP03/evidence/NUM-007,pending
+NUM-008,Численная корректность,MUST,CP03,Измерить spatial convergence при сопоставимой initialization.,AT-NUM-008,Report содержит initial physical mass и endpoint errors для двух grids.,numerical,CP03/evidence/NUM-008,pending
+NUM-009,Численная корректность,MUST,CP03,Отделить scalar sampling error от integration error.,AT-NUM-009,Изменение scalar interval сравнивается при fixed solver dt.,numerical,CP03/evidence/NUM-009,pending
+NUM-010,Численная корректность,MUST,CP03,Не менять frozen legacy equations ради lab fidelity.,AT-NUM-010,Diff protected model files проверен; любое изменение обособлено и обосновано.,manual,CP03/evidence/NUM-010,pending
+NUM-011,Численная корректность,MUST,CP09,Зафиксировать ranking epsilon до evaluation.,AT-NUM-011,Frozen protocol содержит abs/rel/numerical components и scale.,science,CP09/evidence/NUM-011,pending
+NUM-012,Численная корректность,MUST,CP09,Отмечать сравнение внутри numerical resolution как unresolved.,AT-NUM-012,Synthetic near-tie fixture не порождает ложного уверенного ranking.,unit,CP09/evidence/NUM-012,pending
+ANA-001,Анализ,MUST,CP07,Проверять одинаковое initial state при ordinary paired comparison.,AT-ANA-001,Разные initial_state hashes отклоняются как incompatible.,unit,CP07/evidence/ANA-001,pending
+ANA-002,Анализ,MUST,CP07,Рассчитывать paired delta с документированным знаком.,AT-ANA-002,Lower-is-better fixture дает delta_AB=J_A−J_B.,unit,CP07/evidence/ANA-002,pending
+ANA-003,Анализ,MUST,CP07,Считать AUC по фактическим scalar times.,AT-ANA-003,Nonuniform analytic trajectory совпадает с trapezoid reference.,unit,CP07/evidence/ANA-003,pending
+ANA-004,Анализ,MUST,CP07,Считать spatial integral в физических единицах.,AT-ANA-004,Affine-volume fixture совпадает с determinant-based reference.,unit,CP07/evidence/ANA-004,pending
+ANA-005,Анализ,MUST,CP07,Обрабатывать нулевой denominator как undefined.,AT-ANA-005,API возвращает reason вместо 0/NaN/Inf.,unit,CP07/evidence/ANA-005,pending
+ANA-006,Анализ,MUST,CP08,Считать local central differences для interior factors.,AT-ANA-006,Analytic smooth fixture совпадает в declared tolerance.,numerical,CP08/evidence/ANA-006,pending
+ANA-007,Анализ,MUST,CP08,Повторять local sensitivity на h/2.,AT-ANA-007,Report содержит step-sensitivity/error estimate.,numerical,CP08/evidence/ANA-007,pending
+ANA-008,Анализ,MUST,CP08,Применять объявленную one-sided formula на boundary.,AT-ANA-008,Boundary fixture не создает invalid negative parameter.,numerical,CP08/evidence/ANA-008,pending
+ANA-009,Анализ,MUST,CP08,Выбирать корректное нормирование при zero nominal.,AT-ANA-009,Normalized sensitivity использует declared scale без деления на ноль.,unit,CP08/evidence/ANA-009,pending
+ANA-010,Анализ,MUST,CP08,Показывать негладкость threshold endpoint.,AT-ANA-010,Step-dependent fixture получает warning вместо ложного zero influence.,numerical,CP08/evidence/ANA-010,pending
+ANA-011,Анализ,MUST,CP08,Сохранять Morris sample matrix до выполнения.,AT-ANA-011,Digest matrix существует до первого child solve.,integration,CP08/evidence/ANA-011,pending
+ANA-012,Анализ,MUST,CP08,Воспроизводить Morris design по seed и pinned sampler.,AT-ANA-012,Повтор дает ту же matrix в зарегистрированном environment.,unit,CP08/evidence/ANA-012,pending
+ANA-013,Анализ,MUST,CP08,Проверять r(k+1) evaluations в independent Morris design.,AT-ANA-013,Plan preview совпадает с matrix rows до reuse.,unit,CP08/evidence/ANA-013,pending
+ANA-014,Анализ,MUST,CP08,"Возвращать mu, mu_star и sigma с методическими labels.",AT-ANA-014,Result schema не называет их Sobol indices или identifiability.,unit,CP08/evidence/ANA-014,pending
+ANA-015,Анализ,MUST,CP08,Не подавать discrete schedules как continuous factors.,AT-ANA-015,Morris validation отклоняет unsupported discrete factor.,unit,CP08/evidence/ANA-015,pending
+ANA-016,Анализ,MUST,CP08,Сохранять immutable subject table виртуальной когорты.,AT-ANA-016,Seeded LHS repeat дает исходный table hash.,unit,CP08/evidence/ANA-016,pending
+ANA-017,Анализ,MUST,CP08,Использовать одинаковые subject parameters во всех scenarios.,AT-ANA-017,Pair matrix имеет общую subject row для каждого comparator.,integration,CP08/evidence/ANA-017,pending
+ANA-018,Анализ,MUST,CP08,Учитывать неполные пары в denominators.,AT-ANA-018,Failure fixture показывает planned N и меньший complete-pair N.,unit,CP08/evidence/ANA-018,pending
+ANA-019,Анализ,MUST,CP08,Различать geometry count и parameter realization count.,AT-ANA-019,Report содержит оба значения и не называет N samples пациентами.,unit,CP08/evidence/ANA-019,pending
+SCI-001,Научный протокол,MUST,CP09,Зафиксировать question и primary endpoint статьи A.,AT-SCI-001,Protocol S-A содержит hypothesis/measurements и benchmark matrix.,science,CP09/evidence/SCI-001,pending
+SCI-002,Научный протокол,MUST,CP09,Зафиксировать question и primary statistic статьи B.,AT-SCI-002,Protocol S-B содержит однозначный estimand и undefined policy.,science,CP09/evidence/SCI-002,pending
+SCI-003,Научный протокол,MUST,CP09,Зафиксировать schedules до основной серии.,AT-SCI-003,Protocol hash включает baseline и два comparator event tables.,science,CP09/evidence/SCI-003,pending
+SCI-004,Научный протокол,MUST,CP09,Обосновать ranges каждого factor.,AT-SCI-004,Для bounds указан primary source или explicit assumption.,science,CP09/evidence/SCI-004,pending
+SCI-005,Научный протокол,MUST,CP09,"Разделить pilot, development и evaluation seeds.",AT-SCI-005,"Freeze включает 1105, 2205 и 3305 либо обоснованную новую версию до запуска.",science,CP09/evidence/SCI-005,pending
+SCI-006,Научный протокол,MUST,CP09,Выбрать design по measured feasibility rule.,AT-SCI-006,"Budget worksheet содержит solves, upper cost estimate и 30% reserve.",science,CP09/evidence/SCI-006,pending
+SCI-007,Научный протокол,MUST,CP09,Зафиксировать failure/missing-data policy до evaluation.,AT-SCI-007,"Протокол определяет retry, denominators и допустимость conclusion.",science,CP09/evidence/SCI-007,pending
+SCI-008,Научный протокол,MUST,CP09,Зафиксировать output retention для всей серии.,AT-SCI-008,Full-field subjects выбраны до outcomes; остальные scalar policy.,science,CP09/evidence/SCI-008,pending
+SCI-009,Научный протокол,MUST,CP09,Фиксировать protocol hash до первого evaluation solve.,AT-SCI-009,Timestamp и hash существуют в execution receipt до результата.,integration,CP09/evidence/SCI-009,pending
+SCI-010,Научный протокол,MUST,CP10,Сохранять все запланированные evaluation rows.,AT-SCI-010,Outcomes содержит failed/cancelled rows с reason без замены subject.,science,CP10/evidence/SCI-010,pending
+SCI-011,Научный протокол,MUST,CP10,Не использовать evaluation outputs для tuning.,AT-SCI-011,Изменение candidates требует нового protocol_id и отдельного result set.,manual,CP10/evidence/SCI-011,pending
+SCI-012,Научный протокол,MUST,CP10,Вычислять rank reversal с учетом epsilon.,AT-SCI-012,"Analytic paired fixture покрывает nominal tie, reversal и unresolved.",unit,CP10/evidence/SCI-012,pending
+SCI-013,Научный протокол,MUST,CP10,Различать model uncertainty и Monte Carlo uncertainty.,AT-SCI-013,Report labels обозначают sampling design и estimand intervals.,science,CP10/evidence/SCI-013,pending
+SCI-014,Научный протокол,MUST,CP10,Сохранять отрицательные результаты исследования.,AT-SCI-014,Вывод no established effect доступен при нулевом reversal без подбора нового endpoint.,science,CP10/evidence/SCI-014,pending
+SCI-015,Научный протокол,MUST,CP10,Не называть synthetic evaluation clinical validation.,AT-SCI-015,Generated report содержит context of use и data kind.,manual,CP10/evidence/SCI-015,pending
+SCI-016,Научный протокол,MUST,CP10,Разделять CT background и изменяемые RT candidates.,AT-SCI-016,Scenario diff подтверждает одинаковые CT inputs в первой RT study.,science,CP10/evidence/SCI-016,pending
+SCI-017,Научный протокол,MUST,CP10,Учитывать равенство dose constraints при treatment comparison.,AT-SCI-017,Total RT dose и fraction count сопоставляются до результатов.,science,CP10/evidence/SCI-017,pending
+NFR-001,Нефункциональные свойства,MUST,CP04,Использовать localhost binding по умолчанию.,AT-NFR-001,Remote interface не включен default config.,integration,CP04/evidence/NFR-001,pending
+NFR-002,Нефункциональные свойства,MUST,CP04,Ограничивать CORS configured local origins.,AT-NFR-002,Unlisted origin не получает permissive response.,integration,CP04/evidence/NFR-002,pending
+NFR-003,Нефункциональные свойства,MUST,CP04,Не принимать произвольный код из API payload.,AT-NFR-003,Executable/module/pickle inputs rejected.,integration,CP04/evidence/NFR-003,pending
+NFR-004,Нефункциональные свойства,MUST,CP05,Соблюдать статусный API latency во время solve.,AT-NFR-004,На fixture p95 ≤1 s по 30 запросам после warmup.,integration,CP05/evidence/NFR-004,pending
+NFR-005,Нефункциональные свойства,MUST,CP04,Соблюдать lightweight API latency без solve.,AT-NFR-005,На fixture p95 ≤500 ms с hardware receipt.,integration,CP04/evidence/NFR-005,pending
+NFR-006,Нефункциональные свойства,MUST,CP05,Подтверждать cancel в UI быстро.,AT-NFR-006,После успешного POST visible cancel_requested ≤1 s.,browser,CP05/evidence/NFR-006,pending
+NFR-007,Нефункциональные свойства,MUST,CP05,Ограничивать прекращение собственного worker по времени.,AT-NFR-007,Controlled worker stopped ≤10 s после cancel при declared mechanism.,integration,CP05/evidence/NFR-007,pending
+NFR-008,Нефункциональные свойства,MUST,CP07,Учитывать default runtime storage limit 8 GiB.,AT-NFR-008,Quota test считает tmp и exports вместе с outputs.,integration,CP07/evidence/NFR-008,pending
+NFR-009,Нефункциональные свойства,MUST,CP07,Ограничивать default dense frames числом 21.,AT-NFR-009,Plan с большим числом требует explicit allowed config change.,unit,CP07/evidence/NFR-009,pending
+NFR-010,Нефункциональные свойства,MUST,CP08,Ограничивать submit числом 256 queued children.,AT-NFR-010,Oversized batch rejected до создания частичной очереди.,integration,CP08/evidence/NFR-010,pending
+NFR-011,Нефункциональные свойства,MUST,CP12,Фиксировать точные app и engine environments отдельно.,AT-NFR-011,Release содержит lock/constraints и environment manifests.,manual,CP12/evidence/NFR-011,pending
+NFR-012,Нефункциональные свойства,MUST,CP12,Обновить cache version при численно значимом изменении.,AT-NFR-012,Regression fixture старого cache не переиспользуется новым solver contract.,unit,CP12/evidence/NFR-012,pending
+TST-001,Проверки,MUST,CP03,Хранить реальный engine fidelity test отдельно от fast CI.,AT-TST-001,Smoke job документирует необходимые assets и не скачивает полную коллекцию.,manual,CP03/evidence/TST-001,pending
+TST-002,Проверки,MUST,CP05,Проверять crash/retry через controlled worker.,AT-TST-002,"Failure matrix покрывает fail, timeout, cancel и interrupted.",integration,CP05/evidence/TST-002,pending
+TST-003,Проверки,MUST,CP06,Проверить browser path через реальный backend.,AT-TST-003,Smoke проходит edit→run→saved frame без подмены API static JSON.,browser,CP06/evidence/TST-003,pending
+TST-004,Проверки,MUST,CP07,Проверить export/replay вне исходного workspace.,AT-TST-004,Fresh-directory receipt содержит matched results и input preparation instructions.,engine,CP07/evidence/TST-004,pending
+TST-005,Проверки,MUST,CP10,Воспроизводить analysis из сохраненных outcomes.,AT-TST-005,Один analysis command дает те же tables и figures по immutable inputs.,science,CP10/evidence/TST-005,pending
+TST-006,Проверки,MUST,CP12,Пройти полную Python suite на итоговом commit.,AT-TST-006,"Release receipt содержит command, environment, count и exit code 0.",integration,CP12/evidence/TST-006,pending
+TST-007,Проверки,MUST,CP12,Пройти frontend lint и build на итоговом commit.,AT-TST-007,Release receipt содержит оба exit code 0.,integration,CP12/evidence/TST-007,pending
+TST-008,Проверки,MUST,CP12,Подтвердить GitHub CI для точного итогового commit.,AT-TST-008,"Ссылка на run совпадает с release SHA, не с предыдущим green run.",manual,CP12/evidence/TST-008,pending
+TST-009,Проверки,MUST,CP12,Проверить no-CFB путь в чистом workspace.,AT-TST-009,Release smoke не использует старые patient caches или atlas.,browser,CP12/evidence/TST-009,pending
+TST-010,Проверки,MUST,CP12,Закрыть каждый MUST evidence ссылкой.,AT-TST-010,Acceptance matrix не содержит pass без artifact/test receipt.,manual,CP12/evidence/TST-010,pending
+PUB-001,Публикационные материалы,MUST,CP11,Подготовить методы и результаты статьи A по фактическим измерениям.,AT-PUB-001,Каждая quantitative claim связана с immutable benchmark artifact.,manual,CP11/evidence/PUB-001,pending
+PUB-002,Публикационные материалы,MUST,CP11,Подготовить методы и результаты статьи B по frozen protocol.,AT-PUB-002,"Primary statistic и failures совпадают с S-B, включая negative outcomes.",manual,CP11/evidence/PUB-002,pending
+PUB-003,Публикационные материалы,MUST,CP11,Сгенерировать publication figures из analysis script.,AT-PUB-003,Figure provenance содержит source table hash и rendering settings.,science,CP11/evidence/PUB-003,pending
+PUB-004,Публикационные материалы,MUST,CP11,Разделить опубликованные аналоги и собственный вклад.,AT-PUB-004,Related work не приписывает TumorTwin features автору проекта.,manual,CP11/evidence/PUB-004,pending
+PUB-005,Публикационные материалы,MUST,CP11,Раскрыть AI assistance и проверки корректности по правилам выбранного журнала.,AT-PUB-005,"AUTHORSHIP_AND_AI.md содержит реальные роли и verification, без фиктивных авторов.",manual,CP11/evidence/PUB-005,pending
+PUB-006,Публикационные материалы,MUST,CP11,Указать ограничения моделей и данных в обеих статьях.,AT-PUB-006,"Limitations перечисляет synthetic geometry, assumptions и отсутствие clinical proof.",manual,CP11/evidence/PUB-006,pending
+PUB-007,Публикационные материалы,MUST,CP12,Подготовить quickstart для нового исследователя.,AT-PUB-007,Fresh user может подготовить case и повторить baseline по инструкции.,manual,CP12/evidence/PUB-007,pending
+PUB-008,Публикационные материалы,MUST,CP12,Подготовить changelog и known limitations release.,AT-PUB-008,"Документы различают implemented, measured, unverified и LATER.",manual,CP12/evidence/PUB-008,pending
+PUB-009,Публикационные материалы,MUST,CP12,Подготовить compact reproduction archive без запрещенных assets.,AT-PUB-009,"Архив содержит manifests, scripts/config refs, metrics и hashes.",integration,CP12/evidence/PUB-009,pending
+PUB-010,Публикационные материалы,MUST,CP12,Сохранить статус исследования отдельно от статуса ПО.,AT-PUB-010,"Если study incomplete, project не помечен fully complete.",manual,CP12/evidence/PUB-010,pending
+SCI-018,Научный протокол,MUST,CP09,Зафиксировать synthetic forecast cutoff на пятом author visit.,AT-SCI-018,Frozen forecast protocol перечисляет первые пять fit visits и future evaluation visits.,science,CP09/evidence/SCI-018,pending
+DAT-015,Подготовка данных,MUST,CP09,Определять forecast crop без future observation arrays.,AT-DAT-015,Spy тест обнаруживает ноль чтений future ADC/ROI при crop/init/fit.,integration,CP09/evidence/DAT-015,pending
+ENG-015,Движок и эталон,MUST,CP03,Поддержать pinned upstream optimizer для author longitudinal case.,AT-ENG-015,Проверка fit contract использует первые пять visits и не требует новой матмодели.,engine,CP03/evidence/ENG-015,pending
+SCI-019,Научный протокол,MUST,CP10,Сохранить synthetic forecast fields до чтения future targets.,AT-SCI-019,Prediction seal timestamp и execution log предшествуют evaluator decoding.,science,CP10/evidence/SCI-019,pending
+SCI-020,Научный протокол,MUST,CP10,Сравнить forecast с persistence последнего доступного состояния.,AT-SCI-020,Отчет содержит одни future targets для model и persistence.,science,CP10/evidence/SCI-020,pending
+SCI-021,Научный протокол,MUST,CP10,Сохранить author fixed-parameter comparator в forecast demo.,AT-SCI-021,Comparator использует тот же cutoff/horizon без fit по future visits.,science,CP10/evidence/SCI-021,pending
+ANA-020,Анализ,MUST,CP10,Рассчитать forecast normalized density RMSE на future frames.,AT-ANA-020,Analytic fixture подтверждает формулу и единый carrying-capacity scale.,unit,CP10/evidence/ANA-020,pending
+PUB-011,Публикационные материалы,MUST,CP11,Указать synthetic longitudinal forecasting limitations.,AT-PUB-011,Результат не называется проверкой прогноза на реальных пациентах.,manual,CP11/evidence/PUB-011,pending

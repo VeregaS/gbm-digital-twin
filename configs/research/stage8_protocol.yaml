@@ -1,0 +1,76 @@
+schema_version: 1
+
+# Stage 8 starts a new development cycle. These patients have already been
+# inspected through V2/V3 t2 evaluation and are therefore development-only.
+exposed_development_patient_ids:
+  - 8
+  - 18
+  - 25
+  - 42
+  - 65
+  - 99
+  - 108
+  - 112
+  - 214
+  - 251
+
+# The untouched CFB holdout is selected deterministically from eligible
+# patients using only availability/treatment metadata. No RANO outcome or t2
+# image content is used to assign the split.
+holdout_fraction: 0.25
+split_seed: 20260918
+
+required_timepoints:
+  - t0
+  - t1
+  - t2
+
+required_modalities:
+  - t1gd
+
+# Raw FLAIR/DWI are audited and prepared, but are not silently converted into
+# tumor masks/cell density. They become model inputs only through a validated
+# observation mapping with explicit provenance.
+preferred_modalities:
+  - flair
+  - dwi
+
+require_complete_rt_schedule: true
+require_rtdose: true
+
+# Classic PI/PIRT-style MRI detection assumptions. These are hypotheses, not
+# measured cell-density values, so they remain explicit/versioned.
+observation_model:
+  enhancing_detection_threshold: 0.80
+  infiltrative_detection_threshold: 0.16
+  transition_width_mm: 4.0
+
+# Keep alpha/beta fixed while comparing cohort-level effective alpha values on
+# development data. 0.01/Gy is retained as the legacy V2/V3 ablation;
+# 0.10-0.14/Gy bracket the pooled clinical GBM estimate around 0.12/Gy.
+# Patient-specific alpha is deliberately not co-fitted with D/rho from one
+# treated interval because that inverse problem is underidentified.
+radiobiology:
+  alpha_beta_ratio_gy: 10.0
+  legacy_alpha_per_gy: 0.01
+  reference_alpha_per_gy: 0.12
+  effective_alpha_candidates_per_gy:
+    - 0.01
+    - 0.10
+    - 0.12
+    - 0.14
+
+# Stage 8 does not infer a patient-specific chemotherapy schedule because CFB
+# treatment metadata resolves RT timing/dose but not TMZ dose dates.
+chemotherapy:
+  enabled: false
+
+# Long-term reduction of proliferative capacity per fraction. 1.0 is the
+# no-memory nested ablation; lower values are global development candidates.
+treatment_memory:
+  enabled: true
+  proliferation_survival_candidates:
+    - 1.00
+    - 0.995
+    - 0.990
+    - 0.980

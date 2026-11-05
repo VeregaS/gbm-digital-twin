@@ -20,12 +20,18 @@ from gbm_twin.api.schemas.scene3d import (
 from gbm_twin.api.schemas.viewer import (
     ViewerVolumeResponse,
 )
+from gbm_twin.api.schemas.viewer_focus import (
+    ViewerFocusResponse,
+)
 from gbm_twin.workflows.scene3d import (
     get_viewer_3d_scene,
 )
 from gbm_twin.workflows.viewer import (
     get_viewer_volume_metadata,
     render_viewer_slice_png,
+)
+from gbm_twin.workflows.viewer_focus import (
+    get_viewer_focus_metadata,
 )
 
 router = APIRouter(
@@ -117,6 +123,60 @@ def get_viewer_metadata(
 
 
 @router.get(
+    "/{timepoint_name}/focus",
+    response_model=ViewerFocusResponse,
+)
+def get_viewer_focus(
+    patient_id: int,
+    timepoint_name: str,
+    settings: SettingsDependency,
+) -> ViewerFocusResponse:
+    if patient_id <= 0:
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                "patient_id must be positive"
+            ),
+        )
+
+    try:
+        metadata = (
+            get_viewer_focus_metadata(
+                metadata_root=(
+                    settings.metadata_root
+                ),
+                patients_root=(
+                    settings.patients_root
+                ),
+                patient_id=patient_id,
+                timepoint_name=(
+                    timepoint_name
+                ),
+            )
+        )
+    except FileNotFoundError as exc:
+        raise HTTPException(
+            status_code=404,
+            detail=str(exc),
+        ) from exc
+
+    except (
+        KeyError,
+        ValueError,
+    ) as exc:
+        raise HTTPException(
+            status_code=400,
+            detail=str(exc),
+        ) from exc
+
+    return (
+        ViewerFocusResponse.from_metadata(
+            metadata
+        )
+    )
+
+
+@router.get(
     "/{timepoint_name}/slice",
 )
 def get_viewer_slice(
@@ -181,7 +241,8 @@ def get_viewer_slice(
             ),
         },
     )
-    
+
+
 @router.get(
     "/{timepoint_name}/scene3d",
     response_model=Viewer3DSceneResponse,

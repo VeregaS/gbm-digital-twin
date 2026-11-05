@@ -40,10 +40,10 @@ function TimelinePanel({
       <div className="panel-heading compact">
         <div>
           <div className="section-eyebrow">
-            Longitudinal protocol
+            Продольный протокол
           </div>
 
-          <h3>Patient timeline</h3>
+          <h3>Хронология пациента</h3>
         </div>
       </div>
 
@@ -54,18 +54,18 @@ function TimelinePanel({
           title="t0"
           description={
             t0 === null
-              ? "Baseline"
-              : `Day ${formatNumber(t0)}`
+              ? "Исходное наблюдение"
+              : `День ${formatNumber(t0)}`
           }
           variant="observation"
         />
 
         <TimelineStep
-          title="RT"
+          title="Лучевая терапия"
           description={
             rt === null
-              ? "Unknown"
-              : `Day ${formatNumber(rt)}`
+              ? "Начало неизвестно"
+              : `День ${formatNumber(rt)}`
           }
           variant="treatment"
         />
@@ -74,8 +74,8 @@ function TimelinePanel({
           title="t1"
           description={
             t1 === null
-              ? "Calibration target"
-              : `Day ${formatNumber(t1)}`
+              ? "Конец калибровки"
+              : `День ${formatNumber(t1)}`
           }
           variant="observation"
         />
@@ -84,8 +84,8 @@ function TimelinePanel({
           title="t2"
           description={
             t2 === null
-              ? "Held-out"
-              : `Day ${formatNumber(t2)}`
+              ? "Отложенная цель"
+              : `День ${formatNumber(t2)}`
           }
           variant="evaluation"
         />

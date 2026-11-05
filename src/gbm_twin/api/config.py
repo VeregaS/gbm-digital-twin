@@ -10,6 +10,22 @@ DEFAULT_CFB_ROOT = Path(
     r"D:\Datasets\CFB-GBM"
 )
 
+DEFAULT_ATLAS_ROOT = Path(
+    "data/anatomy/atlas"
+)
+
+DEFAULT_COHORT_FREEZE_ROOT = Path(
+    "results/cohort/v2-freeze"
+)
+
+DEFAULT_COHORT_EVALUATION_ROOT = Path(
+    "results/cohort/v2-evaluation"
+)
+
+DEFAULT_COHORT_ANALYSIS_ROOT = Path(
+    "results/cohort/v2-analysis"
+)
+
 
 @dataclass(frozen=True)
 class ApiSettings:
@@ -19,6 +35,18 @@ class ApiSettings:
     patients_root: Path
 
     atlas_root: Path | None = None
+
+    cohort_freeze_root: (
+        Path | None
+    ) = None
+
+    cohort_evaluation_root: (
+        Path | None
+    ) = None
+
+    cohort_analysis_root: (
+        Path | None
+    ) = None
 
     @classmethod
     def from_environment(
@@ -67,8 +95,12 @@ class ApiSettings:
 
         atlas_root_text = (
             os.environ.get(
-                "GBM_TWIN_ATLAS_ROOT"
+                "GBM_TWIN_ATLAS_ROOT",
+                str(
+                    DEFAULT_ATLAS_ROOT
+                ),
             )
+            .strip()
         )
 
         atlas_root = (
@@ -79,11 +111,47 @@ class ApiSettings:
             )
         )
 
+        cohort_freeze_root = Path(
+            os.environ.get(
+                "GBM_TWIN_COHORT_FREEZE_ROOT",
+                str(
+                    DEFAULT_COHORT_FREEZE_ROOT
+                ),
+            )
+        )
+
+        cohort_evaluation_root = Path(
+            os.environ.get(
+                "GBM_TWIN_COHORT_EVALUATION_ROOT",
+                str(
+                    DEFAULT_COHORT_EVALUATION_ROOT
+                ),
+            )
+        )
+
+        cohort_analysis_root = Path(
+            os.environ.get(
+                "GBM_TWIN_COHORT_ANALYSIS_ROOT",
+                str(
+                    DEFAULT_COHORT_ANALYSIS_ROOT
+                ),
+            )
+        )
+
         return cls(
             dataset_root=dataset_root,
             metadata_root=metadata_root,
             patients_root=patients_root,
             atlas_root=atlas_root,
+            cohort_freeze_root=(
+                cohort_freeze_root
+            ),
+            cohort_evaluation_root=(
+                cohort_evaluation_root
+            ),
+            cohort_analysis_root=(
+                cohort_analysis_root
+            ),
         )
 
 

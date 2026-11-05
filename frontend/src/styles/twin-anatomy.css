@@ -1,0 +1,396 @@
+.twin-anatomy-heading {
+  padding: 18px 20px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  background: var(--surface);
+  border: 1px solid var(--accent-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+}
+
+.twin-anatomy-heading-main {
+  display: flex;
+  gap: 13px;
+  min-width: 0;
+}
+
+.twin-anatomy-icon {
+  width: 38px;
+  height: 38px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.twin-anatomy-heading-main > div:last-child {
+  display: grid;
+  gap: 4px;
+}
+
+.twin-anatomy-heading-main span {
+  color: var(--accent);
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.twin-anatomy-heading-main strong {
+  font-size: 15px;
+}
+
+.twin-anatomy-heading-main p {
+  max-width: 760px;
+  margin: 2px 0 0;
+  color: var(--text-secondary);
+  font-size: 10px;
+  line-height: 1.55;
+}
+
+.twin-anatomy-registration {
+  flex: 0 0 auto;
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: #166534;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: var(--radius-sm);
+}
+
+.twin-anatomy-registration > div {
+  display: grid;
+  gap: 2px;
+}
+
+.twin-anatomy-registration strong {
+  font-size: 10px;
+}
+
+.twin-anatomy-registration span {
+  font-size: 8px;
+  text-transform: uppercase;
+}
+
+.twin-anatomy-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.twin-anatomy-summary-card {
+  min-height: 118px;
+  padding: 15px 16px;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.twin-anatomy-summary-card.emphasis {
+  border-color: #fde68a;
+  background: #fffbeb;
+}
+
+.twin-anatomy-summary-card > span {
+  color: var(--text-secondary);
+  font-size: 9px;
+  font-weight: 650;
+}
+
+.twin-anatomy-summary-card > strong {
+  margin-top: 8px;
+  font-size: 24px;
+}
+
+.twin-anatomy-summary-card > small {
+  margin-top: auto;
+  color: var(--text-tertiary);
+  font-size: 8px;
+  line-height: 1.45;
+}
+
+.twin-anatomy-new-risk {
+  padding: 16px;
+  display: grid;
+  gap: 12px;
+  color: #92400e;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: var(--radius-md);
+}
+
+.twin-anatomy-section-title {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+}
+
+.twin-anatomy-section-title > div {
+  display: grid;
+  gap: 3px;
+}
+
+.twin-anatomy-section-title strong {
+  font-size: 11px;
+}
+
+.twin-anatomy-section-title span {
+  font-size: 9px;
+  line-height: 1.45;
+}
+
+.twin-anatomy-change-list {
+  display: flex;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+
+.twin-anatomy-change-list article {
+  padding: 8px 10px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid #fde68a;
+  border-radius: var(--radius-sm);
+}
+
+.twin-anatomy-change-list article > div {
+  display: grid;
+  gap: 2px;
+}
+
+.twin-anatomy-change-list strong {
+  color: var(--text-primary);
+  font-size: 9px;
+}
+
+.twin-anatomy-change-list span {
+  color: var(--text-secondary);
+  font-size: 8px;
+}
+
+.twin-anatomy-columns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.twin-anatomy-column {
+  overflow: hidden;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.twin-anatomy-column > header {
+  min-height: 60px;
+  padding: 12px 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  background: var(--surface-subtle);
+  border-bottom: 1px solid var(--border);
+}
+
+.twin-anatomy-column > header > div {
+  display: grid;
+  gap: 3px;
+}
+
+.twin-anatomy-column > header strong {
+  font-size: 12px;
+}
+
+.twin-anatomy-column > header span {
+  color: var(--text-tertiary);
+  font-size: 8px;
+}
+
+.twin-anatomy-column > header b {
+  min-width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-radius: 999px;
+  font-size: 10px;
+}
+
+.twin-anatomy-impact-list {
+  padding: 10px;
+  display: grid;
+  gap: 8px;
+}
+
+.twin-anatomy-impact {
+  padding: 11px;
+  display: flex;
+  gap: 9px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.twin-anatomy-impact.high {
+  border-color: #fecaca;
+  background: #fff7f7;
+}
+
+.twin-anatomy-impact.moderate {
+  border-color: #fde68a;
+  background: #fffdf5;
+}
+
+.twin-anatomy-impact-icon {
+  flex: 0 0 auto;
+  margin-top: 1px;
+}
+
+.twin-anatomy-impact.high .twin-anatomy-impact-icon {
+  color: var(--red);
+}
+
+.twin-anatomy-impact.moderate .twin-anatomy-impact-icon {
+  color: var(--orange);
+}
+
+.twin-anatomy-impact-body {
+  min-width: 0;
+  flex: 1;
+  display: grid;
+  gap: 7px;
+}
+
+.twin-anatomy-impact-title {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.twin-anatomy-impact-title > div {
+  display: grid;
+  gap: 2px;
+}
+
+.twin-anatomy-impact-title strong {
+  font-size: 10px;
+}
+
+.twin-anatomy-impact-title span {
+  color: var(--text-tertiary);
+  font-size: 8px;
+}
+
+.twin-anatomy-impact-title b {
+  color: var(--text-secondary);
+  font-size: 8px;
+  font-weight: 650;
+}
+
+.twin-anatomy-impact-body p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 9px;
+  line-height: 1.45;
+}
+
+.twin-anatomy-metrics {
+  display: flex;
+  gap: 9px;
+  flex-wrap: wrap;
+}
+
+.twin-anatomy-metrics span {
+  color: var(--text-tertiary);
+  font-size: 8px;
+}
+
+.twin-anatomy-metrics strong {
+  color: var(--text-primary);
+  font-weight: 650;
+}
+
+.twin-anatomy-empty {
+  min-height: 150px;
+  padding: 24px;
+  display: grid;
+  place-items: center;
+  color: var(--text-tertiary);
+  font-size: 9px;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.twin-anatomy-method-note,
+.twin-anatomy-disclaimer,
+.twin-anatomy-unavailable {
+  padding: 13px 15px;
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  border-radius: var(--radius-md);
+}
+
+.twin-anatomy-method-note {
+  color: #166534;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+}
+
+.twin-anatomy-disclaimer,
+.twin-anatomy-unavailable {
+  color: var(--text-secondary);
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+
+.twin-anatomy-method-note > div,
+.twin-anatomy-disclaimer > div,
+.twin-anatomy-unavailable > div {
+  display: grid;
+  gap: 3px;
+}
+
+.twin-anatomy-method-note strong,
+.twin-anatomy-disclaimer strong,
+.twin-anatomy-unavailable strong {
+  color: var(--text-primary);
+  font-size: 10px;
+}
+
+.twin-anatomy-method-note span,
+.twin-anatomy-disclaimer span,
+.twin-anatomy-unavailable span,
+.twin-anatomy-unavailable p {
+  margin: 0;
+  font-size: 9px;
+  line-height: 1.5;
+}
+
+@media (max-width: 1100px) {
+  .twin-anatomy-summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .twin-anatomy-heading {
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 760px) {
+  .twin-anatomy-summary-grid,
+  .twin-anatomy-columns {
+    grid-template-columns: 1fr;
+  }
+}

@@ -73,46 +73,55 @@ def capabilities(
             reason
         )
 
-    atlas_root = (
-        settings.atlas_root
-    )
-
-    anatomy_ready = (
-        atlas_root is not None
-        and (
-            atlas_root
-            / "manifest.json"
-        ).is_file()
-        and (
-            atlas_root
-            / "template_t1.nii.gz"
-        ).is_file()
-        and (
-            atlas_root
-            / "template_labels.nii.gz"
-        ).is_file()
-    )
-
     if not dataset_ready:
         anatomy = _no(
             "CFB-GBM dataset is not configured."
         )
-    elif not anatomy_ready:
-        anatomy = _no(
-            "Anatomical atlas is not configured."
-        )
     else:
         anatomy = _yes()
+
+    freeze_root = (
+        settings.cohort_freeze_root
+    )
+
+    evaluation_root = (
+        settings
+        .cohort_evaluation_root
+    )
+
+    twin_ready = (
+        dataset_ready
+        and freeze_root is not None
+        and freeze_root.is_dir()
+        and evaluation_root is not None
+        and (
+            evaluation_root
+            / "cohort_evaluation.json"
+        ).is_file()
+        and (
+            evaluation_root
+            / "cohort_evaluation.sha256"
+        ).is_file()
+    )
+
+    if not dataset_ready:
+        digital_twin = _no(
+            "CFB-GBM dataset is not configured."
+        )
+    elif not twin_ready:
+        digital_twin = _no(
+            "Sealed V2 cohort evaluation "
+            "is not available."
+        )
+    else:
+        digital_twin = _yes()
 
     return CapabilitiesResponse(
         patients=patients,
         viewer=viewer,
         anatomy=anatomy,
 
-        digital_twin=_no(
-            "PatientTwin API is not "
-            "exposed yet."
-        ),
+        digital_twin=digital_twin,
 
         runs=_no(
             "Run management is not "

@@ -1,0 +1,40 @@
+schema_version: 1
+design: tumortwin_external_reference_v1
+
+engine:
+  repository: "https://github.com/OncologyModelingGroup/TumorTwin.git"
+  commit: "bedf90a6d47ba48cf5cdb25901967d84730061d1"
+
+# This is deliberately a CFB-compatible reference profile, not a claim that
+# the original TumorTwin HGG experiment has been reproduced. CFB patients in
+# the current local development set do not all have ADC available, so the
+# external engine receives the same versioned GTV-derived latent-density
+# surrogate used by our current observation model.
+input:
+  density_source: "gtv_detection_surrogate"
+  crop_padding_voxels: 3
+
+solver:
+  step_days: 1.0
+  method: "rk4"
+  use_adjoint: false
+
+calibration:
+  enabled: true
+
+  # The TumorTwin tutorial recommends roughly 5-30 LM iterations and uses 15
+  # in its example. Ten is a bounded development benchmark that is practical
+  # on a laptop while still exercising the published optimizer workflow.
+  iterations: 10
+  jac_delta: 0.0001
+
+  # CFB-specific broad bounds in the units of the current project. They are
+  # intentionally wider than the Stage 8 search grid but narrower than the
+  # generic demonstration bounds in the TumorTwin tutorial.
+  diffusion_bounds:
+    - 0.0
+    - 0.20
+
+  proliferation_bounds:
+    - 0.0
+    - 0.20

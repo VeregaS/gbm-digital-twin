@@ -18,7 +18,7 @@ function PatientMetrics({
   return (
     <section className="summary-grid">
       <MetricCard
-        label="Timepoints"
+        label="Временные точки"
         value={
           patient
             ? String(
@@ -26,11 +26,11 @@ function PatientMetrics({
               )
             : "—"
         }
-        unit="MRI studies"
+        unit="МРТ-наблюдения"
       />
 
       <MetricCard
-        label="Calibration interval"
+        label="Интервал калибровки"
         value={
           patient?.dt01_days
           !== null
@@ -45,7 +45,7 @@ function PatientMetrics({
       />
 
       <MetricCard
-        label="Held-out horizon"
+        label="Горизонт прогноза"
         value={
           patient?.dt12_days
           !== null
@@ -60,13 +60,13 @@ function PatientMetrics({
       />
 
       <MetricCard
-        label="Radiotherapy"
+        label="Лучевая терапия"
         value={
           treatmentSummary(
             patient,
           )
         }
-        unit="clinical metadata"
+        unit="клинические метаданные"
       />
     </section>
   );
@@ -89,14 +89,14 @@ function treatmentSummary(
     && treatment.fractions !== null
   ) {
     return (
-      `${treatment.dose_gy} Gy`
-      + ` · ${treatment.fractions} fx`
+      `${treatment.dose_gy} Гр`
+      + ` · ${treatment.fractions} фр.`
     );
   }
 
   return treatment.has_record
-    ? "Incomplete"
-    : "Unavailable";
+    ? "Неполные данные"
+    : "Нет данных";
 }
 
 

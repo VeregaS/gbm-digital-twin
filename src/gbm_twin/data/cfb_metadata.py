@@ -1,3 +1,4 @@
+from functools import cached_property
 from pathlib import Path
 
 import pandas as pd
@@ -10,11 +11,15 @@ class CFBMetadata:
         self.metadata_dir = metadata_dir
 
         self.mri = self._read_single("CFB-GBM_mri_availability_*.tsv")
-        self.rano = self._read_single("CFB-GBM_rano_criteria_*.tsv")
-        
+
         self.treatment_imaging = self._read_single(
             "CFB-GBM_treatment_imaging_availability_*.tsv"
         )
+
+    @cached_property
+    def rano(self) -> pd.DataFrame:
+        # Outcomes are loaded only by callers explicitly requesting them.
+        return self._read_single("CFB-GBM_rano_criteria_*.tsv")
 
     def _read_single(self, pattern: str) -> pd.DataFrame:
         files = list(self.metadata_dir.glob(pattern))
@@ -45,7 +50,7 @@ class CFBMetadata:
             for patient_id in self.patient_ids()
             if required_timepoints.issubset(self.timepoints(patient_id))
         ]
-        
+
     def gtv_type(self, patient_id: int, timepoint: str) -> str | None:
         rows = self.treatment_imaging[
             (self.treatment_imaging["id_patient"] == patient_id)
@@ -61,7 +66,7 @@ class CFBMetadata:
             return None
 
         return str(value)
-        
+
     def prediction_cohort(self) -> list[int]:
         required_columns = [
             "size_t0 (cm3)",
@@ -75,7 +80,7 @@ class CFBMetadata:
         longitudinal_patient_ids = set(self.longitudinal_patients())
 
         return sorted(longitudinal_patient_ids & rano_patient_ids)
-    
+
     def patient_timeline(self, patient_id: int) -> list[Timepoint]:
         rows = self.mri[self.mri["id_patient"] == patient_id].copy()
 
@@ -97,7 +102,7 @@ class CFBMetadata:
             )
 
         return timeline
-    
+
     def patient(self, patient_id: int) -> Patient:
         patient = Patient(patient_id=str(patient_id))
 
@@ -105,7 +110,7 @@ class CFBMetadata:
             patient.add_timepoint(timepoint)
 
         return patient
-    
+
     def has_modality(
         self,
         patient_id: int,
@@ -146,7 +151,7 @@ class CFBMetadata:
                 eligible.append(patient_id)
 
         return eligible
-    
+
     def cohort_table(self) -> pd.DataFrame:
         rows: list[dict[str, object]] = []
 

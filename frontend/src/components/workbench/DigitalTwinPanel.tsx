@@ -1,0 +1,567 @@
+import {
+  useEffect,
+  useState,
+} from "react";
+
+import {
+  Activity,
+  Download,
+} from "lucide-react";
+
+import {
+  fetchTwinCohort,
+  fetchTwinPatient,
+  fetchTwinQC,
+  fetchTwinReliability,
+  fetchTwinViewerMetadata,
+  twinEvaluationCsvUrl,
+  twinEvaluationJsonUrl,
+} from "../../api/twin";
+
+import type {
+  TwinCohort,
+  TwinForecastReliability,
+  TwinPatientEvaluation,
+  TwinPatientQC,
+} from "../../api/twin";
+
+import type {
+  PatientSummary,
+  ViewerVolumeMetadata,
+} from "../../api/types";
+
+import TwinAnatomyTab from "./TwinAnatomyTab";
+import TwinCohortAnalysisTab from "./TwinCohortAnalysisTab";
+import TwinCompareTab from "./TwinCompareTab";
+import TwinOverviewTab from "./TwinOverviewTab";
+import TwinQCTab from "./TwinQCTab";
+import TwinTimelineTab from "./TwinTimelineTab";
+
+
+type TwinTab =
+  | "overview"
+  | "timeline"
+  | "compare"
+  | "anatomy"
+  | "qc"
+  | "cohort_analysis";
+
+
+type QCResult = {
+  qc:
+    TwinPatientQC | null;
+
+  error:
+    string | null;
+};
+
+
+type ReliabilityResult = {
+  reliability:
+    TwinForecastReliability | null;
+
+  error:
+    string | null;
+};
+
+
+type RequestState =
+  | {
+      patientId: number;
+      status: "success";
+
+      evaluation:
+        TwinPatientEvaluation;
+
+      viewer:
+        ViewerVolumeMetadata;
+
+      cohort:
+        TwinCohort;
+
+      qc:
+        TwinPatientQC | null;
+
+      qcError:
+        string | null;
+
+      reliability:
+        TwinForecastReliability | null;
+
+      reliabilityError:
+        string | null;
+    }
+  | {
+      patientId: number;
+      status: "error";
+      error: string;
+    };
+
+
+type DigitalTwinPanelProps = {
+  patient:
+    PatientSummary;
+};
+
+
+function DigitalTwinPanel({
+  patient,
+}: DigitalTwinPanelProps) {
+  const [
+    tab,
+    setTab,
+  ] = useState<
+    TwinTab
+  >(
+    "overview",
+  );
+
+  const [
+    request,
+    setRequest,
+  ] = useState<
+    RequestState | null
+  >(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const qcPromise:
+      Promise<QCResult> =
+        fetchTwinQC(
+          patient.patient_id,
+        )
+          .then(
+            (qc) => ({
+              qc,
+              error: null,
+            }),
+          )
+          .catch(
+            (
+              requestError:
+                unknown,
+            ) => ({
+              qc: null,
+              error:
+                requestError
+                instanceof Error
+                  ? requestError.message
+                  : "Не удалось загрузить контроль качества",
+            }),
+          );
+
+    const reliabilityPromise:
+      Promise<ReliabilityResult> =
+        fetchTwinReliability(
+          patient.patient_id,
+        )
+          .then(
+            (reliability) => ({
+              reliability,
+              error: null,
+            }),
+          )
+          .catch(
+            (
+              requestError:
+                unknown,
+            ) => ({
+              reliability: null,
+              error:
+                requestError
+                instanceof Error
+                  ? requestError.message
+                  : "Не удалось загрузить pre-t2 quality gate",
+            }),
+          );
+
+    Promise.all([
+      fetchTwinPatient(
+        patient.patient_id,
+      ),
+      fetchTwinViewerMetadata(
+        patient.patient_id,
+      ),
+      fetchTwinCohort(),
+      qcPromise,
+      reliabilityPromise,
+    ])
+      .then(
+        ([
+          evaluation,
+          viewer,
+          cohort,
+          qcResult,
+          reliabilityResult,
+        ]) => {
+          if (cancelled) {
+            return;
+          }
+
+          setRequest({
+            patientId:
+              patient.patient_id,
+            status: "success",
+            evaluation,
+            viewer,
+            cohort,
+            qc:
+              qcResult.qc,
+            qcError:
+              qcResult.error,
+            reliability:
+              reliabilityResult
+              .reliability,
+            reliabilityError:
+              reliabilityResult.error,
+          });
+        },
+      )
+      .catch(
+        (
+          requestError:
+            unknown,
+        ) => {
+          if (cancelled) {
+            return;
+          }
+
+          setRequest({
+            patientId:
+              patient.patient_id,
+            status: "error",
+            error:
+              requestError
+              instanceof Error
+                ? requestError.message
+                : "Не удалось загрузить цифровой двойник",
+          });
+        },
+      );
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    patient.patient_id,
+  ]);
+
+  const currentRequest =
+    request?.patientId
+    === patient.patient_id
+      ? request
+      : null;
+
+  if (
+    currentRequest === null
+  ) {
+    return (
+      <section
+        className="workspace-state"
+      >
+        <strong>
+          Загружаем цифровой двойник пациента {patient.patient_id}
+        </strong>
+
+        <span>
+          Читаем зафиксированный прогноз, отложенную оценку и технический QC…
+        </span>
+      </section>
+    );
+  }
+
+  if (
+    currentRequest.status
+    === "error"
+  ) {
+    return (
+      <section
+        className="workspace-state error"
+      >
+        <strong>
+          Цифровой двойник недоступен
+        </strong>
+
+        <span>
+          {currentRequest.error}
+        </span>
+      </section>
+    );
+  }
+
+  return (
+    <div
+      className="twin-workspace"
+    >
+      <section
+        className="twin-hero twin-patient-hero"
+      >
+        <div>
+          <div
+            className="twin-eyebrow"
+          >
+            <Activity
+              size={15}
+            />
+
+            Зафиксированный исследовательский прогноз
+          </div>
+
+          <div
+            className="twin-model-provenance"
+          >
+            <span>
+              {
+                currentRequest.reliability
+                  ?.model_version
+                ?? currentRequest
+                  .cohort
+                  .model_version
+              }
+            </span>
+
+            {currentRequest.reliability && (
+              <span>
+                {
+                  currentRequest
+                  .reliability
+                  .protocol_version
+                }
+              </span>
+            )}
+
+            <span>
+              {
+                currentRequest
+                .cohort
+                .sealed
+                  ? "sealed"
+                  : "unsealed"
+              }
+            </span>
+
+            <span>
+              commit{" "}
+              {
+                (
+                  currentRequest
+                  .reliability
+                  ?.source_git_commit_sha
+                ?? currentRequest
+                  .cohort
+                  .repository
+                  .commit_sha
+                ).slice(
+                  0,
+                  8,
+                )
+              }
+            </span>
+          </div>
+
+          <h2>
+            Цифровой двойник пациента {patient.patient_id}
+          </h2>
+
+          <p>
+            Наблюдения t0 и t1 используются до прогнозирования. Модель строит прогноз состояния опухоли на t2, прогноз фиксируется, и только после этого он сравнивается с реальной опухолью на t2.
+          </p>
+        </div>
+
+        <div
+          className="twin-hero-actions"
+        >
+          <a
+            className="twin-export-link"
+            href={twinEvaluationJsonUrl}
+            download
+            title="Скачать исходную оценку когорты в JSON"
+          >
+            <Download
+              size={14}
+            />
+
+            JSON
+          </a>
+
+          <a
+            className="twin-export-link"
+            href={twinEvaluationCsvUrl}
+            download
+            title="Скачать таблицу оценки когорты в CSV"
+          >
+            <Download
+              size={14}
+            />
+
+            CSV
+          </a>
+        </div>
+      </section>
+
+      <nav
+        className="twin-tabs"
+        aria-label="Разделы цифрового двойника"
+      >
+        <TabButton
+          label="Обзор"
+          value="overview"
+          active={tab}
+          onChange={setTab}
+        />
+
+        <TabButton
+          label="Динамика"
+          value="timeline"
+          active={tab}
+          onChange={setTab}
+        />
+
+        <TabButton
+          label="Сравнение"
+          value="compare"
+          active={tab}
+          onChange={setTab}
+        />
+
+        <TabButton
+          label="Функциональные области"
+          value="anatomy"
+          active={tab}
+          onChange={setTab}
+        />
+
+        <TabButton
+          label={
+            currentRequest.qc
+            ?.warnings.length
+              ? (
+                `Контроль качества (${currentRequest.qc.warnings.length})`
+              )
+              : "Контроль качества"
+          }
+          value="qc"
+          active={tab}
+          onChange={setTab}
+        />
+
+        <TabButton
+          label="Анализ когорты"
+          value="cohort_analysis"
+          active={tab}
+          onChange={setTab}
+        />
+      </nav>
+
+      {tab === "overview" && (
+        <TwinOverviewTab
+          patient={patient}
+          evaluation={
+            currentRequest.evaluation
+          }
+          cohort={
+            currentRequest.cohort
+          }
+          reliability={
+            currentRequest.reliability
+          }
+          reliabilityError={
+            currentRequest
+            .reliabilityError
+          }
+        />
+      )}
+
+      {tab === "timeline" && (
+        <TwinTimelineTab
+          patient={patient}
+        />
+      )}
+
+      {tab === "compare" && (
+        <TwinCompareTab
+          key={patient.patient_id}
+          patientId={
+            patient.patient_id
+          }
+          evaluation={
+            currentRequest.evaluation
+          }
+          viewer={
+            currentRequest.viewer
+          }
+        />
+      )}
+
+      {tab === "anatomy" && (
+        <TwinAnatomyTab
+          patientId={
+            patient.patient_id
+          }
+        />
+      )}
+
+      {tab === "qc" && (
+        <TwinQCTab
+          qc={currentRequest.qc}
+          error={
+            currentRequest.qcError
+          }
+        />
+      )}
+
+      {tab === "cohort_analysis" && (
+        <TwinCohortAnalysisTab
+          selectedPatientId={
+            patient.patient_id
+          }
+        />
+      )}
+
+      <div
+        className="twin-research-note"
+      >
+        Только для исследовательского использования. Не является системой поддержки клинических решений.
+      </div>
+    </div>
+  );
+}
+
+
+type TabButtonProps = {
+  label: string;
+  value: TwinTab;
+  active: TwinTab;
+
+  onChange: (
+    value: TwinTab,
+  ) => void;
+};
+
+
+function TabButton({
+  label,
+  value,
+  active,
+  onChange,
+}: TabButtonProps) {
+  return (
+    <button
+      type="button"
+      className={
+        active === value
+          ? "twin-tab-button active"
+          : "twin-tab-button"
+      }
+      onClick={() =>
+        onChange(value)
+      }
+    >
+      {label}
+    </button>
+  );
+}
+
+
+export default DigitalTwinPanel;

@@ -4,6 +4,7 @@ from typing import Annotated
 
 from fastapi import (
     APIRouter,
+    BackgroundTasks,
     Depends,
     HTTPException,
 )
@@ -17,6 +18,12 @@ from gbm_twin.api.schemas.anatomy import (
 )
 from gbm_twin.workflows.anatomy import (
     analyze_patient_anatomy,
+)
+from gbm_twin.workflows.anatomy_runtime import (
+    prepare_patient_atlas_preview,
+)
+from gbm_twin.workflows.patients import (
+    DEFAULT_TARGET_SPACING,
 )
 
 router = APIRouter(
@@ -94,3 +101,74 @@ def get_anatomical_risk(
             report
         )
     )
+
+
+
+@router.post(
+    "/{timepoint_name}/prepare",
+    status_code=202,
+)
+def prepare_anatomical_risk(
+    patient_id: int,
+    timepoint_name: str,
+    background_tasks: BackgroundTasks,
+    settings: SettingsDependency,
+) -> dict[str, str]:
+    if patient_id <= 0:
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                "patient_id must be positive"
+            ),
+        )
+
+    normalized_timepoint = (
+        timepoint_name
+        .strip()
+        .lower()
+    )
+
+    if normalized_timepoint not in {
+        "t0",
+        "t1",
+        "t2",
+    }:
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                "timepoint_name must be "
+                "t0, t1 or t2"
+            ),
+        )
+
+    if settings.atlas_root is None:
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "Atlas analysis is disabled."
+            ),
+        )
+
+    background_tasks.add_task(
+        prepare_patient_atlas_preview,
+        metadata_root=(
+            settings.metadata_root
+        ),
+        patients_root=(
+            settings.patients_root
+        ),
+        atlas_root=(
+            settings.atlas_root
+        ),
+        patient_id=patient_id,
+        timepoint_name=(
+            normalized_timepoint
+        ),
+        target_spacing=(
+            DEFAULT_TARGET_SPACING
+        ),
+    )
+
+    return {
+        "status": "preparing",
+    }

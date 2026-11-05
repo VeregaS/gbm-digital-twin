@@ -64,6 +64,12 @@ def evaluation_signature(
         "volume_weight": (
             config.volume_weight
         ),
+        "refinement_rounds": (
+            config.refinement_rounds
+        ),
+        "upper_boundary_expansion_factor": (
+            config.upper_boundary_expansion_factor
+        ),
     }
 
     serialized = json.dumps(
@@ -166,6 +172,31 @@ def load_cohort_experiment_config(
         "evaluation.proliferation_values",
     )
 
+    refinement_rounds = int(
+        evaluation.get(
+            "refinement_rounds",
+            1,
+        )
+    )
+
+    if refinement_rounds < 1:
+        raise ValueError(
+            "evaluation.refinement_rounds must be at least 1"
+        )
+
+    upper_boundary_expansion_factor = float(
+        evaluation.get(
+            "upper_boundary_expansion_factor",
+            0.5,
+        )
+    )
+
+    if upper_boundary_expansion_factor <= 0.0:
+        raise ValueError(
+            "evaluation.upper_boundary_expansion_factor "
+            "must be positive"
+        )
+
     evaluation_config = EvaluationConfig(
         target_spacing=target_spacing,
         threshold=float(
@@ -186,6 +217,12 @@ def load_cohort_experiment_config(
         ),
         volume_weight=float(
             evaluation["volume_weight"]
+        ),
+        refinement_rounds=(
+            refinement_rounds
+        ),
+        upper_boundary_expansion_factor=(
+            upper_boundary_expansion_factor
         ),
     )
 

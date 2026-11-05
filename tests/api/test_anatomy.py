@@ -122,3 +122,53 @@ def test_anatomy_endpoint(
         ]
         == "motor"
     )
+
+
+
+def test_anatomy_prepare_endpoint(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    captured: dict[
+        str,
+        object,
+    ] = {}
+
+    def fake_prepare(
+        **kwargs: object,
+    ) -> None:
+        captured.update(
+            kwargs
+        )
+
+    monkeypatch.setattr(
+        anatomy_routes,
+        "prepare_patient_atlas_preview",
+        fake_prepare,
+    )
+
+    client = TestClient(
+        create_app(
+            make_settings(
+                tmp_path
+            )
+        )
+    )
+
+    response = client.post(
+        "/api/patients/108/"
+        "anatomy/t1/prepare"
+    )
+
+    assert response.status_code == 202
+    assert response.json() == {
+        "status": "preparing",
+    }
+
+    assert captured[
+        "patient_id"
+    ] == 108
+
+    assert captured[
+        "timepoint_name"
+    ] == "t1"

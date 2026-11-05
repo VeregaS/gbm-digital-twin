@@ -1,3 +1,4 @@
+import math
 from dataclasses import dataclass
 
 import numpy as np
@@ -9,11 +10,11 @@ class ReactionDiffusionParameters:
     proliferation: float
 
     def __post_init__(self) -> None:
-        if self.diffusion < 0:
-            raise ValueError("diffusion must be non-negative")
+        if not math.isfinite(self.diffusion) or self.diffusion < 0:
+            raise ValueError("diffusion must be finite and non-negative")
 
-        if self.proliferation < 0:
-            raise ValueError("proliferation must be non-negative")
+        if not math.isfinite(self.proliferation) or self.proliferation < 0:
+            raise ValueError("proliferation must be finite and non-negative")
 
 
 def gaussian_initial_condition(

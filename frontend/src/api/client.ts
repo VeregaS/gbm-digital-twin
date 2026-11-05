@@ -4,16 +4,19 @@ import type {
   PatientListResponse,
   PatientSummary,
   Viewer3DScene,
+  ViewerFocusMetadata,
   ViewerPlane,
   ViewerVolumeMetadata,
 } from "./types";
 
 
-async function requestJson<T>(
+export async function requestJson<T>(
   path: string,
+  init?: RequestInit,
 ): Promise<T> {
   const response = await fetch(
     path,
+    init,
   );
 
   if (!response.ok) {
@@ -104,6 +107,21 @@ export function fetchViewerMetadata(
 }
 
 
+export function fetchViewerFocus(
+  patientId: number,
+  timepointName: string,
+): Promise<ViewerFocusMetadata> {
+  return requestJson<
+    ViewerFocusMetadata
+  >(
+    (
+      `/api/patients/${patientId}`
+      + `/viewer/${timepointName}/focus`
+    ),
+  );
+}
+
+
 export function viewerSliceUrl(
   patientId: number,
   timepointName: string,
@@ -157,5 +175,27 @@ export function fetchAnatomicalRisk(
       `/api/patients/${patientId}`
       + `/anatomy/${timepointName}`
     ),
+  );
+}
+
+
+
+export function prepareAnatomicalRisk(
+  patientId: number,
+  timepointName: string,
+): Promise<{
+  status: string;
+}> {
+  return requestJson<{
+    status: string;
+  }>(
+    (
+      `/api/patients/${patientId}`
+      + `/anatomy/${timepointName}`
+      + "/prepare"
+    ),
+    {
+      method: "POST",
+    },
   );
 }

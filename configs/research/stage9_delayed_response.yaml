@@ -1,0 +1,39 @@
+schema_version: 1
+
+# Stage 9 is a nested mechanistic ablation of Stage 8. Patient-specific D/rho
+# are frozen at the values already produced before/at Stage 8 reveal. Only the
+# delayed radiation-response state is varied.
+design: frozen_stage8_kinetics_delayed_response_v1
+
+delayed_response:
+  # Literature on fractionated glioma RT describes late death / mitotic
+  # catastrophe over days-to-weeks and a distinct senescent compartment.
+  damage_half_life_days:
+    - 14.0
+    - 30.0
+    - 60.0
+
+  # Fraction of the Stage 8 PIRT radiation loss that enters the latent
+  # damaged/senescent compartment instead of disappearing immediately.
+  damage_transfer_fraction:
+    - 0.50
+    - 0.75
+    - 1.00
+
+  # Contribution of damaged/senescent burden to the MRI-visible density
+  # surrogate. This is a global observation parameter, never patient-specific.
+  damaged_visibility:
+    - 0.50
+    - 0.75
+    - 1.00
+
+selection:
+  catastrophic_delta_vs_persistence: -0.10
+
+  # Do not adopt a more complex delayed-response model for a tiny mean gain
+  # that is likely to be noise in a small development cohort.
+  min_mean_dice_gain_over_stage8_control: 0.005
+
+  # A candidate may not introduce additional large failures relative to the
+  # exact Stage 8 control.
+  max_additional_catastrophic_failures: 0
