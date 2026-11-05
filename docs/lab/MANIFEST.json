@@ -1,0 +1,60 @@
+{
+  "spec_version": "2.0",
+  "prepared_date": "2026-11-06",
+  "audited_repo_commit": "e6ccf399ceb85d37c891ce053f631e5706bbef6b",
+  "requirement_count": 256,
+  "checkpoint_count": 13,
+  "use_case_count": 16,
+  "files": [
+    {
+      "name": "00_README.md",
+      "bytes": 3510,
+      "sha256": "f268b3db76249eb9fef3a4f140ecdfaf94c36978f1a24f5255130cb5561dd72e"
+    },
+    {
+      "name": "01_TECHNICAL_SPEC.html",
+      "bytes": 240492,
+      "sha256": "b1aa5dfe1575dbacf91bcdd4b5a626971e62d960407fa93339a9745a70efd361"
+    },
+    {
+      "name": "01_TECHNICAL_SPEC.md",
+      "bytes": 216129,
+      "sha256": "1db8a471224592aa4279dcc84179c429cfe9f02908c82ed9abaeefdf0169d144"
+    },
+    {
+      "name": "02_REQUIREMENTS.csv",
+      "bytes": 66175,
+      "sha256": "6e06c3078a69a93370e69d030917ffc1894196f8a400a294c63ac73e8f49a20b"
+    },
+    {
+      "name": "03_RESEARCH_BASIS.md",
+      "bytes": 14950,
+      "sha256": "f4bad6142cb25c594d4067c0d45d593fbd37e0d0d598050adff6b99f454069a2"
+    },
+    {
+      "name": "04_AGENT_START.md",
+      "bytes": 7994,
+      "sha256": "ef7d9e24ee52d0569eb1843cbd5f4e01124de19051260bb6528867efd140fc9f"
+    },
+    {
+      "name": "05_PROGRESS_TEMPLATE.md",
+      "bytes": 3914,
+      "sha256": "bcf7868532bb557564ad3aa5379ab8af901328a1af2c9cda48820710f0ceef44"
+    },
+    {
+      "name": "06_STUDY_PROTOCOL_DRAFT.json",
+      "bytes": 4609,
+      "sha256": "022c16e597d8cd7140d246f84c6b5d5817704a6e60501f7bd4a8a5dc62af2264"
+    },
+    {
+      "name": "07_ACCEPTANCE_TRACKER.csv",
+      "bytes": 9735,
+      "sha256": "b0faf9cd044a79d39eb6a12d3127656953ef0aa5f0c986cc8a965e5b3a77b6fc"
+    },
+    {
+      "name": "08_VALIDATION_REPORT.md",
+      "bytes": 2186,
+      "sha256": "86f3da25c68828e4fa01d683a56e9a74664b3b13ac96757d763fe864d554ca46"
+    }
+  ]
+}

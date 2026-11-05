@@ -1,421 +1,65 @@
 # GBM Digital Twin
 
-Исследовательская платформа для моделирования глиобластомы, воспроизводимых in silico экспериментов и работы с продольными МРТ-данными.
+Исследовательское программное средство для моделирования роста опухоли, сценарных экспериментов и работы с продольными МРТ. Основная ветка — `main`.
 
-> **Research only.** Проект не является клинической системой поддержки принятия решений. Все прогнозы, atlas-defined функциональные области и quality gates предназначены для исследовательской оценки.
+## С чего начать
 
-## Текущее состояние
+- [Действующее ТЗ лаборатории 2.0](docs/lab/01_TECHNICAL_SPEC.md): 256 требований, 16 use cases и 13 checkpoints.
+- [Гайд нейросети исполнителя](docs/lab/04_AGENT_START.md) и [фактический прогресс](docs/lab/PROGRESS.md).
+- [Навигация по документации](docs/README.md).
+- [Существующее пространство пациентов и завершенные исследования](docs/patients/README.md).
+- [Отчет об уборке и оптимизации](docs/REPOSITORY_CLEANUP.md).
 
-Актуальная линия разработки: `feat/twin-protocol`.
+## Фактическое состояние
 
-На 17 октября 2026 года следующий этап — лаборатория вычислительных экспериментов
-на опубликованной модели TumorTwin с подготовленным синтетическим HGG-случаем.
-Подготовлено [ТЗ реализации](docs/IN_SILICO_LAB_TECHNICAL_SPEC.md), учитывающее
-существующие backend, UI, viewers и reference adapter. Текущий статус и порядок
-работы: [IN_SILICO_LAB_PROGRESS.md](docs/IN_SILICO_LAB_PROGRESS.md).
-Новые lab queue/scenario/study функции ещё предстоит реализовать; ниже описано
-сохранённое patient-specific направление и его завершённые научные результаты.
+В репозитории есть Python-модели, калибровка, freeze/reveal workflows, FastAPI и React-интерфейс для сохраненных patient-specific результатов. Новая лаборатория TumorTwin — следующий этап по ТЗ; постоянная lab queue, scenarios и studies еще не реализованы.
 
-На 1 октября 2026 года проект включает полноценный longitudinal pipeline:
+Последняя внутренняя проверка Stage 10 не пройдена: mean Dice 0.7084 против 0.7426 у persistence на 16 пациентах. [Исходный отчет](docs/STAGE10_VALIDATION_RESULT.md) и frozen configs сохранены. Результат не подтверждает клиническое преимущество модели.
 
-```text
-t0 MRI/GTV
-    ↓
-patient-specific calibration D, rho
-    ↓
-t1 observation assimilation
-    ↓
-frozen t1 → t2 forecast
-    ↓
-sealed reveal/evaluation against t2
-    ↓
-baselines + cohort metrics + failure analysis
-```
+Пользователь удалил тяжелые данные пациентов. Исходный код и тесты не требуют полного скачивания коллекции. Patient workspace без данных остается недоступным; это ожидаемое состояние. Новое ТЗ предусматривает небольшой авторский synthetic HGG case и явную подготовку необходимых файлов.
 
-Работают:
+## Установка и проверки
 
-- CFB-GBM data preparation и longitudinal patient workflow;
-- reaction-diffusion solver с brain-constrained domain;
-- treatment-aware / radiotherapy model families;
-- patient-specific calibration и diagnostics;
-- freeze/reveal anti-leakage protocol;
-- cohort evaluation, baselines и error analysis;
-- FastAPI PatientTwin API;
-- 2D/3D MRI/twin viewer;
-- patient-level comparison и cohort workspace;
-- technical QC;
-- pre-t2 forecast reliability gate;
-- atlas-based current/predicted anatomical impact;
-- Stage 8 / Stage 9 model-selection workflows;
-- published TumorTwin reference benchmark;
-- Reference Fidelity v2;
-- завершённый Stage 10 decoupled-damage selection;
-- sealed Stage 10 reserve-validation workflow.
-
-Python и frontend проверяются GitHub Actions: Ruff + полный pytest suite, а также ESLint + production frontend build.
-
-## Научный статус
-
-Аудит текущей модели, подтверждённые ограничения точности и порядок дальнейшей
-работы: [docs/MODEL_CODE_AUDIT.md](docs/MODEL_CODE_AUDIT.md).
-Исправления технических проверок не меняют scientific verdict Stage 10.
-
-### Stage 9 v2
-
-Текущий лучший завершённый собственный development candidate:
-
-`stage9-delayed-transfer-1-half-life-120d-visibility-1`
-
-На 24 уже раскрытых development patients:
-
-- mean Dice: `0.681404`;
-- mean delta vs persistence: `-0.011792`;
-- mean HD95: `11.2522 mm`;
-- mean relative volume error: `0.950507`;
-- catastrophic failures: `2`.
-
-Stage 9 улучшил exact Stage 8 control (`0.667942` mean Dice), особенно regression subgroup, но в среднем всё ещё не превосходит persistence.
-
-### Reference Fidelity v2
-
-Reference Fidelity v2 завершён на тех же exposed development data.
-
-- TumorTwin LM + tumor-centric ROI, 24 patients:
-  mean Dice `0.636752`, catastrophic failures `5`;
-- paired ROI-GTV, 9 ADC-eligible patients:
-  mean Dice `0.575452`, catastrophic failures `3`;
-- paired TumorTwin-style ADC-derived enhancing cellularity:
-  mean Dice `0.393779`, catastrophic failures `5`.
-
-ROI cropping не улучшил reference result, а tested ADC branch не прошёл predefined advancement rule.
-
-Подробности: [docs/REFERENCE_FIDELITY_V2_RESULT.md](docs/REFERENCE_FIDELITY_V2_RESULT.md).
-
-### Stage 10
-
-Stage 10 завершён на тех же 24 уже раскрытых development patients.
-
-Selected model:
-
-`stage10-decoupled-half-life-60d`
-
-Sealed selection SHA-256:
-
-`2bff489685dd2d8ed9d28f8ce2abe55214475ade8ce287f73d0bc8e19f6b4326`
-
-Результат:
-
-- mean Dice: `0.696845`;
-- median Dice: `0.755809`;
-- mean delta vs persistence: `+0.003649`;
-- mean HD95: `11.0844 mm`;
-- mean relative volume error: `0.663907`;
-- catastrophic failures: `0`;
-- regression mean delta vs persistence: `+0.006040`;
-- growth mean delta vs persistence: `+0.004390`.
-
-Stage 9 control на тех же пациентах имел mean Dice `0.681404`, mean delta
-vs persistence `-0.011792` и `2` catastrophic failures.
-
-Stage 10 прошёл заранее заданный development gate. **Reserve internal
-validation завершена 2026-10-05 и не прошла gate**: mean Dice `0.708427`
-против `0.742571` у persistence, mean delta `-0.034144`, catastrophic failures
-`2` (patients `73`, `254`). Mean RVE и HD95 улучшились, но два обязательных
-условия advancement не выполнены. Holdout остаётся закрытым.
-
-Итог: [STAGE10_VALIDATION_RESULT.md](docs/STAGE10_VALIDATION_RESULT.md);
-разбор ошибок: [STAGE10_RESERVE_FAILURE_ANALYSIS.md](docs/STAGE10_RESERVE_FAILURE_ANALYSIS.md).
-
-Frozen model и reserve protocol:
-
-- `configs/research/stage10_frozen_model.yaml`;
-- `configs/research/stage10_reserve_validation.yaml`.
-
-Reserve checkpoint использует deterministic stratified subset из `16` из
-`48` unopened reserve patients и запечатывает cohort до чтения t2. Исходные
-16 пациентов уже рассчитаны; оставшиеся 32 reserve patients закрыты.
-
-Воспроизводимый запуск checkpoint (runner запрещает перезапись существующего результата):
+Python 3.11+; для pinned TumorTwin окружение создается отдельно по ТЗ.
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File scripts\twin\run_stage10_reserve_validation.ps1
-```
-
-Expected outputs:
-
-```text
-results/cohort/stage10-reserve-validation-plan-v1/
-results/cohort/stage10-internal-validation-v1/
-    stage10_internal_validation.json
-    stage10_internal_validation.csv
-    stage10_internal_validation.sha256
-    STAGE10_VALIDATION_RESULT.md
-```
-
-Подробности:
-
-- [docs/STAGE10_RESULT.md](docs/STAGE10_RESULT.md);
-- [docs/STAGE10_RESERVE_VALIDATION_PROTOCOL.md](docs/STAGE10_RESERVE_VALIDATION_PROTOCOL.md).
-
-Runner автоматически материализует только sealed reserve cohort из официального
-CFB-GBM NIfTI `data/` после проверки plan. Для другого расположения исходников
-передайте `-SourceDataRoot`; подготовка и dry run описаны в
-[STAGE10_RESERVE_MATERIALIZATION.md](docs/STAGE10_RESERVE_MATERIALIZATION.md).
-Если исходники ещё не скачаны, `-DownloadMissing` выборочно загружает только
-required files этих 16 пациентов с TCIA через установленную Aspera.
-
-## Anatomical / functional-region workspace
-
-Проект умеет сравнивать:
-
-```text
-CURRENT
-observed t1 GTV + t1 latent state
-              ↓
- patient-space t1 atlas
-
-FORECAST
-frozen prediction field/mask
-              ↓
- same patient-space t1 atlas
-```
-
-Таким образом predicted anatomical impact **не использует observed t2 anatomy**.
-
-В интерфейсе вкладка **«Функциональные области»** показывает atlas-defined regions для текущего состояния и frozen forecast, включая новые прогнозируемые пересечения/близость.
-
-Категории включают:
-
-- речь и язык;
-- motor-associated cortex;
-- somatosensory regions;
-- visual regions;
-- memory-associated regions;
-- critical subcortical structures.
-
-Это population-atlas estimate, а не индивидуальная функциональная карта пациента. Интерфейс намеренно не делает утверждений вида «пациент потеряет речь».
-
-### Registration safety gate
-
-Первое открытие anatomy больше не держит длинный HTTP-запрос. Если patient-space atlas ещё не готов, frontend запускает подготовку отдельно и опрашивает статус, сохраняя интерфейс доступным.
-
-Есть два уровня:
-
-```text
-atlas registration candidate
-        ↓
-automatic QC
-   pass / warn / fail
-        ↓
-research preview
-        ↓
-optional manual review
-   accepted / rejected
-        ↓
-verified labels.nii.gz
-```
-
-- `pass/warn` может использоваться как явно помеченный **automatic-QC research preview**;
-- `fail` никогда не используется;
-- manual `rejected` никогда не используется;
-- manual `accepted` создаёт verified canonical `labels.nii.gz`;
-- accepted registration дополнительно проверяется по SHA-256 candidate и registration provenance.
-
-Для быстрого показа sealed cohort atlas-кэш можно заранее прогреть:
-
-```powershell
-python scripts\anatomy\prewarm_twin_atlas.py
-```
-
-Automatic preview использует linear registration; full deformable pipeline остаётся доступен для ручного verified workflow.
-
-## Pre-t2 forecast quality gate
-
-В Digital Twin → «Обзор» показывается техническая оценка надёжности, вычисляемая **без observed t2**.
-
-Используются только:
-
-- calibration identifiability;
-- D/rho boundary diagnostics;
-- frozen prediction geometry;
-- t1 brain mask;
-- frozen Git/protocol provenance.
-
-Статусы:
-
-- `nominal` — известных pre-t2 технических флагов нет;
-- `caution` — есть технические оговорки;
-- `limited` — обнаружен существенный reliability flag.
-
-Это **не calibrated probability** правильности прогноза и не клиническая confidence score.
-
-## Anti-leakage rules
-
-Главный контракт проекта:
-
-- patient-specific calibration выполняется только на `t0 → t1`;
-- t2 не используется для выбора D/rho;
-- t2 не используется для подбора observation threshold;
-- t2 не используется для выбора treatment-response parameters;
-- model-family diagnostics после раскрытия development t2 остаются только development evidence;
-- reserve patients нельзя использовать для повторного tuning;
-- untouched holdout открывается только после freeze структуры;
-- Burdenko предназначен для последующей external validation.
-
-Большие medical data и generated results в Git не коммитятся.
-
-## Установка
-
-Требуется Python 3.11+.
-
-```powershell
-cd D:\Projects\gbm-digital-twin
-
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
-
-python -m pip install --upgrade pip
 python -m pip install -e ".[dev]"
-```
-
-Для frontend:
-
-```powershell
-cd frontend
-npm ci
-```
-
-## Dataset paths
-
-Типичный локальный CFB setup:
-
-```powershell
-$env:GBM_TWIN_CFB_ROOT = "D:\Datasets\CFB-GBM"
-$env:GBM_TWIN_CFB_PATIENTS_ROOT = "D:\Datasets\CFB-GBM\patients"
-$env:GBM_TWIN_CFB_METADATA_ROOT = "D:\Datasets\CFB-GBM"
-```
-
-По умолчанию atlas workspace используется из `data/anatomy/atlas` и при необходимости bootstrap'ится автоматически. Путь можно переопределить:
-
-```powershell
-$env:GBM_TWIN_ATLAS_ROOT = "D:\Projects\gbm-digital-twin\data\anatomy\atlas"
-```
-
-Пути могут отличаться локально.
-
-## Запуск приложения
-
-Backend:
-
-```powershell
-cd D:\Projects\gbm-digital-twin
-.\.venv\Scripts\Activate.ps1
-
-uvicorn gbm_twin.api.app:app --reload
-```
-
-Frontend:
-
-```powershell
-cd D:\Projects\gbm-digital-twin\frontend
-npm run dev
-```
-
-## Проверки
-
-Python:
-
-```powershell
 python -m ruff check .
 python -m pytest -q
 ```
 
-Frontend:
+Frontend использует Node 24 в CI:
 
 ```powershell
 cd frontend
+npm ci
 npm run lint
 npm run build
+npm run dev
 ```
 
-CI выполняет Python и frontend jobs независимо.
+Backend:
 
-## Важные директории
+```powershell
+uvicorn gbm_twin.api.app:app --reload
+```
+
+Настройка CFB-путей, старых artifacts и atlas — в [patient workspace guide](docs/patients/README.md). Не скачивать их для подготовки лабораторного кода.
+
+## Структура
 
 ```text
-src/gbm_twin/
-    anatomy/        atlas, registration, QC, anatomical risk
-    api/            FastAPI routes and schemas
-    calibration/    D/rho calibration and diagnostics
-    data/           dataset contracts and loading
-    evaluation/     metrics, baselines, error analysis
-    models/         PDE and treatment/state models
-    reference/      TumorTwin adapters
-    workflows/      reproducible patient/cohort protocols
-
-frontend/src/
-    api/
-    components/
-        workbench/
-
-configs/
-    datasets/
-    experiments/
-    research/
-
-scripts/
-    anatomy/
-    reference/
-    twin/
-
-tests/
-    anatomy/
-    api/
-    calibration/
-    evaluation/
-    models/
-    reference/
-    workflows/
+src/gbm_twin/   модели, данные, API, CLI и научные workflows
+frontend/src/  api, components/layout, components/viewer,
+               components/anatomy, components/workbench, styles
+configs/       зафиксированные настройки datasets и исследований
+docs/lab/      действующее ТЗ, приемка, progress и архив версии 1
+docs/patients/ сохраненное руководство patient workspace
+scripts/       запускаемые команды и служебные инструменты
+experiments/   воспроизводимые диагностические и исторические эксперименты
+tests/         проверки моделей, контрактов, API и workflows
 ```
 
-## Reproducibility
-
-Generated scientific artifacts carry:
-
-- Git commit provenance;
-- dirty-tree status;
-- config SHA-256;
-- input SHA-256;
-- protocol/model version;
-- artifact SHA-256.
-
-Sealed evaluation verifies source freeze manifests and per-patient prediction manifests before loading them.
-
-`data/`, `results/`, medical images (`*.nii*`, DICOM), transforms and local caches intentionally находятся вне Git.
-
-## Основные документы
-
-- [PROJECT_DIRECTION_RU.md](docs/PROJECT_DIRECTION_RU.md) — текущий scientific direction;
-- [STAGE9_V2_RESULT.md](docs/STAGE9_V2_RESULT.md) — завершённый Stage 9 result;
-- [REFERENCE_BENCHMARK_V1_RESULT.md](docs/REFERENCE_BENCHMARK_V1_RESULT.md) — published-reference checkpoint;
-- [REFERENCE_FIDELITY_V2.md](docs/REFERENCE_FIDELITY_V2.md) — predefined fidelity protocol;
-- [REFERENCE_FIDELITY_V2_RESULT.md](docs/REFERENCE_FIDELITY_V2_RESULT.md) — sealed fidelity result;
-- [STAGE10_DECOUPLED_DAMAGE_PROTOCOL.md](docs/STAGE10_DECOUPLED_DAMAGE_PROTOCOL.md) — frozen development protocol;
-- [STAGE10_RESULT.md](docs/STAGE10_RESULT.md) — sealed Stage 10 development result;
-- [STAGE10_VALIDATION_RESULT.md](docs/STAGE10_VALIDATION_RESULT.md) — завершённая reserve validation, gate не пройден;
-- [STAGE10_RESERVE_FAILURE_ANALYSIS.md](docs/STAGE10_RESERVE_FAILURE_ANALYSIS.md) — все 16 paired outcomes и catastrophic cases;
-- [STAGE10_EXECUTION_PROGRESS.md](docs/STAGE10_EXECUTION_PROGRESS.md) — контрольные точки acquisition, подготовки и расчёта;
-- [STAGE10_RESERVE_VALIDATION_PROTOCOL.md](docs/STAGE10_RESERVE_VALIDATION_PROTOCOL.md) — неизменённый протокол завершённого эксперимента;
-- [OBSERVATION_MODEL_NEXT_CYCLE.md](docs/OBSERVATION_MODEL_NEXT_CYCLE.md) — conditional fallback для будущего development cycle;
-- [MVP_PROTOCOL_V2.md](docs/MVP_PROTOCOL_V2.md) — исторический frozen V2 protocol.
-
-## Текущий scientific этап
-
-**Development failure analysis без reserve tuning.** Frozen 60-day Stage 10
-не прошёл reserve checkpoint и не допускается к untouched holdout. Раскрытые
-16 reserve patients используются только для анализа ошибок; подбирать по ним
-half-life, global parameters, новые кандидаты или baseline gate нельзя.
-
-Новая модель должна пройти отдельно заданный development cycle до нового
-prospective evaluation plan. Оставшиеся 32 reserve patients, untouched holdout
-и Burdenko остаются закрытыми. Scientific guardrails сохранены.
+Research only: модельные сценарии не являются назначением лечения. Медицинские данные, generated results и restricted upstream assets не коммитятся. Перед реализацией прочитать [ТЗ](docs/lab/01_TECHNICAL_SPEC.md) и текущий progress; история экспериментов сохраняется.

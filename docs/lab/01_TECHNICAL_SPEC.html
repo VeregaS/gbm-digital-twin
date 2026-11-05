@@ -1,0 +1,2001 @@
+<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>GBM Digital Twin Техническое задание 2.0</title><style>*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;color:#18252d;background:#f4f6f8;font-family:Segoe UI,Arial,sans-serif;font-size:16px;line-height:1.65}nav{position:fixed;top:0;bottom:0;left:0;width:280px;padding:28px 18px;background:#12313d;color:white;overflow:auto}nav strong{display:block;font-size:19px;margin-bottom:16px}nav a{display:block;color:#dce9ef;text-decoration:none;padding:7px 4px;font-size:13px;line-height:1.4}nav a:hover{color:white;background:#214653}main{max-width:1160px;margin-left:300px;padding:40px 46px;background:white;min-height:100vh}h1{font-size:32px;line-height:1.2;color:#143c49}h2{font-size:25px;line-height:1.3;margin:48px 0 20px;border-bottom:1px solid #dce3e7;padding-bottom:10px;scroll-margin-top:20px}h3{font-size:20px;margin:30px 0 12px}p{margin:12px 0}a{color:#006575;overflow-wrap:anywhere}code{font-family:Consolas,monospace;font-size:.88em;background:#f1f4f6;padding:2px 4px;overflow-wrap:anywhere}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#f1f4f6;padding:18px;font-size:13px;line-height:1.5}pre code{padding:0;background:none}table{border-collapse:collapse;width:100%;font-size:14px;margin:22px 0;table-layout:auto}th,td{border:1px solid #d5dfe4;padding:10px 12px;text-align:left;vertical-align:top;overflow-wrap:anywhere}th{background:#e7eff2;color:#143c49}tr:nth-child(even){background:#f8fafb}li{margin:7px 0}blockquote{margin-left:0;padding-left:18px;border-left:3px solid #6d8b98}footer{font-size:12px;color:#536976;margin-top:50px}button{font:inherit;border:1px solid #b9cbd2;border-radius:4px;background:white;color:#12313d;padding:8px 14px;cursor:pointer}@media(max-width:1100px){nav{position:relative;width:auto;max-height:300px}main{margin:0;padding:25px;max-width:none}}@media print{@page{size:A4;margin:18mm}body{background:white;font-size:10.5pt}nav,button{display:none}main{margin:0;padding:0;max-width:none}h1{font-size:24pt}h2{font-size:16pt;break-after:avoid}h3{font-size:13pt;break-after:avoid}table{font-size:9pt}thead{display:table-header-group}tr{break-inside:avoid}a{color:inherit;text-decoration:none}pre{font-size:8pt}footer{display:none}}</style></head><body><nav><strong>GBM Research Lab<br>ТЗ 2.0</strong><a href="#section-1">1. Решение и границы результата</a><a href="#section-2">2. Актуальность и публикационный замысел</a><a href="#section-3">3. Исходное состояние и происхождение ТЗ</a><a href="#section-4">4. Приоритеты и правила исполнения</a><a href="#section-5">5. Пользователи и сценарии использования</a><a href="#section-6">6. Архитектура</a><a href="#section-7">7. Модель данных</a><a href="#section-8">8. Эталон и численная корректность</a><a href="#section-9">9. Лицензии и локальная подготовка</a><a href="#section-10">10. Ресурсы и хранение</a><a href="#section-11">11. API и ошибки</a><a href="#section-12">12. Интерфейс и экранные контракты</a><a href="#section-13">13. Алгоритмы и научные метрики</a><a href="#section-14">14. Исследовательский протокол и две статьи</a><a href="#section-15">15. Нефункциональные требования и приемка</a><a href="#section-16">16. Проверки</a><a href="#section-17">17. Контрольные точки</a><a href="#section-18">18. Определение завершения</a><a href="#section-19">19. Риски и решения</a><a href="#section-20">20. Изменения и передача следующей нейросети</a><a href="#section-21">21. Атомарный порядок внедрения для исполнителя</a><a href="#section-22">22. Поля редактора и точные правила</a><a href="#section-23">23. Пример контрактов без фиктивных результатов</a><a href="#section-24">24. Приемочные сценарии Given When Then</a><a href="#section-25">25. Макет основного рабочего экрана</a><a href="#section-26">26. Нормативный реестр атомарных требований</a><a href="#section-27">27. Сводная прослеживаемость</a><a href="#section-28">28. Указатель источников</a></nav><main><button onclick="window.print()">Печать или сохранение в PDF</button><h1>Техническое задание GBM Digital Twin Research Lab</h1>
+<p>Версия 2.0 • 6 ноября 2026 года • Язык продукта и основной документации русский</p>
+<p><strong>Назначение:</strong> единый исполняемый план завершения исследовательского программного средства для подготовки научных статей и последующего использования в дипломе по программной инженерии. Читатели: автор проекта, научный руководитель, разработчик и нейросеть исполнитель. Этот пакет задает требования к будущей реализации; он не объявляет перечисленные функции готовыми.</p>
+<h2 id="section-1">1. Решение и границы результата</h2>
+<p>Создать в существующем репозитории локальную лабораторию воспроизводимых вычислительных экспериментов на опубликованной модели роста опухоли и ответа на терапию. Первый движок — TumorTwin, первый случай — авторский synthetic HGG_demo_001. Существующие FastAPI, React, TypeScript и vtk.js переиспользовать. Первый рабочий путь не зависит от CFB-GBM, атласа и ранее скачанных данных пациентов: пользователь сообщил, что удалил тяжелые данные.</p>
+<p>Общая тема проекта сохраняется: «Программно-алгоритмическое средство на базе исследовательского цифрового двойника глиобластомы для моделирования роста опухоли и прогнозирования ответа на терапию по продольным МРТ-данным». Первый релиз реализует исследовательскую среду и эксперименты на синтетическом HGG-случае. Он не подтверждает клиническую точность индивидуального прогноза по реальным МРТ. HGG-случай не переименовывать в молекулярно подтвержденную глиобластому реального человека.</p>
+<p><strong>Законченный результат:</strong> другой исследователь может подготовить разрешенный эталонный случай, воспроизвести upstream, создать сценарий, выполнить фоновый расчет, просмотреть реальные временные кадры, сравнить сценарии, провести ограниченную серию, экспортировать план и повторить расчет с проверкой допусков. Из результатов автоматически получаются таблицы и рисунки для двух самостоятельных исследовательских работ.</p>
+<p><strong>В релиз входят:</strong> проверенный engine adapter; кейсы и версии сценариев; устойчивая локальная очередь; временные кривые и 2D/3D; сравнение; конечные разности; Morris screening; воспроизводимая виртуальная выборка; исследование устойчивости ранжирования; контроль ресурсов и хранения; экспорт, повторение, тесты и документация.</p>
+<p><strong>В релиз не входят:</strong> новая биологическая PDE, собственная нейросеть, клинический подбор лечения, выживаемость, новый CFB reserve/holdout experiment, развитие атласной регистрации, облачная SaaS-инфраструктура, авторизация нескольких организаций, произвольная загрузка DICOM, Sobol как обязательный метод, Bayesian calibration как обязательная подсистема, surrogate/GPU acceleration и адаптивный вычислительный бюджет. Эти задачи не добавлять для обхода трудностей текущего этапа.</p>
+<h2 id="section-2">2. Актуальность и публикационный замысел</h2>
+<p>Актуальна задача проверяемых вычислительных экспериментов и обоснованности выводов механистических моделей. Но неопределенность, виртуальные когорты, цифровые двойники и адаптация терапии уже представлены в литературе. Нельзя заявлять, что проект первым вводит эти понятия или что веб-интерфейс устанавливает научную новизну.</p>
+<p>Матрица первоисточников находится в <a href="03_RESEARCH_BASIS.md">03_RESEARCH_BASIS.md</a>. По проверке 05–06.11.2026 особенно существенны: опубликованный TumorTwin 2026 года; risk-aware HGG twin Chaudhuri et al. 2023; работа Pash et al. о пространственном прогнозировании с неопределенностью, доступная как arXiv:2505.08927; Bayesian personalization Lê et al. 2016. Последние две ограничивают притязания на новизну общей идеи учета неопределенности. Для Pash в этом пакете проверена аннотация; полный текст должен быть разобран на CP01 до окончательной заявки о вкладе.</p>
+<p><strong>Самостоятельный вклад пока является проверяемой гипотезой:</strong> единый проверенный жизненный цикл эксперимента и измерение устойчивости сравнений сценариев при ограниченных вычислительных ресурсах, с раздельным учетом параметрических, наблюдательных и численных возмущений.</p>
+<p>Статья A отвечает: «Как организовать и проверить воспроизводимое выполнение сценарных экспериментов на опубликованном движке?» Статья B отвечает: «Когда сравнительное ранжирование заранее определенных сценариев меняется при допустимых возмущениях и численном уточнении?» Каждая получает собственные методы, основные результаты и выводы. Общие описание движка и набор данных цитируются без повторной выдачи одних результатов за два исследования.</p>
+<p>Ни индексирование журнала, ни публикация не являются критерием завершения разработки. Обязательны проверяемые материалы статьи A и самостоятельный результат исследования B, включая отрицательный. Подготовка и отправка рукописи, переписка с редакциями и авторами внешнего движка выполняются только по отдельному поручению пользователя.</p>
+<h2 id="section-3">3. Исходное состояние и происхождение ТЗ</h2>
+<p>Аудит выполнен для <code>VeregaS/gbm-digital-twin</code>, рабочая ветка <code>feat/twin-protocol</code>, commit <code>e6ccf399ceb85d37c891ce053f631e5706bbef6b</code>. Ветка <code>main</code> остается на <code>3f20086e800be5f15c8c022efec36f6c9da7e953</code>. При старте реализации заново проверить branch, HEAD, status и применимые AGENTS.md. Состояние диска пользователя может отличаться от копии аудита.</p>
+<p>В текущем чате подтверждены 571 Python test, Ruff, ESLint, frontend build и успешный CI для audited HEAD. Локальный прогон: Python 3.13, 57 dependency warnings; CI использует 3.11. Это baseline старого кода, а не приемка будущей лаборатории. Научные серии заново не запускались. Данные и локальные JSON/CSV старых результатов отсутствуют в копии аудита; сохранность на машине автора нужно инвентаризировать.</p>
+<p>Существующее ТЗ 17.10.2026 и progress служат источниками контекста. Версия 2.0 конкретизирует их требования, меняет порядок внедрения на CP00–CP12 и вводит атомарную приемку. После принятия пакета разместить его в <code>docs/lab/</code>; старое ТЗ снабдить ссылкой на новое. Не удалять исторические научные протоколы. До внедрения пакета в репозиторий этот архив остается самостоятельным документом.</p>
+<h3>3.1. Что переиспользовать</h3>
+<table>
+<thead>
+<tr>
+<th>Область</th>
+<th>Реальные исходники</th>
+<th>Действие</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Приложение</td>
+<td><code>api/app.py</code>, <code>api/config.py</code>, React App/Sidebar/Topbar</td>
+<td>Добавить lab namespace и независимый startup</td>
+</tr>
+<tr>
+<td>Геометрия</td>
+<td><code>data/nifti.py</code>, <code>preprocessing/resampling.py</code></td>
+<td>Переиспользовать; сохранять affine и единицы</td>
+</tr>
+<tr>
+<td>Визуализация</td>
+<td><code>workflows/viewer.py</code>, <code>scene3d.py</code>, twin viewers</td>
+<td>Выделять общие функции только при реальной необходимости</td>
+</tr>
+<tr>
+<td>Движок</td>
+<td><code>reference/tumortwin.py</code>, <code>scripts/reference/tumortwin_worker.py</code></td>
+<td>Старый CFB adapter сохранить; новый lab adapter отделить</td>
+</tr>
+<tr>
+<td>Происхождение</td>
+<td><code>workflows/provenance.py</code>, <code>repository.py</code></td>
+<td>Общие hash/version primitives; не переносить CFB payload целиком</td>
+</tr>
+<tr>
+<td>Очередь</td>
+<td>Anatomy BackgroundTasks и JSON status</td>
+<td>Опыт polling; не считать готовой постоянной очередью</td>
+</tr>
+<tr>
+<td>Старые модели</td>
+<td><code>models/</code>, <code>workflows/stage8_*</code>, <code>stage9_*</code>, <code>stage10_*</code></td>
+<td>Регрессия и архив результатов, без нового tuning</td>
+</tr>
+<tr>
+<td>Проверки</td>
+<td><code>tests/</code>, GitHub Actions</td>
+<td>Расширить meaningful lab tests и browser smoke</td>
+</tr>
+</tbody>
+</table>
+<h3>3.2. Защищенное научное наследие</h3>
+<p>Stage 10 reserve validation по отчету: n=16, mean Dice 0.7084 против persistence 0.7426, paired delta −0.0341, два провала по принятому порогу; итог validation_failed. Новая лаборатория не меняет этот вывод. 16 раскрытых reserve случаев не использовать для настройки, оставшиеся 32 reserve и 21 holdout не открывать. Не переименовывать V2/V3 GUI artifacts в Stage 10. Не исправлять старые уравнения и не выдавать новый расчет за старый frozen результат. Пользовательское удаление данных не разрешает их незаметно скачивать заново.</p>
+<h2 id="section-4">4. Приоритеты и правила исполнения</h2>
+<p><code>MUST</code> означает обязательную приемку текущего релиза. <code>LATER</code> — отдельный будущий change request. Все требования в приложении имеют ID, checkpoint, способ проверки и ожидаемое свидетельство. Реестр CSV является производной копией того же набора; при расхождении исправить генерацию, а не поддерживать две истины.</p>
+<p>Порядок: научные границы → эталон движка → хранение и worker → минимальный сквозной UI → сравнение → серии → frozen исследование → release. Следующий checkpoint не считается принятым, пока его зависимости не имеют проверяемого результата. Прототип и mocks допускаются в тестах и разработке, но не заменяют проверку реального движка.</p>
+<p>Исполнитель работает последовательно, не создает фоновые делегированные агенты без явного поручения. Не меняет stack ради удобства. Не добавляет новую подсистему для улучшения внешнего вида. Не делает полный рефакторинг старых workflows одновременно с лабораторией. Автономно решает обратимые инженерные вопросы в согласованных границах. Вопрос пользователю требуется при изменении темы, защищенных данных, разрешений внешней публикации или существенного вычислительного бюджета; отсутствие ответа не считать согласием.</p>
+<p>После двух неудачных попыток одной гипотезы записать наблюдения и выбрать диагностическую проверку. После трех попыток без новой информации прекратить повторение, точно локализовать зависимость и продолжить независимые требования. Не ослаблять допуски ради зеленой приемки. Отрицательный научный результат является допустимым итогом исследования.</p>
+<h2 id="section-5">5. Пользователи и сценарии использования</h2>
+<p>Основной пользователь — исследователь на одном Windows ПК. Дополнительные роли: разработчик, воспроизводящий рецензент и научный руководитель. Это роли работы с локальным средством, а не требование реализовать учетные записи. Два браузерных клиента могут обращаться к одному серверу; межпроцессные конфликты должны обрабатываться.</p>
+<h3>UC01. Первый запуск без данных пациентов</h3>
+<p>Предусловия: приложение установлено, CFB и атлас отсутствуют. Пользователь открывает «Лаборатория». Сервер возвращает легкие capabilities, engine status и case status. UI показывает отсутствующий эталон и инструкцию подготовки. Каталог, справка и диагностика доступны. Никакого patient-loader, загрузки атласа или автоматического скачивания не происходит. После явной подготовки кейс получает available. Сбой сети сохраняет локальную работоспособность и понятную причину unavailable.</p>
+<h3>UC02. Подготовка авторского случая</h3>
+<p>Пользователь запускает документированную команду с источником и local data root. Система предварительно показывает состав, оценку размера и права использования. Загружает только whitelisted файлы выбранного случая, проверяет digest и геометрию, создает immutable case manifest. Прерванная загрузка остается incomplete; поврежденный файл не затирает исправную версию. Повторная подготовка использует verified files. Итог — case_id/version и receipt, без вычисления прогноза.</p>
+<h3>UC03. Эталон upstream</h3>
+<p>Разработчик выполняет pinned author workflow напрямую, затем через новый adapter с теми же входами, preprocessing, RT/CT, solver и временами. Получает независимые outputs и fidelity report. Для reproduction разрешено точно повторить авторское использование visits/cropping, но отчет явно перечисляет использованные визиты. Этот режим не объявляется prospective forecast.</p>
+<h3>UC04. Создание сценария</h3>
+<p>Исследователь открывает baseline, видит synthetic label и источник параметров, выбирает «Создать копию». Изменяет поддерживаемый параметр или schedule. Система валидирует конечность, единицы и ограничения, показывает diff и стоимость. Сохранение создает новую immutable версию. Невалидные значения сохраняются только в локальном несданном черновике; запуск блокирован с ошибкой у поля.</p>
+<h3>UC05. Расчет и отмена</h3>
+<p>Исследователь подтверждает план кнопкой «Запустить расчет». POST возвращает 202 и ID; переход на страницу запуска происходит сразу. Страница отображает очередь, текущую фазу, прошедшее время и доступные подтвержденные счетчики. Отмена queued задачи исключает ее из очереди. Отмена running проходит cancel_requested и завершает только принадлежащее запуску дерево процессов. Поздний ответ worker не может перевести отмененную задачу в succeeded.</p>
+<h3>UC06. Сбой и восстановление</h3>
+<p>API закрывается во время расчета. При следующем старте stale lease обнаруживается, попытка становится interrupted. Действующий подтвержденный worker может быть восстановлен только при совпадении ownership token и heartbeat; PID сам по себе недостаточен. Неподдерживаемое продолжение не имитируется: «Повторить» создает новую попытку с тем же plan. Завершенные элементы серии переиспользуются по hashes.</p>
+<h3>UC07. Просмотр траектории</h3>
+<p>После succeeded исследователь видит метрики и первый фактически сохраненный кадр. Выбор времени синхронно меняет график, срезы и 3D. Во время загрузки новый кадр помечен loading; старый кадр не подписывается новым временем. Быстрые переключения игнорируют устаревшие ответы. Play проигрывает сохраненные кадры, а не симулирует вычисление. Отсутствующий mesh не блокирует график и срезы.</p>
+<h3>UC08. Парное сравнение</h3>
+<p>Пользователь выбирает два завершенных запуска одного case/version. Система проверяет начальное состояние, time origin, units, endpoints и geometry. UI показывает diff, общую шкалу времени и цвета. Сравнение solver/settings с разными значениями разрешается в явно помеченном численном режиме. Несопоставимые случаи отклоняются. Нельзя заключить о лучшей терапии из разных горизонтов или неодинаковой начальной массы.</p>
+<h3>UC09. Локальная чувствительность</h3>
+<p>Исследователь выбирает endpoint и continuous parameters, шаги h и h/2, фиксированные сценарий и начальное состояние. План показывает требуемые оценки. Выполняются nominal и возмущения через ту же очередь. В результате представлены производные, единицы, нормирование и сходимость шага. На границе применяется объявленная односторонняя формула; при нулевом nominal используется range-normalization. Ошибочные расчеты видны и не превращаются в нулевую чувствительность.</p>
+<h3>UC10. Глобальный screening</h3>
+<p>Пользователь задает ranges, Morris trajectories/levels и seed. Предпросмотр содержит число evaluations и бюджет. После freeze sample matrix неизменна. Выполнение можно прервать и повторить, сохранив соответствие строк. Выводятся mu, mu_star, sigma и неопределенность оценки от конечного дизайна; точность индивидуального прогноза этими величинами не обозначается.</p>
+<h3>UC11. Виртуальная когорта</h3>
+<p>Исследователь фиксирует генератор, параметры, распределения и общий initial geometry. Seed порождает неизменный subject table. Для каждого subject считаются одинаковые сценарии с общими параметрами subject. Неполные пары явно учитываются. Эти subjects — параметрические реализации на заданной геометрии; их число не приравнивается к числу независимых пациентов.</p>
+<h3>UC12. Исследование устойчивости</h3>
+<p>Исследователь записывает question, candidate scenarios, endpoints, epsilon, uncertainties, seeds, budget и правила обработки failures. Pilot проверяет feasibility, после чего protocol замораживается. Генератор создает execution manifest. Все варианты оцениваются на одних subjects. Получаются paired differences, доля смены предпочтения и статус unresolved, если numerical error сопоставим с эффектом. Анализ выполняется одинаковым script, независимо от желательности результата.</p>
+<h3>UC13. Экспорт и повторение</h3>
+<p>Пользователь выбирает compact export или полный разрешенный export. Компактный архив включает manifests, параметры, метрики, инструкции и hashes; запрещенные сторонние volumes не включаются. Другой workspace импортирует пакет как данные без исполнения произвольного кода. Проверяет hashes, сообщает отсутствующие licensed assets и после их явной подготовки повторяет план. Совпадение проверяется в заранее определенных допусках.</p>
+<h3>UC14. Контроль диска</h3>
+<p>Исследователь открывает «Хранилище», видит размер data, outputs, caches и environments. Выбирает удаление выбранных производных кадров. Предпросмотр перечисляет зависимости и что останется воспроизводимым. Активные и publication-pinned artifacts не удаляются. После удаления скалярные результаты и provenance сохраняются, поле unavailable объяснено. Восстановление поля — новый расчет, не фиктивный cache hit.</p>
+<h3>UC15. Старое пространство пациентов</h3>
+<p>Переход в «Данные пациентов» доступен независимо от лаборатории. При отсутствии CFB видна локальная инструкция, а не ошибка всей системы. Ни переход, ни старт лаборатории не загружают удаленную коллекцию. Старые routes/artifacts сохраняют контракты. Новый clinical dataset experiment не входит в этот релиз.</p>
+<h3>UC16.Прогноз по продольным синтетическим МРТ</h3>
+<p>Предусловия: pinned author case и optimizer проверены, forecast protocol заморожен до target decoding. Пользователь выбирает режим synthetic forecast. Разрешены initialization по первому visit и fit по первым пяти visits в хронологическом порядке; cutoff — время пятого. Crop определяется только статической brain geometry и разрешенными данными. Predictions сохраняются и хешируются до чтения последующих observation arrays. Evaluator сравнивает разрешенные future visits с persistence последнего доступного состояния и author fixed-parameter model. Отчет показывает exact fit visits, forecast horizon, density/burden errors и data kind synthetic. Точность может оказаться низкой: это сохраняется без подбора дополнительных параметров по future observations. При отсутствии пяти visits остановить именно этот protocol как несовместимый, не подменять случай молча.</p>
+<p>В demo forecast используются опубликованные initialization/observation mapping и upstream optimizer; optimizer budget и bounds фиксируются до main forecast. Будущая маска не используется для crop/threshold/fit selection. Prediction artifact и seal предшествуют evaluator access. Primary forecast endpoint — normalized density RMSE на разрешенных future frames с одним declared carrying-capacity scale; scalar burden error и thresholded Dice — secondary при заранее фиксированном threshold. Этот обязательный демонстрационный эксперимент связывает лабораторию с продольными MRI observations; он не является clinical validation и не расширяет scope до новой пациентской коллекции.</p>
+<h2 id="section-6">6. Архитектура</h2>
+<p>Один backend и один frontend. Новый домен <code>src/gbm_twin/lab/</code>: contracts, config, engine registry, cases, scenarios, plans, storage, runner, artifacts, comparison, sensitivity, cohorts, studies. Transport: <code>api/routes/lab_*</code>, <code>api/schemas/lab_*</code>; UI: <code>frontend/src/components/lab</code>, <code>frontend/src/api/lab.ts</code>. Конкретное дробление выбирать по связности, не создавать пустую иерархию на будущее.</p>
+<p>FastAPI обслуживает короткие запросы; worker выполняет моделирование в отдельном процессе совместимого engine environment. SQLite хранит entities/statuses, filesystem хранит immutable arrays/manifests. В v1 достаточно одного supervisor и bounded workers, по умолчанию concurrency=1. Redis, Celery, Kubernetes, отдельный второй web server и пользовательский Python-код в API не требуются.</p>
+<p>Engine adapter предоставляет <code>describe</code>, <code>validate</code>, <code>estimate</code>, <code>execute</code> и сведения о supported_outputs/cancellation. Autograd — отдельная capability; старый NumPy/detach adapter не подходит для градиентов. В v1 конечные разности обязательны, autograd — LATER. Выполнение через argv без shell-интерполяции; клиент не задает executable/module/import path. Descriptor проверяется сервером, а не доверяется браузеру.</p>
+<h3>6.1. Состояния запуска</h3>
+<p>Разрешены <code>queued → running → succeeded|failed|cancel_requested|interrupted</code>; <code>queued → cancelled</code>; <code>cancel_requested → cancelled|interrupted</code>. <code>running → timed_out</code> — отдельный терминальный статус. Результат завершения и причина доступны как machine code и русский текст. <code>succeeded</code> устанавливается только после проверки artifacts и atomic publication. Терминальное состояние не меняется поздним heartbeat. Retry создает новый attempt, не стирает старую ошибку.</p>
+<p>Каждое изменение статуса имеет compare-and-set transaction с version и ownership token. Worker claim атомарен; два supervisors не выполняют одну попытку. Lease heartbeat раз в 5 s, stale после 30 s; startup сначала проверяет ownership. Polling интерфейса раз в 2 s при активном запуске, backoff до 10 s при ошибках; idle страницы не создают постоянный поток запросов. Длительный шаг может не давать научного прогресса, но supervisor продолжает heartbeat.</p>
+<p>POST /runs поддерживает Idempotency-Key: тот же ключ и тот же canonical request возвращает прежний run; другой payload с тем же ключом — 409. Одинаковый plan без общего ключа допускает явный rerun. Cache reuse — отдельное подтвержденное действие/политика; run имеет reused_from и не имитирует новый расчет.</p>
+<h3>6.2. Хранение и транзакции</h3>
+<p>WAL SQLite с foreign_keys и versioned migrations. Короткие транзакции, bounded busy timeout, отсутствие долгой симуляции под write lock. Бэкап live database выполняется SQLite backup API; копирование только .db при активном WAL не считается бэкапом [S11]. Сохранение большого результата: temporary directory → все frames/metrics → проверки → manifest/hash → atomic rename → DB commit. Startup reconciliation определяет orphaned temp и ready artifacts без DB record; не угадывает successful status.</p>
+<p>Пути формируются из server-side UUID и проверяются относительно разрешенного root. Экспорт не следует произвольным symlink/junction. Import отвергает path traversal, executable payload и pickle; ограничивает количество/размер распакованных файлов. Миграция никогда не переписывает scientific artifact in place: новый schema version и явный converter.</p>
+<h2 id="section-7">7. Модель данных</h2>
+<p>Все timestamps — ISO 8601 UTC; UI отображает локальное время. Научная ось времени — days_from_origin с явным origin. Все числа конечны. JSON serialization запрещает NaN/Inf. UUID используется для entities, content hashes — для научной идентичности. Название и заметки могут меняться в metadata; научная версия immutable.</p>
+<table>
+<thead>
+<tr>
+<th>Сущность</th>
+<th>Обязательные поля и инварианты</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>EngineDescriptor</td>
+<td>engine_id, upstream_commit, source_fingerprint, adapter_version, environment_fingerprint, schema_version, supported parameters/treatments/solvers, citations, use_status</td>
+</tr>
+<tr>
+<td>PreparedCase</td>
+<td>case_id/version, synthetic kind, source URI/commit, file hashes, geometry, dates, observation roles, baseline_id, size_bytes, compatibility</td>
+</tr>
+<tr>
+<td>Geometry</td>
+<td>shape[3], affine[4,4], spacing_mm[3], spatial_units, orientation, domain hash; affine nonsingular, arrays same grid</td>
+</tr>
+<tr>
+<td>Parameter</td>
+<td>key, symbol, display_name_ru, finite value, unit, range, origin=author</td>
+</tr>
+<tr>
+<td>ScenarioVersion</td>
+<td>UUID/version, parent, case/version, engine, parameters, initial_state_ref, RT/CT events, horizon, outputs, solver, precision/device, seed</td>
+</tr>
+<tr>
+<td>RunPlan</td>
+<td>canonical scenario snapshot, all scientific hashes, output policy, limits, study_ref, plan_hash, schema_version</td>
+</tr>
+<tr>
+<td>RunAttempt</td>
+<td>run_id, attempt, plan_hash, state/version, token/lease, lifecycle timestamps, phases, resource stats, error code, artifact_refs, reused_from/retry_of</td>
+</tr>
+<tr>
+<td>ResultManifest</td>
+<td>run_id, validated state, frames(time,index,shape,dtype,hash), metrics schema, geometry hash, engine/environment, warnings, complete flag</td>
+</tr>
+<tr>
+<td>Comparison</td>
+<td>ordered run refs, compatibility verdict, interpolation policy, endpoints, epsilon, paired metrics and unit</td>
+</tr>
+<tr>
+<td>StudyProtocol</td>
+<td>study_id/version/kind, question, candidates, parameters/distributions, seed splits, primary/secondary endpoints, failures, budget, freeze_hash; kind включает local_sensitivity, morris, cohort, ranking_robustness и synthetic_forecast</td>
+</tr>
+<tr>
+<td>StudyExecution</td>
+<td>frozen protocol ref, sample/subject table hash, child task matrix, child attempts, denominators, timestamps, analysis_version</td>
+</tr>
+</tbody>
+</table>
+<p>Canonical identity использует сортированные keys и явные единицы, normalized float serialization с документированным алгоритмом без грубого округления. Включаются численно значимые engine/source/adapter/solver/library/device/precision versions, treatment events, geometry и входные digest. Absolute local paths, display name, local UI state не меняют scientific hash. Отдельный execution hash включает output policy и runtime resources. Это позволяет различать scientific equivalence и допустимость reuse точных artifacts.</p>
+<p>Scenario draft — frontend состояние с явным «Не сохранено». Сохранение требует server validation. Любая scientific edit создает новую ScenarioVersion; сохраненный baseline read-only. Result immutable; attach note хранится отдельно.</p>
+<h3>7.1. Расположение артефактов</h3>
+<pre><code class="language-text">&lt;LAB_ROOT&gt;/
+  lab.sqlite3
+  cases/&lt;case_id&gt;/&lt;version&gt;/manifest.json
+  runs/&lt;run_id&gt;/attempt-&lt;n&gt;/
+    plan.json
+    environment.json
+    events.jsonl
+    metrics.csv
+    frames/&lt;index&gt;.npy
+    result.json
+    artifacts.sha256
+  studies/&lt;study_id&gt;/&lt;version&gt;/
+    protocol.json
+    protocol.sha256
+    subjects.csv
+    execution.jsonl
+    outcomes.csv
+    analysis.json
+    figures/
+  exports/
+  tmp/
+</code></pre>
+<p>Формат frames допускается заменить на chunked storage через ADR, если сохраняются правила хеширования, выборочного чтения и лимиты; для v1 достаточно отдельных .npy без pickle. SQLite, medical volumes, внешние данные и большие arrays вне Git. В Git — source, tests, допустимые tiny synthetic fixtures, schemas, configs, документация и небольшие обезличенные scientific tables при разрешенных правах.</p>
+<h2 id="section-8">8. Эталон и численная корректность</h2>
+<p>Pinned upstream: <code>OncologyModelingGroup/TumorTwin</code>, commit <code>bedf90a6d47ba48cf5cdb25901967d84730061d1</code>. Перед использованием проверить фактический source fingerprint и environment; marker-файл с SHA недостаточен. Первый case — <code>input_files/HGG_demo_001</code>; JSON источника содержит MRI visits, RT и CT, поэтому silent omission CT недопустим при заявлении faithful reproduction [S02].</p>
+<p>Режимы явно разделены:</p>
+<ol>
+<li><strong>Author reproduction:</strong> точное воспроизведение авторского workflow, включая cropping/visits. Эталон получается отдельным прямым upstream запуском; adapter не может сравниваться со своей копией результата.</li>
+<li><strong>Synthetic forecast:</strong> отдельный cutoff; initialization/calibration/crop используют только разрешенные наблюдения до cutoff. Future targets доступны исключительно evaluator. Если это не реализовано, называть режим forward simulation, а не verified forecast.</li>
+<li><strong>Scenario simulation:</strong> одни стартовые условия, заранее заданные изменения терапии, интерпретация в рамках модели.</li>
+</ol>
+<p>Сопоставить <code>rho ↔ k</code>, <code>D ↔ d</code>, normalized density, carrying capacity, mm, days, Gy и CT dose units. Не присваивать TCC единицы «клетки» до подтверждения формулы и carrying capacity. До этого допустим интеграл normalized burden в mm³. Пороговый volume — отдельная метрика с явным threshold; не выдавать его за измеренный MRI volume.</p>
+<p>Fidelity F1: максимальная по output times относительная ошибка TCC ≤ 1e−3; F2: normalized field RMSE ≤ 1e−4 на каждом контрольном кадре. Near-zero denominator: использовать declared scale из carrying capacity и абсолютный допуск, замороженный до сравнения. Проверить одинаковые shape/affine/time/events; не использовать spatial registration outputs друг к другу ради прохождения F2. Если авторский solver недетерминирован, документировать повторные запуски и объяснить variance до study freeze.</p>
+<p>Минимальные probes: logistic ODE с известным решением; отсутствие роста/лечения; чистая диффузия и mass balance в no-flux domain; treatment на начале/конце шага; совпадающие RT и CT времена; отсутствие повторной фракции при разбиении интервала; cutoff, empty domain и nonfinite input. Известные saturation свойства PIRT считать модельным выбором, а не автоматически ошибкой [S07].</p>
+<p>Convergence pilot: dt, dt/2, dt/4 на одном физическом случае; хотя бы две пространственные сетки в общей физической области с сопоставимой initialization. Уточнение сетки отделять от изменения исходной физической массы. Вычислять endpoint errors и stability of pairwise ranking. Самая мелкая сетка — reference approximation, не точное решение. Study freeze фиксирует численные допуски и unresolved policy. Нельзя ослабить F1/F2 или ranking epsilon после просмотра основной серии.</p>
+<h2 id="section-9">9. Лицензии и локальная подготовка</h2>
+<p>UT Austin Research License закрепленного upstream разрешает определенные академические/исследовательские применения и ограничивает коммерческое использование и передачу кода; производные работы также оговорены [S03]. Написать <code>LICENSE_AND_DATA_USE.md</code> с точными ссылками и применением к локальному запуску, нашему адаптеру, demo data, exports и предполагаемому hosting. Это инженерная проверка ограничений, не окончательное юридическое заключение.</p>
+<p>Без установленных прав не включать upstream code/volumes в свой публичный репозиторий или archive. Собственный source и разрешенные метаданные готовятся отдельно. Не писать авторам автоматически. Если hosting остается неясным, продолжать разрешенную локальную разработку и считать public deployment отдельным незавершенным расширением, а не останавливать все ТЗ.</p>
+<p>Не скачивать CFB-GBM, Burdenko или атлас ради lab startup. Подготовка author case выполняется явным CLI с whitelisted source/ref/files и receipt. Выводить expected bytes до загрузки. Пользовательские файлы при checksum mismatch не затирать. Нет сети — доступны small fixtures, UI states и orchestration tests; full engine acceptance остается pending до реального результата.</p>
+<h2 id="section-10">10. Ресурсы и хранение</h2>
+<p>Эталон — один Windows ПК, CPU mode, concurrency=1; GPU и Linux runtime не являются обязательной пользовательской зависимостью. Python 3.11 для pinned engine, frontend Node 24 согласно CI; фактические совместимые versions фиксируются в CP02. Не менять пользовательское окружение молча, создавать отдельный engine environment в разрешенном workspace.</p>
+<p>Начальные engineering limits, подлежащие только документированному изменению до основных исследований: runtime storage 8 GiB без environments; 2 GiB обязательного свободного места; ≤1 GiB output на run; ≤21 полных density frames; scalar series отдельно; ≤256 queued child tasks на один submit; concurrency=1. Окружения и raw assets имеют отдельную оценку размера и отображаются в storage overview. Значения лимитов не являются оценкой фактической стоимости TumorTwin; CP03 измеряет ее.</p>
+<p>Peak RAM и wall time заранее неизвестны. Pilot измеряет их, ставит per-run timeout, max memory budget и допустимый размер study. Политика процесса не должна завершать чужие приложения. При превышении disk quota worker останавливает запись и завершает run с disk_limit; не удаляет старые publication artifacts. При невозможности точного RAM-limit на платформе честно объявить soft monitoring и проверить timeout/cancellation.</p>
+<p>Frames streaming или selected-time solve не должны сохранять всю 4D trajectory без учета RAM. Диагностировать реальные capabilities pinned solver; при необходимости adapter сохраняет только selected frames без изменения научного интегрирования. Компрессия и mesh decimation не меняют raw metrics. Preview/downsampling маркируются и не заменяют научный массив.</p>
+<p>Очистка: только явно выбранные regenerable artifacts в LAB_ROOT с разрешенным resolved path; dry-run и dependency check обязательны. Active, frozen publication и source inputs защищены. После удаления frames metrics/manifest остаются с availability flag. Автоочистка по умолчанию выключена. Backups и exports тоже учитываются в disk budget. Скачать удаленные patient datasets для исправления ошибки запрещено.</p>
+<h2 id="section-11">11. API и ошибки</h2>
+<p>Все новые endpoints в <code>/api/lab</code>. Тяжелая операция возвращает 202; GET не запускает download/calibration/simulation. Pagination cursor/limit применяется к спискам. UUID/version проверяются; неизвестный ресурс — 404. Ошибка имеет <code>code</code>, <code>message_ru</code>, <code>field_errors</code>, <code>retryable</code>, <code>request_id</code>, <code>details_ref</code>; raw traceback не показывается основным UI.</p>
+<table>
+<thead>
+<tr>
+<th>Endpoint</th>
+<th>Контракт</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>GET /capabilities</td>
+<td>lab readiness независимо от CFB; engine/case/storage причины</td>
+</tr>
+<tr>
+<td>GET /engines, /engines/{id}</td>
+<td>supported controls, source/version/use status</td>
+</tr>
+<tr>
+<td>GET /cases, /cases/{id}/versions/{v}</td>
+<td>manifest summary, available/missing/corrupt, geometry</td>
+</tr>
+<tr>
+<td>POST /scenarios/validate</td>
+<td>canonical validated preview или 422 field errors</td>
+</tr>
+<tr>
+<td>POST /scenarios</td>
+<td>immutable version, 201; parent и baseline references</td>
+</tr>
+<tr>
+<td>GET /scenarios/{id}/versions/{v}</td>
+<td>точный snapshot</td>
+</tr>
+<tr>
+<td>POST /plans/preview</td>
+<td>counts, bytes estimate, budget feasibility; без queue</td>
+</tr>
+<tr>
+<td>POST /runs</td>
+<td>202; Idempotency-Key; immutable server-side plan</td>
+</tr>
+<tr>
+<td>GET /runs, /runs/{id}</td>
+<td>state, phase, progress, warnings, attempts, refs</td>
+</tr>
+<tr>
+<td>POST /runs/{id}/cancel</td>
+<td>202 requested или idempotent terminal response</td>
+</tr>
+<tr>
+<td>POST /runs/{id}/retry</td>
+<td>новый attempt; terminal old preserved</td>
+</tr>
+<tr>
+<td>GET /runs/{id}/metrics</td>
+<td>endpoint schema/units, actual scalar times</td>
+</tr>
+<tr>
+<td>GET /runs/{id}/frames</td>
+<td>только saved frame descriptors</td>
+</tr>
+<tr>
+<td>GET /runs/{id}/frames/{idx}/slice</td>
+<td>axis/index/window/layers, validated bounds</td>
+</tr>
+<tr>
+<td>GET /runs/{id}/frames/{idx}/scene3d</td>
+<td>bounded mesh с geometry/time metadata</td>
+</tr>
+<tr>
+<td>POST /comparisons</td>
+<td>paired refs и compatibility policy, 201 или 409</td>
+</tr>
+<tr>
+<td>POST /studies</td>
+<td>draft immutable protocol version; synthetic_forecast принимает allowed fit visits и cutoff, evaluator targets не передаются worker fit</td>
+</tr>
+<tr>
+<td>POST /studies/{id}/freeze</td>
+<td>hash protocol/sample matrix, validates completeness</td>
+</tr>
+<tr>
+<td>POST /studies/{id}/run</td>
+<td>202, child matrix и budgets; повтор idempotent</td>
+</tr>
+<tr>
+<td>POST /studies/{id}/cancel</td>
+<td>cancel remaining active children, preserve complete</td>
+</tr>
+<tr>
+<td>GET /studies/{id}/results</td>
+<td>denominator и incomplete/failure handling</td>
+</tr>
+<tr>
+<td>POST /exports</td>
+<td>202 если нужен packaging; artifact ID после готовности</td>
+</tr>
+<tr>
+<td>GET /exports/{id}</td>
+<td>разрешенный готовый архив; download без повторной сборки</td>
+</tr>
+<tr>
+<td>POST /imports/validate, /imports</td>
+<td>bounded data validation, затем registration</td>
+</tr>
+<tr>
+<td>GET /storage</td>
+<td>measured sizes, pinned/active info</td>
+</tr>
+<tr>
+<td>POST /storage/cleanup-preview, /storage/cleanup</td>
+<td>exact selection token, protected artifacts</td>
+</tr>
+</tbody>
+</table>
+<p>409: immutable conflict, incompatible comparison или idempotency conflict. 422: invalid input/unsupported control. 503: engine unavailable; readiness объясняет восстановление. Resource rejection использует 409 с resource_budget_exceeded и измеренной оценкой, не ложный 500. Timeout/OOM/worker error представлены в RunAttempt, запрос polling при этом возвращает 200 с terminal state. OpenAPI и TypeScript генерировать или проверять contract tests; единицы и optional values согласовать.</p>
+<h2 id="section-12">12. Интерфейс и экранные контракты</h2>
+<p>Общий shell существующего проекта сохранить. Продукт по умолчанию открывает «Лаборатория», даже если нет CFB. В навигации: «Случаи», «Сценарии», «Запуски», «Сравнение», «Исследования», «Хранилище», «Методика». Чувствительность и виртуальные когорты — виды исследования, не дублирующие независимые executors. Старое пространство «Данные пациентов» доступно отдельно. Нереализованные экраны до принятия checkpoint скрыты; отсутствующие ресурсы реализованного экрана представлены честным empty state.</p>
+<p>Верхняя строка показывает текущий workspace и research label. Технические SHA, schema и worker identity доступны в раскрываемой «Диагностике» и экспорте; не занимают основные действия. Красный цвет — ошибка, желтый — оговорка, нейтральный — queued, зеленый — проверенное программное завершение; зеленый не обозначает клиническую эффективность.</p>
+<h3>12.1. Экран случаев</h3>
+<p>Карточка: название, synthetic label, source/citation, доступность, размер, supported engine и кнопка «Открыть». При missing data — текст «Файлы случая не подготовлены» и конкретная команда/ссылка на локальную подготовку. Существующий author baseline read-only. Детали показывают доступные модальности, dates, physical geometry и разрешенные наблюдения; fitted и generative parameters подписаны отдельно. Поиск и сортировка не запускают обработку данных.</p>
+<h3>12.2. Редактор сценария</h3>
+<p>Секции: исходный случай; биологические параметры; RT; CT; расчет; сохранение результатов. Поля генерируются из engine capabilities, но display text на русском задается приложением. Каждый numeric control содержит единицу, значение, допустимые границы и источник default; scientific notation доступна. Слайдер — дополнение к точному вводу. При вводе запятой поддержать нормализацию локали или объяснимую ошибку без тихого изменения величины.</p>
+<p>Расписание — таблица событий с временем от origin, modality, dose и unit; add/delete row, stable sort. RT+CT в одно время допустимы, повтор одного modality события требует явной семантики. Интеграционный dt и scalar/frame output interval — разные controls. Horizon ограничен plan validation. «Сбросить» возвращает значения baseline, «Сохранить копию» создает новую версию, «Запустить» доступно после server preview. Во время POST кнопка блокирована, но idempotency обеспечена сервером.</p>
+<h3>12.3. Экран запуска</h3>
+<p>Шапка: name, case, scenario/version, status, elapsed time, действия «Отменить», «Повторить», «Сравнить», «Экспорт». Действия видны по допустимому состоянию. Фазы: queued, preparing, solving, writing, validating; проценты показываются только при известном denominator. ETA появляется только из measured pilot и помечен оценкой. Failed/interrupted содержит причину и безопасное следующее действие. Отдельная панель показывает partial outputs; они не называются complete.</p>
+<h3>12.4. Просмотр</h3>
+<p>График с осью days, endpoint/unit и treatment markers. Выбор кадра — по действительному saved time; доступен keyboard slider и previous/next. 2D: axial/coronal/sagittal при подтвержденной orientation, slice index и physical location, window/level для MRI и отдельная density color scale. Не ставить L/R без проверки affine. 3D — secondary view, layer toggles, reset camera, loading/error, ограниченный mesh. На low-capability/WebGL failure работают график и 2D. Нет поверхности при выбранном threshold — текст, а не ошибка всей страницы.</p>
+<h3>12.5. Сравнение</h3>
+<p>Две панели с одинаковыми camera/slice/time и общей шкалой по умолчанию. Sync можно отключить явно. Таблица diff перечисляет все измененные scientific inputs. На графике видны обе trajectories и paired delta. Несовпадающие saved times не интерполируются молча; политика scalar interpolation фиксируется, поля выбираются по exact common times или помечаются nearest. Endpoint epsilon и unresolved status отображаются рядом с предпочтением. Слова «лучшее лечение» не использовать; «меньший расчетный endpoint в заданной модели» допустимо.</p>
+<h3>12.6. Исследования</h3>
+<p>Wizard: вопрос/тип → case/scenarios → factors/distributions → endpoints → sampling/budget → preview → freeze → run. Frozen version read-only; изменение создает новый draft и новую научную серию. Сводка показывает requested/completed/failed/paired counts, seed, range assumptions и output retention. Morris chart не выдает rank без uncertainty display/методики. Когорты показывают row-level parameters, paired outcomes и missing reasons. Нельзя выбирать победивший вариант и скрывать failures кнопкой фильтра: фильтр влияет на просмотр, но primary summary остается по протоколу.</p>
+<h3>12.7. Общие UX требования</h3>
+<p>Каждый экран имеет loading, empty, ready, error и unavailable состояния. Keyboard navigation, focus indicator, labels для controls, текстовое обозначение статуса помимо цвета. После ошибки submit данные черновика не теряются. Back navigation сохраняет draft с предупреждением о несохраненных изменениях. Layout проверяется на 1366×768 и 1920×1080; узкий экран 1024 px остается usable, мобильный medical viewer не входит в обязательный объем. Основные действия не уходят за горизонтальный scroll; длинные таблицы допускают собственную прокрутку. Browser smoke проверяет реальный сценарий через API.</p>
+<h2 id="section-13">13. Алгоритмы и научные метрики</h2>
+<h3>13.1. Outcomes</h3>
+<p>Primary endpoint первого robustness study — нормированный интеграл burden по времени на одинаковом horizon: J = AUC(B)/(T × B0), где B0 — общий положительный initial burden, T — общий horizon. J безразмерен, меньшее значение предпочтительнее в рамках модели. При B0=0 такой study отклоняется до freeze. Изменение primary требует новой версии протокола до evaluation. Secondary: final burden/TCC, peak burden и thresholded volume с fixed threshold. Нельзя после результатов поменять primary на более выгодный. При unsupported carrying capacity публиковать normalized burden, а не TCC с выдуманными единицами.</p>
+<p>Интеграл по времени считать trapezoidal rule на scalar outputs с реальными times. Стабильность scalar sampling проверить отдельно от solver dt. В spatial integral использовать physical voxel volume; при общем affine учитывать determinant, а не предполагать axis-aligned geometry без проверки. Relative change при нулевом baseline undefined с reason; не заменять на 0. Порог progression, если используется, считается модельным surrogate; никакой реальной выживаемости из него не выводится.</p>
+<h3>13.2. Local sensitivity</h3>
+<p>Для smooth endpoint J и interior p: central finite difference <code>[J(p+h)−J(p−h)]/(2h)</code>; выполнить h и h/2, зафиксировать error indicator. При p=0/range-boundary — documented one-sided stencil. Нормирование <code>p/J</code> используется только при ненулевых scales; иначе declared parameter range и endpoint scale. Perturbations не меняют другие factors, geometry и schedules. Пороговые endpoints могут быть негладкими: это обозначается, проверяется step-dependence и не интерпретируется как отсутствие влияния.</p>
+<h3>13.3. Morris</h3>
+<p>Использовать проверенную pinned реализацию SALib либо обоснованный эквивалент; не писать новый метод с нуля ради релиза [S10]. До run сохранить factor names/order, bounds/transform, levels, trajectories, seed и sample matrix. Для k независимых факторов базовый design требует r(k+1) evaluations до cache reuse. mu_star и sigma интерпретируются как screening в заданных ranges, не Sobol indices и не parameter identifiability. Correlated inputs не объявлять независимыми; v1 поддерживает independent design с явной оговоркой. Discrete schedule factors исследовать отдельным predefined scenario comparison, не передавать как непрерывные Morris factors без методики.</p>
+<h3>13.4. Cohort и парные различия</h3>
+<p>Default generator: seeded Latin hypercube для ≤4 continuous factors с явными independent bounded distributions; uniform — исследовательское допущение, не популяционная частота. При положительных log-scale factors transform фиксируется. Initial case geometry общая, seed одинаков для всех сценариев subject. В публикации различать number of geometries, parameter realizations и observation replicates. Если несколько шумовых реализаций на одной truth geometry, bootstrap группируется на уровне исходной независимой единицы или явно интерпретируется как Monte Carlo uncertainty, а не clinical population CI.</p>
+<p>Для lower-is-better endpoint: <code>delta_AB=J_A−J_B</code>; A preferable при delta &lt; −epsilon, B при delta &gt; epsilon, иначе unresolved/tie по frozen numerical policy. Для каждого subject считать paired delta. Report включает all planned subjects и denominators. Доля preference/rank reversal относится к выбранной virtual distribution. Индивидуальная вероятность клинической пользы из нее не следует.</p>
+<h2 id="section-14">14. Исследовательский протокол и две статьи</h2>
+<h3>14.1. Статья A</h3>
+<p>Contribution: lifecycle of reproducible experiments around pinned engine, verifiable fidelity, durable execution и bounded storage. Минимальная benchmark matrix: direct upstream vs adapter на identical inputs; повтор deterministic CPU; два клиента и idempotency; cancel/timeout; restart/retry; hash corruption; compact export/replay; disk budget. Измерять wall time с раздельными preprocessing/solve/write/render, peak RAM, disk bytes и повторяемость endpoints. Не объявлять ускорение, пока matched benchmark его не показал. UI usability claims требуют отдельной user study; без нее ограничиться correctness и task completion browser tests.</p>
+<p>Deliverables: manuscript outline с заполненными methods/results, architecture figure, fidelity/convergence table, reliability matrix, reproducibility receipt, limitations и вклад автора/AI-assisted development. Научное утверждение должно иметь ссылку на immutable experiment artifact. Источник software design criteria — [S12], не требование подать в конкретный журнал.</p>
+<h3>14.2. Статья B</h3>
+<p>Question: устойчивость сравнительного предпочтения predefined RT scenarios к параметрическим и численным возмущениям в фиксированной модели. Это scoped computational study, не новый клинический оптимизатор. В первой серии CT сохраняется как авторский background, если capability faithful CT подтверждена. Для RT comparisons сохранять одинаковые total dose и fraction count, варьировать заранее определенное распределение времен; все schedules проходят engine constraints. Не выдавать tumor-only comparison за оценку normal-tissue toxicity.</p>
+<p>Scenario registry фиксирует baseline и два поддерживаемых comparator schedules. Конкретные времена определяются CP03 на основе author schedule и capabilities, без просмотра comparative outcomes основной серии. Если schedule не меняется физически значимо, нельзя подбирать варианты до получения желательного reversal; зарегистрировать нулевой эффект как результат.</p>
+<p>Uncertainty blocks: U1 continuous model parameters с literature/author ranges; U2 numerical dt и scalar output sampling; U3 initial-state observation perturbation — bounded synthetic variation отдельно от U1. U3 включать в основную серию только если оно определено в protocol и сохраняет finite/physical constraints; иначе оформить отдельным обязательным малым diagnostic study, не заявлять full segmentation UQ. Пространственную geometry менять только в convergence block.</p>
+<p>Design: pilot set seed=1105, analysis development seed=2205, locked evaluation seed=3305. Наборы не переиспользуются для настройки ранжирования. Их независимость условна относительно одной модели/geometry; это не external clinical validation. Размер фиксируется feasibility rule ниже. Результат на evaluation не используется для изменения ranges/candidates/epsilon. Любое последующее изменение — новый protocol version и отдельная работа.</p>
+<p>Primary pair — baseline против первого заранее зарегистрированного comparator; второй comparator и остальные пары являются secondary. Для lower-is-better J определим c(delta): −1 при delta &lt; −epsilon, +1 при delta &gt; epsilon, 0 иначе. c0 рассчитывается для замороженных nominal parameters. При c0≠0 primary statistic — доля запланированных subjects с c_i=−c0. При c0=0 primary outcome — «номинальное ранжирование не разрешено», statistic undefined; не выбирать другую primary pair после этого результата. Дополнительно представить mean/median paired delta, quantiles, unresolved proportion, complete-pair fraction и sensitivity ranks. Pilot сравнительные результаты не входят в locked evaluation.</p>
+<p>При R наблюдаемых reversals, M subjects с missing primary outcome и N запланированных subjects report primary reversal fraction interval [R/N, (R+M)/N] как границы из-за missingness. Это не confidence interval. Complete-case R/(N−M) допустим как дополнительный условный показатель. Не смешивать missing, unresolved и no-reversal в одно доказательство устойчивости. Sampling intervals, если рассчитаны, показываются отдельно от missingness bounds.</p>
+<p>Numerical epsilon определяется из independent convergence pilot и научной шкалы endpoint: документировать абсолютную и относительную компоненты, rule <code>epsilon=max(epsilon_abs, epsilon_rel*scale, numerical_error_bound)</code>. Numerical_error_bound — измеренная оценка для declared regime, не универсальная теорема. Если пары попадают в unresolved, не принуждать ranking. Не считать count of unresolved как устойчивую победу baseline.</p>
+<h3>14.3. Ограниченный вычислительный план</h3>
+<p>Pilot: ≤12 полноразмерных forward solves, предварительно оценить memory/disk. Целевой study budget после пилота — ≤12 h wall time и ≤4 GiB новых outputs; это бюджет исследования на машине автора, а не обещание длительности. Формула количества solves учитывает scenarios × subjects × numerical settings × replicates, calibration solves отдельно. Режим full fields только для baseline и заранее выбранных demonstration subjects; остальные outputs scalar-only и ограниченные checkpoints.</p>
+<p>Feasibility ladder фиксируется до main study: k≤4, Morris r из {12,8,4}, cohort N из {64,32,16}, максимум три scenarios. Выбрать максимальный design, который укладывается в измеренный budget с 30% запасом; использовать верхнюю измеренную стоимость pilot, а не среднюю лучшего запуска. Если minimum N=16/r=4 не помещается, выполнить ограниченный feasibility report, сохранить pipeline и зафиксировать scientific checkpoint как incomplete. Не объявлять publishable robustness conclusion на произвольных двух samples. Увеличение бюджета требует отдельного согласования, не запускается автоматически.</p>
+<p>Resampling/bootstrap uncertainty: при использовании указать estimand, sampling design, unit и число replicates (default 2000, seed frozen). Для LHS обычный iid bootstrap может быть приближением; предпочтительно report independent randomized design repeats либо честная descriptive interval без claim coverage. Нельзя заменять computational uncertainty на confidence clinical prediction. Не вводить p-value как единственный критерий; primary conclusions основывать на effect sizes и numerical resolution.</p>
+<h3>14.4. Failures и независимость</h3>
+<p>Failed tasks не удаляются из denominator. Если primary paired summary требует complete pairs, одновременно представить all-planned count и worst/best bounded sensitivity либо отказ от утверждения при неограниченных missing outcomes. Failures с доменными причинами могут зависеть от параметров; complete-case conclusion обозначается conditional. Повтор transient error использует ту же sample row и candidate; replacement subject запрещен. Stopping rule — budget/failure thresholds из freeze, а не появление красивой кривой. Threshold failures для scientific analysis устанавливается CP09 до evaluation; инфраструктурный smoke требует 100% expected tasks.</p>
+<h3>14.5. Продольные МРТ</h3>
+<p>В обязательный lab релиз входят author synthetic MRI visits и честное описание их использования. Новая клиническая серия не является скрытой зависимостью. Для будущих утверждений о реальной MRI forecasting accuracy нужен отдельный clinical protocol, selective acquisition и patient-level external validation. Сохранить старые negative CFB results как background, не смешивать с новой synthetic evaluation. Отсутствие реальных данных не компенсировать созданием фиктивных пациентских записей.</p>
+<h2 id="section-15">15. Нефункциональные требования и приемка</h2>
+<p>На small fixture без тяжелого solver: startup и первый capabilities response ≤3 s после готовности процесса; p95 lightweight API ≤500 ms на localhost без active solve; во время solve UI status response p95 ≤1 s. Измерять 30 запросов после warmup, hardware manifest и payload sizes. Эти targets обязательны для fixture; full case latency измеряется в pilot и фиксируется в acceptance profile. Если single-machine contention нарушает targets, ограничить CPU threads worker до изменения frontend.</p>
+<p>UI: cancel feedback после POST ≤1 s; supervisor дает до 2 s на cooperative stop, затем при необходимости завершает собственное process tree с общим пределом ≤10 s от принятого cancel. Если host не позволяет гарантировать termination, зафиксировать failed acceptance и platform limitation, а не бесконечный spinner. Совпадающий repeated cancel idempotent. Frame/slice rendering cache использует result/frame/geometry/render settings; визуальные caches можно очистить без потери scientific truth. Large render выполняется вне event loop либо bounded thread/process policy; перегрузка возвращает объяснимый ответ.</p>
+<p>Безопасность локальной версии: bind localhost по умолчанию, ограниченные CORS origins, отсутствие произвольного запуска кода из imports, safe serialization, ограниченные запросы и disk paths. Публичный hosting, authentication и multi-tenant isolation требуют отдельного design/security review. Не объявлять локальный research server готовым к открытой сети. Использовать <code>.env.example</code> без secrets; логи не содержат чужие absolute paths в публикационном экспорте.</p>
+<p>Поддерживаемость: typed contracts, разделение domain/transport/engine, bounded modules с ответственностью; ориентир review при module &gt;500 строк, а не жесткое требование механически дробить. Dependency lock для app и engine отдельно; Node lock сохраняется. Для сохраненных scientific results записывать exact resolved versions и hardware; cache version меняется при численно значимом изменении.</p>
+<h2 id="section-16">16. Проверки</h2>
+<p>Уровни: pure unit (schemas, hashes, statistics, transitions); integration (SQLite/filesystem/real API/controlled worker); numerical analytic fixtures; pinned engine fidelity; browser (реальные API); scientific freeze/replay. Mock engine используется только для управляемых сбоев и fast pipeline tests. Полный author engine проверяется отдельно и не скачивает gigabytes в обычном CI.</p>
+<p>Обязательные browser paths: no-CFB startup, edit/validation, run/result/time change, cancel, restart page/retry, pair comparison, study preview/freeze, export и storage preview. Проверить race быстрого frame switching и error recovery. Accessibility smoke: tab order, visible focus, labels и no color-only states. Не добавлять сотни тестов, которые повторяют implementation details: каждая проверка должна закрывать риск или acceptance condition.</p>
+<p>На каждой стадии — targeted checks; при изменении domain/API — полная Python suite перед приемкой; при UI — lint/build и соответствующие browser tests. Перед release — full suite, exact-commit CI, pinned engine result, export/replay и scientific analysis reproducibility. Зависимые warnings классифицировать, не скрывать. Baseline 571 не является целевым количеством тестов: оно может меняться обоснованно.</p>
+<h2 id="section-17">17. Контрольные точки</h2>
+<p>Каждый checkpoint выполняется небольшими атомарными задачами из приложения требований. Ниже указано, какое evidence разрешает переход. Формат evidence: commit, requirement IDs, changed files, commands, exit codes, artifact paths/hashes, result, known limits, next checkpoint. Утверждение «готово» без evidence не принимается.</p>
+<table>
+<thead>
+<tr>
+<th>CP</th>
+<th>Результат</th>
+<th>Зависимости</th>
+<th>Свидетельство выхода</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>CP00</td>
+<td>Инвентаризация и принятие единой спецификации</td>
+<td>—</td>
+<td>BASELINE.md, protected files list, нет изменения equations/data</td>
+</tr>
+<tr>
+<td>CP01</td>
+<td>Актуальность и самостоятельный вклад</td>
+<td>CP00</td>
+<td>PRIMARY_SOURCE_MATRIX.md, full-text comparison ближайших работ, statement of need и допустимые claims</td>
+</tr>
+<tr>
+<td>CP02</td>
+<td>Лицензии, pinned source и точное окружение</td>
+<td>CP01</td>
+<td>LICENSE_AND_DATA_USE.md, source/env manifests, case preparation receipt</td>
+</tr>
+<tr>
+<td>CP03</td>
+<td>Прямой upstream и adapter fidelity, ресурсный pilot</td>
+<td>CP02</td>
+<td>REFERENCE_RESULT.md, F1/F2, convergence diagnostics и measured budget profile</td>
+</tr>
+<tr>
+<td>CP04</td>
+<td>Domain contracts, SQLite и immutable storage</td>
+<td>CP03</td>
+<td>migrations, transition/hash/corruption tests, API contracts</td>
+</tr>
+<tr>
+<td>CP05</td>
+<td>Durable worker, cancel/restart/idempotency</td>
+<td>CP04</td>
+<td>failure matrix с controlled worker и один реальный run</td>
+</tr>
+<tr>
+<td>CP06</td>
+<td>Сквозной UI case → scenario → run → frames</td>
+<td>CP05</td>
+<td>browser evidence без CFB, real trajectory и времена</td>
+</tr>
+<tr>
+<td>CP07</td>
+<td>Парное сравнение, export/replay, storage</td>
+<td>CP06</td>
+<td>matched pair, fresh workspace replay, cleanup protection</td>
+</tr>
+<tr>
+<td>CP08</td>
+<td>Local/Morris/cohort через один executor</td>
+<td>CP07</td>
+<td>analytic sensitivity tests, seeded matrices, real bounded mini-series</td>
+</tr>
+<tr>
+<td>CP09</td>
+<td>Два frozen study protocols и публикационный план</td>
+<td>CP08</td>
+<td>S-A/S-B protocols, ranges/epsilon/budget/failures/seeds, protocol hashes</td>
+</tr>
+<tr>
+<td>CP10</td>
+<td>Измерения статьи A и robustness series B</td>
+<td>CP09</td>
+<td>all-planned outcomes, analysis outputs, отрицательные результаты сохранены</td>
+</tr>
+<tr>
+<td>CP11</td>
+<td>Материалы двух статей и методика</td>
+<td>CP10</td>
+<td>methods/results drafts, figures/tables и claim→artifact links</td>
+</tr>
+<tr>
+<td>CP12</td>
+<td>Release и независимое воспроизведение</td>
+<td>CP11</td>
+<td>clean workspace run, exact CI, acceptance matrix, changelog и known limits</td>
+</tr>
+</tbody>
+</table>
+<p>CP01 не требует доказывать всемирную новизну. Требуется честно исключить найденные дубликаты, сузить вклад и записать limitations. При сильном overlap сохранить engineering scope; глобальный pivot темы выносится пользователю конкретным предложением, а не делается молча. CP02 hosting rights могут остаться pending при разрешенной локальной работе; CP03 engine fidelity pending блокирует scientific claims, но не controlled-worker тесты. CP10 negative outcome не блокирует CP11/CP12, если протокол выполнен и результат проверяем.</p>
+<h2 id="section-18">18. Определение завершения</h2>
+<p>Проект v1 закончен, когда все MUST требования приняты, CP00–CP12 имеют evidence, новый workspace выполняет основной путь без CFB, реальные upstream/adapter fidelity подтверждены, durable runs и storage gates работают, sensitivity/cohort воспроизводятся, два исследования имеют честные материалы и ни один защищенный patient outcome не раскрыт. Статья B может закончиться выводом об отсутствии установленной смены ранжирования или недостаточной numerical resolution; это корректный результат при выполненном дизайне.</p>
+<p>Не требуются публикация/принятие журналом, клиническая эффективность, победа над persistence, готовность к публичному hosting или реализация LATER. Нельзя закрыть MUST ссылкой на красивый UI, исторический test run, mock-only output или будущий roadmap. Если full study не помещается в согласованный budget, software release допускается только с явно отдельным статусом scientific study incomplete; весь проект по этому ТЗ завершенным не объявлять.</p>
+<h2 id="section-19">19. Риски и решения</h2>
+<table>
+<thead>
+<tr>
+<th>Риск</th>
+<th>Признак</th>
+<th>Обязательное действие</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Повтор существующего вклада</td>
+<td>У ближайшей работы те же question/methods/outputs</td>
+<td>Уточнить claim на CP01 до большой разработки</td>
+</tr>
+<tr>
+<td>Adapter отличается от author workflow</td>
+<td>F1/F2 не пройдены, CT/cropping/version mismatch</td>
+<td>Диагностировать по одному фактору, не снижать допуски</td>
+</tr>
+<tr>
+<td>Не хватает диска</td>
+<td>Estimate превышает quota/free reserve</td>
+<td>Scalar-first, selected frames, explicit cleanup; без auto-download</td>
+</tr>
+<tr>
+<td>Слишком дорогая серия</td>
+<td>Minimum design не проходит pilot budget</td>
+<td>Feasibility report, независимые работы, согласовать бюджет</td>
+</tr>
+<tr>
+<td>Численная ошибка меняет ranking</td>
+<td>Effect внутри epsilon</td>
+<td>Unresolved conclusion, refinement по frozen policy</td>
+</tr>
+<tr>
+<td>Непроверенные биологические ranges</td>
+<td>Нет источника</td>
+<td>Явно assumption; не называть population distribution</td>
+</tr>
+<tr>
+<td>Загрязнение evaluation</td>
+<td>Изменение candidates после outputs</td>
+<td>Новая версия, старые results сохраняются, никакой ретроспективной победы</td>
+</tr>
+<tr>
+<td>Queue остается running навсегда</td>
+<td>Stale lease, потерян worker</td>
+<td>interrupted/retry; ownership проверяется</td>
+</tr>
+<tr>
+<td>Продолжение анатомических дебрей</td>
+<td>Изменяются registration/atlas вместо lab</td>
+<td>Прекратить unrelated scope, вернуться к текущему CP</td>
+</tr>
+<tr>
+<td>Заявление clinical correctness по синтетике</td>
+<td>UI/manuscript говорит об эффективности лечения</td>
+<td>Исправить claim до release</td>
+</tr>
+</tbody>
+</table>
+<h2 id="section-20">20. Изменения и передача следующей нейросети</h2>
+<p>Текущее поручение — подготовка ТЗ. Оно не является поручением реализовать или опубликовать систему прямо сейчас. При последующем поручении реализации использовать <a href="04_AGENT_START.md">04_AGENT_START.md</a> и <a href="05_PROGRESS_TEMPLATE.md">05_PROGRESS_TEMPLATE.md</a>.</p>
+<p>При запуске нового рабочего чата: прочитать ТЗ, progress, requirements; проверить Git и существующие пользовательские изменения; выбрать первый непринятый CP; выполнить минимальный сквозной результат; запустить нужные проверки; обновить evidence и progress; перейти к следующему CP. Завершенные задачи не выполнять заново без новой причины. Промежуточные отчеты сообщают факты и следующий проверяемый результат, а не повторяют весь roadmap.</p>
+<p>ADR нужен для изменения очереди/хранилища/engine interfaces/численной семантики; не для каждого имени функции. Change request нужен для изменения обязательного scope, модели, dataset cohort, scientific thresholds, budgets или release target. Содержит причину, affected IDs, alternatives, verification и влияние на статьи. Научные protocol changes после freeze всегда получают новый ID/hash.</p>
+<p>Следующее приложение является нормативным реестром атомарных требований. Буквенные префиксы групп: GOV управление, SRC источники, ENG движок, DAT данные, DOM контракты, JOB выполнение, STO хранение, API transport, UI интерфейс, NUM численная корректность, ANA анализ, SCI исследование, NFR качество, TST проверки, PUB публикационные материалы. Идентификатор остается стабильным при уточнении текста; удаление фиксируется changelog.</p>
+<h2 id="section-21">21. Атомарный порядок внедрения для исполнителя</h2>
+<p>Каждая задача ниже завершается reviewable diff и свидетельством, а не описанием намерений. До CP00 проект не изменять. Пакет требований подготовлен 06.11.2026; актуальность источников проверялась 05–06.11.2026. Точный final scope привязан к версиям, не к плавающему latest.</p>
+<h3>CP00. Baseline и единая точка входа</h3>
+<ul>
+<li>CP00.1. Проверить cwd, status/branch/HEAD, instructions. Записать paths и локальные differences. Не предполагать наличие старых data/results.</li>
+<li>CP00.2. Составить inventory существующих reusable components и protected scientific files. Сравнить с разделом 3 этого ТЗ.</li>
+<li>CP00.3. Разместить принятый пакет в docs/lab, связать README и старое ТЗ. Сохранить historical protocols.</li>
+<li>CP00.4. Запустить baseline checks в совместимом окружении. Отдельно зарегистрировать pre-existing failures и infrastructure errors.</li>
+<li>Выход: BASELINE.md, PROTECTED_ARTIFACTS.md, initialized progress; никакого lab solver/UI пока не требуется.</li>
+</ul>
+<h3>CP01. Актуальность до новой большой разработки</h3>
+<ul>
+<li>CP01.1. Открыть первоисточники S01, S04 и полный текст S05; проверить близкие references/citing works по доступным поисковым средствам. Сохранить query log.</li>
+<li>CP01.2. Заполнить comparison matrix по функциям, данным, model assumptions, uncertainty, reproducibility, budget и experimental claims.</li>
+<li>CP01.3. Для каждого proposed claim записать аналог, проверяемое отличие и конкретную таблицу/эксперимент.</li>
+<li>CP01.4. Зафиксировать две статьи с самостоятельными questions и таблицами; исключить claims о новом PDE, первенстве UQ и доказанной клинической эффективности.</li>
+<li>Выход: PRIMARY_SOURCE_MATRIX.md, CONTRIBUTION_MATRIX.md, PUBLICATION_PLAN.md. Если novelty остается uncertain, это явно записано; software implementation не объявляется новым математическим методом.</li>
+</ul>
+<h3>CP02. Движок и данные без тяжелой коллекции</h3>
+<ul>
+<li>CP02.1. Проверить сохраненные environments автора до новой установки. Создать изолированное engine environment только при необходимости.</li>
+<li>CP02.2. Зафиксировать source, license/use status и фактические resolved packages. Установку CPU/GPU выбирать по pinned requirements и измеримым ресурсам.</li>
+<li>CP02.3. Реализовать preparation CLI с dry-run, whitelist, expected bytes, interrupted receipt и checksum verification.</li>
+<li>CP02.4. Подготовить только HGG_demo_001. Разделить data source, author baseline и observation roles. Не включать licensed volumes в deliverable archive.</li>
+<li>Выход: engine descriptor, environment/source manifests, prepared case receipt. UI каталог может оставаться только тестовой fixture до CP06.</li>
+</ul>
+<h3>CP03. Faithful adapter и pilot</h3>
+<ul>
+<li>CP03.1. Выполнить direct author workflow с точными preprocessing/RT/CT/solver settings и записать baseline metrics.</li>
+<li>CP03.2. Реализовать новый adapter, передающий все необходимые semantics; не расширять старый CFB adapter несовместимыми параметрами.</li>
+<li>CP03.3. Сравнить actual trajectory на common frames по F1/F2 и geometry. Разбирать mismatch отдельно: версии → preprocessing → units → events → precision → solver.</li>
+<li>CP03.4. Выполнить analytic/event tests, time/spatial pilot и storage/RAM measurement. Зафиксировать budget profile и feasible output times.</li>
+<li>CP03.5. Записать exact adapter API и full author reproduction limitations. Не запускать main scientific series.</li>
+<li>CP03.6. Подготовить synthetic forecast contract: первые пять author visits разрешены для fit, последующие — только evaluator; проверить доступность pinned optimizer. Полный демонстрационный расчет выполняется на CP10 после freeze.</li>
+<li>Выход: REFERENCE_RESULT.md, measured artifacts и PILOT_PROFILE.json. Если F1/F2 не пройдены, отметить CP03 pending; продолжать только независимые controlled-worker tasks.</li>
+</ul>
+<h3>CP04. Контракты и storage</h3>
+<ul>
+<li>CP04.1. Добавить typed domain models и validation: engine/case/scenario/plan/result/study.</li>
+<li>CP04.2. Реализовать canonical identity, normalized units и mutation tests. Проверить hash stability вне local absolute paths.</li>
+<li>CP04.3. Создать SQLite migrations, repositories и atomic result writer/loader. Добавить crash/corruption tests.</li>
+<li>CP04.4. Добавить lightweight endpoints и capability readiness без CFB. Согласовать OpenAPI/TypeScript types.</li>
+<li>Выход: domain/storage/API tests; еще не показывать недоступные функции как готовые.</li>
+</ul>
+<h3>CP05. Надежное выполнение</h3>
+<ul>
+<li>CP05.1. Реализовать transactional claim/lease и bounded supervisor с concurrency=1.</li>
+<li>CP05.2. Добавить idempotent submit, cancellation, timeout, retry и interrupted recovery. Ownership проверять token, не PID alone.</li>
+<li>CP05.3. Проверить два clients, duplicate submit, stale heartbeat, forceful stop своего process tree и late update race.</li>
+<li>CP05.4. Подключить реальный adapter и завершить один validated run через новый executor.</li>
+<li>Выход: JOB_FAILURE_MATRIX.md и реальный run receipt. Не создавать отдельный executor для будущего Morris/cohort.</li>
+</ul>
+<h3>CP06. Первый законченный пользовательский путь</h3>
+<ul>
+<li>CP06.1. Отделить lab startup от App patient fetch. Добавить доступный каталог и honest empty/error states.</li>
+<li>CP06.2. Реализовать exact-value scenario editor, immutable save, diff/validation/estimate preview.</li>
+<li>CP06.3. Реализовать submit/status/cancel/retry page. Обработать draft preservation и request races.</li>
+<li>CP06.4. Подключить scalar graph, saved-time 2D и 3D с общим frame identity; WebGL fallback.</li>
+<li>CP06.5. Выполнить browser smoke на реальном backend без CFB. Проверить 1366×768 и keyboard path.</li>
+<li>Выход: пользователь реально получает и просматривает несколько времен рассчитанного случая. Далее улучшать только дефекты этого пути, не создавать новый визуальный shell.</li>
+</ul>
+<h3>CP07. Сравнение и воспроизведение</h3>
+<ul>
+<li>CP07.1. Реализовать compatibility checker и paired metrics со знаком delta и epsilon.</li>
+<li>CP07.2. Сделать synchronized comparison views и полный scientific diff.</li>
+<li>CP07.3. Реализовать compact export, bounded import и fresh-workspace replay. Данные upstream готовятся отдельно по источнику.</li>
+<li>CP07.4. Реализовать storage overview, quota enforcement, cleanup preview и pinned protection.</li>
+<li>Выход: сравнение двух реальных scenarios и воспроизведение вне первоначального workspace. Никакой claims об ускорении без matched measurement.</li>
+</ul>
+<h3>CP08. Чувствительность и виртуальные subjects</h3>
+<ul>
+<li>CP08.1. Реализовать local differences с h/h2 и analytic reference. Выделить warnings для nonsmooth endpoints.</li>
+<li>CP08.2. Интегрировать pinned Morris sampler/analyzer. Sample matrix immutable до вычислений.</li>
+<li>CP08.3. Реализовать seeded subject generator, common scenarios per subject и all-planned outcomes table.</li>
+<li>CP08.4. Подключить единый Study wizard и progress. Сначала controlled small fixtures, затем ограниченная real-engine mini-series.</li>
+<li>Выход: actual metrics и reproducible seeded matrices. Autograd, Sobol и adaptive sampling не добавлять в эту стадию.</li>
+</ul>
+<h3>CP09. Протоколы перед основными результатами</h3>
+<ul>
+<li>CP09.1. Зафиксировать S-A engineering benchmark и S-B robustness question/endpoint/candidates/ranges/epsilon/failures.</li>
+<li>CP09.2. Заполнить scientific protocol template; все required fields должны иметь значения и units, а assumptions — labels.</li>
+<li>CP09.3. Выбрать design по feasibility ladder с 30% cost reserve. Сохранить планируемые calls и disk bytes.</li>
+<li>CP09.4. Проверить leakage boundaries и subjects seed split. В frozen protocol включить resolved sample matrices.</li>
+<li>CP09.5. Сохранить protocol hashes и evidence до evaluation outputs. После freeze не менять rules в этой версии.</li>
+<li>Выход: два validated frozen protocols. Числа, полученные в pilot/development, не входят в locked evaluation estimate.</li>
+</ul>
+<h3>CP10. Выполнение исследования</h3>
+<ul>
+<li>CP10.1. Запустить S-A reliability/performance measurements, сохранить hardware и все попытки.</li>
+<li>CP10.2. Выполнить S-B по frozen matrix; retry transient errors без замены subjects/candidates.</li>
+<li>CP10.3. Проверить full denominators, missing outcomes, unresolved rankings и source hashes.</li>
+<li>CP10.4. Выполнить deterministic analysis command и получить figures/tables. Нулевой эффект не является причиной нового sweep.</li>
+<li>CP10.5. Выполнить один заранее заданный longitudinal synthetic forecast с fit по первым пяти visits и оценкой последующих; сохранить persistence и author-fixed-parameter comparators без настройки по будущим outcomes.</li>
+<li>Выход: STUDY_A_RESULT.md, STUDY_B_RESULT.md, immutable rows и analysis provenance. При нарушенном protocol записать invalid/incomplete, не success.</li>
+</ul>
+<h3>CP11. Публикационные материалы</h3>
+<ul>
+<li>CP11.1. Подготовить структуру и заполненные Methods/Results A с matched benchmark tables и software limitations.</li>
+<li>CP11.2. Подготовить структуру и заполненные Methods/Results B с primary estimand, actual effects и uncertainty interpretation.</li>
+<li>CP11.3. Создать claim→artifact map, citations, figure captions, contribution/AI disclosure и code/data availability.</li>
+<li>CP11.4. Проверить независимость двух работ и отсутствие переписывания старого clinical negative result.</li>
+<li>Выход: проверяемые research materials. Выбор журнала и submission не выполняются автоматически.</li>
+</ul>
+<h3>CP12. Release</h3>
+<ul>
+<li>CP12.1. Пройти новый workspace setup и end-to-end baseline/replay по пользовательской инструкции.</li>
+<li>CP12.2. Выполнить meaningful full checks: Python, lint, frontend build, browser, pinned engine, scientific analysis.</li>
+<li>CP12.3. Проверить GitHub Actions точного commit, licenses/assets, protected files diff, acceptance matrix.</li>
+<li>CP12.4. Создать versioned release package, changelog, known limits и final progress. Не включать raw upstream assets без прав.</li>
+<li>Выход: accepted software и accepted research evidence либо честно раздельные статусы. Публикация в журнале не симулируется статусом release.</li>
+</ul>
+<h2 id="section-22">22. Поля редактора и точные правила</h2>
+<p>Таблица задает контракт UX/validation. Author baseline values получаются из проверенного case/setup, не выдаются за неизвестные generative truth. Значения k=0.05/day и D=0.025 mm²/day из tutorial являются author setup, пока не доказан иной origin.</p>
+<table>
+<thead>
+<tr>
+<th>Поле</th>
+<th>Тип и единица</th>
+<th>Правило</th>
+<th>Поведение при ошибке</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Название</td>
+<td>UTF-8 1–120 символов</td>
+<td>Trim внешних пробелов, scientific hash не меняется</td>
+<td>Ошибка у поля</td>
+</tr>
+<tr>
+<td>Комментарий</td>
+<td>UTF-8 ≤2000 символов</td>
+<td>Plain text, без HTML execution</td>
+<td>Escaped display</td>
+</tr>
+<tr>
+<td>Case/version</td>
+<td>Registry ref</td>
+<td>Только prepared compatible version</td>
+<td>Run blocked, missing assets</td>
+</tr>
+<tr>
+<td>rho/k</td>
+<td>finite float, 1/day</td>
+<td>≥0, upper bound из engine+resource profile</td>
+<td>422 parameter field</td>
+</tr>
+<tr>
+<td>D/d</td>
+<td>finite float, mm²/day</td>
+<td>≥0, upper bound из engine+resource profile</td>
+<td>422 parameter field</td>
+</tr>
+<tr>
+<td>alpha_RT</td>
+<td>finite float, 1/Gy</td>
+<td>≥0, поддержанное engine значение</td>
+<td>422 parameter field</td>
+</tr>
+<tr>
+<td>alpha/beta</td>
+<td>finite float, Gy</td>
+<td>&gt;0; beta вычисляется/передается по engine contract</td>
+<td>422 parameter field</td>
+</tr>
+<tr>
+<td>CT sensitivity</td>
+<td>finite float, engine unit</td>
+<td>Только при verified CT capability</td>
+<td>Control hidden/unavailable</td>
+</tr>
+<tr>
+<td>CT decay</td>
+<td>finite float, 1/day если подтверждено</td>
+<td>&gt;0 по pinned contract</td>
+<td>No silent unit conversion</td>
+</tr>
+<tr>
+<td>Event time</td>
+<td>finite float, days</td>
+<td>В [0,horizon], sorted; origin виден</td>
+<td>Ошибка row/time</td>
+</tr>
+<tr>
+<td>Event dose</td>
+<td>finite positive float</td>
+<td>Unit зависит от modality, RT=Gy</td>
+<td>Ошибка row/dose</td>
+</tr>
+<tr>
+<td>Horizon</td>
+<td>finite float, days</td>
+<td>&gt;0 и ≤profile max</td>
+<td>Preview blocked</td>
+</tr>
+<tr>
+<td>Solver dt</td>
+<td>finite positive float, days</td>
+<td>Engine supported, не равен нулю после conversion</td>
+<td>Preview blocked</td>
+</tr>
+<tr>
+<td>Scalar interval</td>
+<td>finite positive float, days</td>
+<td>Start/end включены, total point count bounded</td>
+<td>Estimate объясняет limit</td>
+</tr>
+<tr>
+<td>Dense frames</td>
+<td>список finite times</td>
+<td>Unique, sorted, [0,horizon], default ≤21</td>
+<td>Ошибка конкретного index</td>
+</tr>
+<tr>
+<td>Seed</td>
+<td>uint32</td>
+<td>Сохраняется в plan; stochastic components используют явно</td>
+<td>Ошибка поля</td>
+</tr>
+<tr>
+<td>Device/precision</td>
+<td>enum</td>
+<td>Только descriptor supported values</td>
+<td>Unsupported rejected</td>
+</tr>
+<tr>
+<td>Endpoint</td>
+<td>enum+unit+direction</td>
+<td>Supported metric; threshold явно задан при необходимости</td>
+<td>Freeze blocked</td>
+</tr>
+<tr>
+<td>Resource limits</td>
+<td>integers bytes/seconds</td>
+<td>Server caps сильнее client values</td>
+<td>budget error</td>
+</tr>
+</tbody>
+</table>
+<p>Frontend показывает не только min/max, но и тип ограничения: mathematical, engine-supported, numerical или engineering budget. Допустимый диапазон UI не называется доверительным интервалом биологии. Установка default не является литературной оценкой.</p>
+<h2 id="section-23">23. Пример контрактов без фиктивных результатов</h2>
+<p>Ниже illustrations будущего API. Они не являются готовыми действующими endpoints текущего репозитория. Значения case_id и hash placeholders иллюстративны и проходят реальную регистрацию при реализации.</p>
+<pre><code class="language-json">{
+  &quot;case_id&quot;: &quot;HGG_demo_001&quot;,
+  &quot;case_version&quot;: &quot;verified-version&quot;,
+  &quot;engine_id&quot;: &quot;tumortwin-pinned&quot;,
+  &quot;mode&quot;: &quot;scenario_simulation&quot;,
+  &quot;name&quot;: &quot;Копия авторского сценария&quot;,
+  &quot;parameter_overrides&quot;: {&quot;rho_per_day&quot;: 0.05},
+  &quot;treatment_ref&quot;: &quot;author-baseline-events&quot;,
+  &quot;horizon_days&quot;: 225.0,
+  &quot;solver&quot;: {&quot;method&quot;: &quot;rk4&quot;, &quot;dt_days&quot;: 0.5},
+  &quot;outputs&quot;: {&quot;scalar_interval_days&quot;: 0.5, &quot;field_times_days&quot;: [0, 45, 90, 135, 180, 225]},
+  &quot;seed&quot;: 1105
+}
+</code></pre>
+<p>Server canonical plan дополняет все defaults explicit values, resolves treatment_ref в exact event table и сохраняет hashes. Нельзя восстановить научный результат по ссылке на изменяемый «текущий baseline».</p>
+<pre><code class="language-json">{
+  &quot;code&quot;: &quot;resource_budget_exceeded&quot;,
+  &quot;message_ru&quot;: &quot;Планируемые кадры превышают лимит хранения запуска&quot;,
+  &quot;field_errors&quot;: [{&quot;field&quot;: &quot;outputs.field_times_days&quot;, &quot;message_ru&quot;: &quot;Уменьшите число сохраняемых кадров&quot;}],
+  &quot;retryable&quot;: false,
+  &quot;request_id&quot;: &quot;server-generated-id&quot;,
+  &quot;details_ref&quot;: &quot;diagnostic-reference&quot;
+}
+</code></pre>
+<p>Данные в error response должны отражать конкретное измерение/оценку. Не копировать текст ошибки quota при иной причине. Если расчет already failed, polling возвращает RunAttempt с code/reason, а не невалидный HTTP response.</p>
+<h2 id="section-24">24. Приемочные сценарии Given When Then</h2>
+<p><strong>AC01 No CFB:</strong> Given CFB_ROOT и ATLAS_ROOT отсутствуют; When открыта лаборатория; Then каталог и preparation state доступны, а patient/atlas loader не вызван.</p>
+<p><strong>AC02 Invalid field:</strong> Given baseline draft; When rho=NaN или dt=0; Then server validation возвращает 422, очередь пуста, draft сохранен.</p>
+<p><strong>AC03 Idempotency:</strong> Given один valid plan; When два клиента одновременно submit с одинаковым key; Then существует ровно одна попытка и оба получают один ID.</p>
+<p><strong>AC04 Cancel race:</strong> Given running task; When cancel запрошен одновременно с поздним worker progress; Then terminal cancelled/interrupted сохраняется и succeeded не появляется без допустимого transition.</p>
+<p><strong>AC05 Restart:</strong> Given worker потерян при restart; When lease stale; Then attempt interrupted и retry имеет новый ID/attempt, старый log доступен.</p>
+<p><strong>AC06 Time race:</strong> Given frame t=0 показан; When запрошены t=45 затем t=90 и ответы пришли в обратном порядке; Then виден t=90, старый ответ игнорируется.</p>
+<p><strong>AC07 Corruption:</strong> Given succeeded artifact; When frame bytes изменены; Then loader сообщает checksum error, cache не считается verified и повторный run не получает corrupt reuse.</p>
+<p><strong>AC08 Disk:</strong> Given free space ниже reserve; When начата запись; Then run завершается disk_limit, старые publication results не удалены.</p>
+<p><strong>AC09 Pair compatibility:</strong> Given два разных initial state hashes; When обычное treatment comparison запрошено; Then 409 и объяснение; пользователь не получает ложную paired delta.</p>
+<p><strong>AC10 Export/replay:</strong> Given compact archive без restricted assets; When новый workspace подготовил те же licensed inputs и повторил plan; Then replay report сверяет endpoints с frozen tolerances.</p>
+<p><strong>AC11 Missing pair:</strong> Given один failed child из N subjects; When primary summary рассчитана; Then planned N, complete-pair N и reason присутствуют, replacement subject не создан.</p>
+<p><strong>AC12 Negative result:</strong> Given evaluation не выявил resolved reversals; When анализ завершен; Then сохранен нулевой/неопределенный результат по заранее заданному rule без нового parameter sweep.</p>
+<p><strong>AC13 Frozen protocol:</strong> Given frozen S-B; When UI меняет range; Then создается новый draft, прежний execution immutable и не пересчитывается как та же серия.</p>
+<p><strong>AC14 3D fallback:</strong> Given WebGL unavailable; When result открыт; Then scalar graph и 2D работают, 3D объясняет ограничение.</p>
+<p><strong>AC15 Legacy protection:</strong> Given lab smoke и старые frozen configs; When новый release собран; Then protected hashes/semantics сохранены и закрытые outcomes не прочитаны.</p>
+<h2 id="section-25">25. Макет основного рабочего экрана</h2>
+<pre><code class="language-text">GBM Research Lab        Случай HGG_demo_001       Синтетический исследовательский случай
+Случаи                 Сценарий Авторский baseline v1       Расчет завершен
+Сценарии               [Создать копию] [Сравнить] [Экспорт]
+Запуски                -----------------------------------------------------------
+Сравнение              График расчетного burden       Единица и метод     [i]
+Исследования           RT/CT события                  Выбран день 90
+Хранилище              -----------------------------------------------------------
+Методика               [Назад] [Play] [Вперед]    Сохраненные кадры 0 ... 225 дней
+                       -----------------------------------------------------------
+Данные пациентов       [2D срезы и плотность]           [3D / состояние fallback]
+                       Plane | Slice | Location         Layers | Reset camera
+                       -----------------------------------------------------------
+                       Метрики | Сценарий | Допущения | Диагностика
+</code></pre>
+<p>Это схема информационной структуры, а не поручение заменить существующий дизайн. Воспроизвести привычные поверхности, размеры и цвета проекта, обеспечив читаемость. Пример не разрешает выводить вымышленные scalar values или статус завершения без реального run.</p>
+<h2 id="section-26">26. Нормативный реестр атомарных требований</h2>
+<p>Всего <strong>256 MUST требований</strong>. Каждому соответствует AT-ID и evidence target. В этом пакете все пункты имеют статус pending: здесь создана спецификация, реализация и приемочные тесты будущей лаборатории не выполнены. IDs являются заданиями для тестов/проверок, а не утверждением о наличии одноименных тестовых функций.</p>
+<h3>GOV Управление и исходное состояние</h3>
+<p><strong>GOV-001 — Зафиксировать фактические HEAD, ветку и dirty status перед изменениями.</strong></p>
+<p>Checkpoint: CP00. Приоритет: MUST. Проверка: manual.</p>
+<p>Приемка AT-GOV-001: BASELINE.md содержит значения из Git и время проверки.</p>
+<p>Свидетельство: <code>CP00/evidence/GOV-001</code>; command/result/hash либо manual review record.</p>
+<p><strong>GOV-002 — Прочитать применимые AGENTS.md до реализации.</strong></p>
+<p>Checkpoint: CP00. Приоритет: MUST. Проверка: manual.</p>
+<p>Приемка AT-GOV-002: BASELINE.md перечисляет прочитанные файлы и применимые ограничения.</p>
+<p>Свидетельство: <code>CP00/evidence/GOV-002</code>; command/result/hash либо manual review record.</p>
+<p><strong>GOV-003 — Составить список защищенных старых протоколов и результатов.</strong></p>
+<p>Checkpoint: CP00. Приоритет: MUST. Проверка: manual.</p>
+<p>Приемка AT-GOV-003: PROTECTED_ARTIFACTS.md перечисляет frozen configs и scientific reports.</p>
+<p>Свидетельство: <code>CP00/evidence/GOV-003</code>; command/result/hash либо manual review record.</p>
+<p><strong>GOV-004 — Сохранить пользовательские изменения при внедрении ТЗ.</strong></p>
+<p>Checkpoint: CP00. Приоритет: MUST. Проверка: manual.</p>
+<p>Приемка AT-GOV-004: Diff не удаляет и не перезаписывает unrelated changes.</p>
+<p>Свидетельство: <code>CP00/evidence/GOV-004</code>; command/result/hash либо manual review record.</p>
+<p><strong>GOV-005 — Связать старое ТЗ с версией 2.0 без удаления истории.</strong></p>
+<p>Checkpoint: CP00. Приоритет: MUST. Проверка: manual.</p>
+<p>Приемка AT-GOV-005: Старый документ содержит ссылку на действующую спецификацию.</p>
+<p>Свидетельство: <code>CP00/evidence/GOV-005</code>; command/result/hash либо manual review record.</p>
+<p><strong>GOV-006 — Инвентаризировать оставшиеся локальные данные без загрузки коллекций.</strong></p>
+<p>Checkpoint: CP00. Приоритет: MUST. Проверка: manual.</p>
+<p>Приемка AT-GOV-006: В BASELINE.md отдельно отмечены absent, present и unverified assets.</p>
+<p>Свидетельство: <code>CP00/evidence/GOV-006</code>; command/result/hash либо manual review record.</p>
+<p><strong>GOV-007 — Зарегистрировать audit baseline отдельно от новых результатов.</strong></p>
+<p>Checkpoint: CP00. Приоритет: MUST. Проверка: manual.</p>
+<p>Приемка AT-GOV-007: Исторический прогон 571 теста не обозначен приемкой лаборатории.</p>
+<p>Свидетельство: <code>CP00/evidence/GOV-007</code>; command/result/hash либо manual review record.</p>
+<p><strong>GOV-008 — Использовать первый непринятый checkpoint как текущую задачу.</strong></p>
+<p>Checkpoint: CP00. Приоритет: MUST. Проверка: manual.</p>
+<p>Приемка AT-GOV-008: Progress содержит один current_checkpoint и его зависимости.</p>
+<p>Свидетельство: <code>CP00/evidence/GOV-008</code>; command/result/hash либо manual review record.</p>
+<p><strong>GOV-009 — Сохранять историю принятия и изменений требований.</strong></p>
+<p>Checkpoint: CP12. Приоритет: MUST. Проверка: manual.</p>
+<p>Приемка AT-GOV-009: Для каждого изменения есть version, affected IDs и причина.</p>
+<p>Свидетельство: <code>CP12/evidence/GOV-009</code>; command/result/hash либо manual review record.</p>
+<p><strong>GOV-010 — Не открывать защищенные reserve/holdout при lab tests.</strong></p>
+<p>Checkpoint: CP12. Приоритет: MUST. Проверка: integration.</p>
+<p>Приемка AT-GOV-010: Regression spy фиксирует ноль вызовов загрузчика закрытых cohorts.</p>
+<p>Свидетельство: <code>CP12/evidence/GOV-010</code>; command/result/hash либо manual review record.</p>
+<h3>SRC Источники и самостоятельный вклад</h3>
+<p><strong>SRC-001 — Зафиксировать поисковые запросы и дату литературной проверки.</strong></p>
+<p>Checkpoint: CP01. Приоритет: MUST. Проверка: manual.</p>
+<p>Приемка AT-SRC-001: SEARCH_LOG содержит запрос, источник и результат поиска.</p>
+<p>Свидетельство: <code>CP01/evidence/SRC-001</code>; command/result/hash либо manual review record.</p>
+<p><strong>SRC-002 — Разобрать опубликованный TumorTwin как ближайшую software работу.</strong></p>
+<p>Checkpoint: CP01. Приоритет: MUST. Проверка: manual.</p>
+<p>Приемка AT-SRC-002: Матрица содержит проверенные capabilities и границу собственного вклада.</p>
+<p>Свидетельство: <code>CP01/evidence/SRC-002</code>; command/result/hash либо manual review record.</p>
+<p><strong>SRC-003 — Разобрать полную работу о risk-aware HGG twin 2023 года.</strong></p>
+<p>Checkpoint: CP01. Приоритет: MUST. Проверка: manual.</p>
+<p>Приемка AT-SRC-003: Матрица сопоставляет cohort, uncertainty и treatment comparison.</p>
+<p>Свидетельство: <code>CP01/evidence/SRC-003</code>; command/result/hash либо manual review record.</p>
+<p><strong>SRC-004 — Проверить полный текст Pash et al. до окончательного novelty claim.</strong></p>
+<p>Checkpoint: CP01. Приоритет: MUST. Проверка: manual.</p>
+<p>Приемка AT-SRC-004: В матрице указан full-text status; недоступное содержание отмечено unknown.</p>
+<p>Свидетельство: <code>CP01/evidence/SRC-004</code>; command/result/hash либо manual review record.</p>
+<p><strong>SRC-005 — Привязать каждое заявленное отличие к проверяемому эксперименту.</strong></p>
+<p>Checkpoint: CP01. Приоритет: MUST. Проверка: manual.</p>
+<p>Приемка AT-SRC-005: CONTRIBUTION_MATRIX содержит claim, baseline и artifact target.</p>
+<p>Свидетельство: <code>CP01/evidence/SRC-005</code>; command/result/hash либо manual review record.</p>
+<p><strong>SRC-006 — Ограничить выводы клинического характера доступными данными.</strong></p>
+<p>Checkpoint: CP01. Приоритет: MUST. Проверка: manual.</p>
+<p>Приемка AT-SRC-006: Claims ledger не содержит доказанной клинической эффективности по синтетике.</p>
+<p>Свидетельство: <code>CP01/evidence/SRC-006</code>; command/result/hash либо manual review record.</p>
+<p><strong>SRC-007 — Разделить основные результаты статей A и B.</strong></p>
+<p>Checkpoint: CP01. Приоритет: MUST. Проверка: manual.</p>
+<p>Приемка AT-SRC-007: PUBLICATION_PLAN перечисляет самостоятельные questions и primary tables.</p>
+<p>Свидетельство: <code>CP01/evidence/SRC-007</code>; command/result/hash либо manual review record.</p>
+<p><strong>SRC-008 — Записать statement of need для исследователя.</strong></p>
+<p>Checkpoint: CP01. Приоритет: MUST. Проверка: manual.</p>
+<p>Приемка AT-SRC-008: Документ объясняет задачу, alternatives и причину отдельной среды.</p>
+<p>Свидетельство: <code>CP01/evidence/SRC-008</code>; command/result/hash либо manual review record.</p>
+<p><strong>SRC-009 — Описать условия использования upstream кода и demo assets.</strong></p>
+<p>Checkpoint: CP02. Приоритет: MUST. Проверка: manual.</p>
+<p>Приемка AT-SRC-009: LICENSE_AND_DATA_USE содержит источники и разрешенные способы использования.</p>
+<p>Свидетельство: <code>CP02/evidence/SRC-009</code>; command/result/hash либо manual review record.</p>
+<p><strong>SRC-010 — Отделить публичный hosting от приемки локальной среды.</strong></p>
+<p>Checkpoint: CP02. Приоритет: MUST. Проверка: manual.</p>
+<p>Приемка AT-SRC-010: Неясный hosting status не запрещает разрешенный local workflow.</p>
+<p>Свидетельство: <code>CP02/evidence/SRC-010</code>; command/result/hash либо manual review record.</p>
+<h3>ENG Движок и эталон</h3>
+<p><strong>ENG-001 — Закрепить upstream commit в engine descriptor.</strong></p>
+<p>Checkpoint: CP02. Приоритет: MUST. Проверка: unit.</p>
+<p>Приемка AT-ENG-001: Descriptor содержит bedf90a6d47ba48cf5cdb25901967d84730061d1.</p>
+<p>Свидетельство: <code>CP02/evidence/ENG-001</code>; command/result/hash либо manual review record.</p>
+<p><strong>ENG-002 — Проверять фактический source fingerprint установленного движка.</strong></p>
+<p>Checkpoint: CP02. Приоритет: MUST. Проверка: integration.</p>
+<p>Приемка AT-ENG-002: Изменение source при неизменном marker обнаруживается проверкой.</p>
+<p>Свидетельство: <code>CP02/evidence/ENG-002</code>; command/result/hash либо manual review record.</p>
+<p><strong>ENG-003 — Сохранять точные версии resolved engine dependencies.</strong></p>
+<p>Checkpoint: CP02. Приоритет: MUST. Проверка: integration.</p>
+<p>Приемка AT-ENG-003: Environment manifest содержит Python, Torch, NumPy и solver versions.</p>
+<p>Свидетельство: <code>CP02/evidence/ENG-003</code>; command/result/hash либо manual review record.</p>
+<p><strong>ENG-004 — Изолировать engine environment от основного backend.</strong></p>
+<p>Checkpoint: CP02. Приоритет: MUST. Проверка: integration.</p>
+<p>Приемка AT-ENG-004: Backend imports работают без установленного Torch в app environment.</p>
+<p>Свидетельство: <code>CP02/evidence/ENG-004</code>; command/result/hash либо manual review record.</p>
+<p><strong>ENG-005 — Публиковать поддерживаемые параметры через descriptor.</strong></p>
+<p>Checkpoint: CP02. Приоритет: MUST. Проверка: unit.</p>
+<p>Приемка AT-ENG-005: Unsupported key отклоняется до queue и отсутствует в editor controls.</p>
+<p>Свидетельство: <code>CP02/evidence/ENG-005</code>; command/result/hash либо manual review record.</p>
+<p><strong>ENG-006 — Публиковать поддерживаемые treatment modalities.</strong></p>
+<p>Checkpoint: CP02. Приоритет: MUST. Проверка: engine.</p>
+<p>Приемка AT-ENG-006: CT нельзя silently omit при faithful reproduction с CT input.</p>
+<p>Свидетельство: <code>CP02/evidence/ENG-006</code>; command/result/hash либо manual review record.</p>
+<p><strong>ENG-007 — Получить эталон отдельным прямым upstream запуском.</strong></p>
+<p>Checkpoint: CP03. Приоритет: MUST. Проверка: engine.</p>
+<p>Приемка AT-ENG-007: Reference receipt содержит отдельную команду и независимые output hashes.</p>
+<p>Свидетельство: <code>CP03/evidence/ENG-007</code>; command/result/hash либо manual review record.</p>
+<p><strong>ENG-008 — Воспроизвести author preprocessing в reproduction режиме.</strong></p>
+<p>Checkpoint: CP03. Приоритет: MUST. Проверка: engine.</p>
+<p>Приемка AT-ENG-008: Сравнение фиксирует те же visits, cropping и initial density.</p>
+<p>Свидетельство: <code>CP03/evidence/ENG-008</code>; command/result/hash либо manual review record.</p>
+<p><strong>ENG-009 — Возвращать trajectory с фактическими временами.</strong></p>
+<p>Checkpoint: CP03. Приоритет: MUST. Проверка: engine.</p>
+<p>Приемка AT-ENG-009: Adapter outputs содержат более одного distinct time и соответствующие fields.</p>
+<p>Свидетельство: <code>CP03/evidence/ENG-009</code>; command/result/hash либо manual review record.</p>
+<p><strong>ENG-010 — Сохранять полную физическую геометрию author case.</strong></p>
+<p>Checkpoint: CP03. Приоритет: MUST. Проверка: engine.</p>
+<p>Приемка AT-ENG-010: Origin и orientation не заменены diagonal spacing-only affine.</p>
+<p>Свидетельство: <code>CP03/evidence/ENG-010</code>; command/result/hash либо manual review record.</p>
+<p><strong>ENG-011 — Запускать CPU mode без требования GPU.</strong></p>
+<p>Checkpoint: CP03. Приоритет: MUST. Проверка: engine.</p>
+<p>Приемка AT-ENG-011: Author case завершается на документированном CPU environment.</p>
+<p>Свидетельство: <code>CP03/evidence/ENG-011</code>; command/result/hash либо manual review record.</p>
+<p><strong>ENG-012 — Измерить peak memory и wall time pilot.</strong></p>
+<p>Checkpoint: CP03. Приоритет: MUST. Проверка: engine.</p>
+<p>Приемка AT-ENG-012: PILOT_PROFILE содержит hardware и measured resource values.</p>
+<p>Свидетельство: <code>CP03/evidence/ENG-012</code>; command/result/hash либо manual review record.</p>
+<p><strong>ENG-013 — Отделять unsupported gradient capability от finite differences.</strong></p>
+<p>Checkpoint: CP03. Приоритет: MUST. Проверка: unit.</p>
+<p>Приемка AT-ENG-013: Descriptor сообщает autograd=false при detached adapter.</p>
+<p>Свидетельство: <code>CP03/evidence/ENG-013</code>; command/result/hash либо manual review record.</p>
+<p><strong>ENG-014 — Запускать worker через разрешенные argv без shell execution.</strong></p>
+<p>Checkpoint: CP05. Приоритет: MUST. Проверка: integration.</p>
+<p>Приемка AT-ENG-014: Пользовательский executable/module не принимается API.</p>
+<p>Свидетельство: <code>CP05/evidence/ENG-014</code>; command/result/hash либо manual review record.</p>
+<p><strong>ENG-015 — Поддержать pinned upstream optimizer для author longitudinal case.</strong></p>
+<p>Checkpoint: CP03. Приоритет: MUST. Проверка: engine.</p>
+<p>Приемка AT-ENG-015: Проверка fit contract использует первые пять visits и не требует новой матмодели.</p>
+<p>Свидетельство: <code>CP03/evidence/ENG-015</code>; command/result/hash либо manual review record.</p>
+<h3>DAT Подготовка данных</h3>
+<p><strong>DAT-001 — Подготавливать только явно выбранный author case.</strong></p>
+<p>Checkpoint: CP02. Приоритет: MUST. Проверка: integration.</p>
+<p>Приемка AT-DAT-001: Acquisition receipt не содержит CFB, Burdenko или atlas files.</p>
+<p>Свидетельство: <code>CP02/evidence/DAT-001</code>; command/result/hash либо manual review record.</p>
+<p><strong>DAT-002 — Показывать expected download size перед загрузкой.</strong></p>
+<p>Checkpoint: CP02. Приоритет: MUST. Проверка: integration.</p>
+<p>Приемка AT-DAT-002: CLI dry-run выводит whitelisted files и total bytes либо unknown reason.</p>
+<p>Свидетельство: <code>CP02/evidence/DAT-002</code>; command/result/hash либо manual review record.</p>
+<p><strong>DAT-003 — Создавать immutable manifest подготовленного случая.</strong></p>
+<p>Checkpoint: CP02. Приоритет: MUST. Проверка: integration.</p>
+<p>Приемка AT-DAT-003: Повтор записи иной версии не изменяет старый manifest.</p>
+<p>Свидетельство: <code>CP02/evidence/DAT-003</code>; command/result/hash либо manual review record.</p>
+<p><strong>DAT-004 — Проверять checksum каждого подготовленного файла.</strong></p>
+<p>Checkpoint: CP02. Приоритет: MUST. Проверка: integration.</p>
+<p>Приемка AT-DAT-004: Измененный fixture переводит case в corrupt и блокирует run.</p>
+<p>Свидетельство: <code>CP02/evidence/DAT-004</code>; command/result/hash либо manual review record.</p>
+<p><strong>DAT-005 — Сохранять provenance исходного case.</strong></p>
+<p>Checkpoint: CP02. Приоритет: MUST. Проверка: unit.</p>
+<p>Приемка AT-DAT-005: Manifest содержит source URI, pinned ref и acquisition timestamp.</p>
+<p>Свидетельство: <code>CP02/evidence/DAT-005</code>; command/result/hash либо manual review record.</p>
+<p><strong>DAT-006 — Различать fitted, assumed и generative parameters.</strong></p>
+<p>Checkpoint: CP02. Приоритет: MUST. Проверка: unit.</p>
+<p>Приемка AT-DAT-006: Case metadata сохраняет origin каждого известного parameter.</p>
+<p>Свидетельство: <code>CP02/evidence/DAT-006</code>; command/result/hash либо manual review record.</p>
+<p><strong>DAT-007 — Проверять согласованность shapes связанных volumes.</strong></p>
+<p>Checkpoint: CP02. Приоритет: MUST. Проверка: unit.</p>
+<p>Приемка AT-DAT-007: Несовпадающая маска отклоняется до model execution.</p>
+<p>Свидетельство: <code>CP02/evidence/DAT-007</code>; command/result/hash либо manual review record.</p>
+<p><strong>DAT-008 — Проверять nonsingular affine и physical units.</strong></p>
+<p>Checkpoint: CP02. Приоритет: MUST. Проверка: unit.</p>
+<p>Приемка AT-DAT-008: Singular affine и unknown units требуют явного разрешенного преобразования.</p>
+<p>Свидетельство: <code>CP02/evidence/DAT-008</code>; command/result/hash либо manual review record.</p>
+<p><strong>DAT-009 — Оставлять incomplete download недоступным для расчетов.</strong></p>
+<p>Checkpoint: CP02. Приоритет: MUST. Проверка: integration.</p>
+<p>Приемка AT-DAT-009: Прерванная подготовка не создает available case.</p>
+<p>Свидетельство: <code>CP02/evidence/DAT-009</code>; command/result/hash либо manual review record.</p>
+<p><strong>DAT-010 — Не затирать пользовательский файл при hash mismatch.</strong></p>
+<p>Checkpoint: CP02. Приоритет: MUST. Проверка: integration.</p>
+<p>Приемка AT-DAT-010: Оригинальный файл сохраняется, ошибка указывает путь и expected hash.</p>
+<p>Свидетельство: <code>CP02/evidence/DAT-010</code>; command/result/hash либо manual review record.</p>
+<p><strong>DAT-011 — Различать synthetic case и реальные пациентские записи.</strong></p>
+<p>Checkpoint: CP06. Приоритет: MUST. Проверка: unit.</p>
+<p>Приемка AT-DAT-011: HGG_demo_001 не получает фиктивный CFB patient_id.</p>
+<p>Свидетельство: <code>CP06/evidence/DAT-011</code>; command/result/hash либо manual review record.</p>
+<p><strong>DAT-012 — Сохранять список visits использованных author reproduction.</strong></p>
+<p>Checkpoint: CP03. Приоритет: MUST. Проверка: engine.</p>
+<p>Приемка AT-DAT-012: Отчет содержит observation roles и предупреждение о retrospective reproduction.</p>
+<p>Свидетельство: <code>CP03/evidence/DAT-012</code>; command/result/hash либо manual review record.</p>
+<p><strong>DAT-013 — Применять observation cutoff в заявленном forecast experiment.</strong></p>
+<p>Checkpoint: CP09. Приоритет: MUST. Проверка: integration.</p>
+<p>Приемка AT-DAT-013: Spy evaluator target не читается initialization/calibration кодом.</p>
+<p>Свидетельство: <code>CP09/evidence/DAT-013</code>; command/result/hash либо manual review record.</p>
+<p><strong>DAT-014 — Открывать lab при полностью отсутствующих CFB directories.</strong></p>
+<p>Checkpoint: CP06. Приоритет: MUST. Проверка: browser.</p>
+<p>Приемка AT-DAT-014: Browser smoke достигает case catalog без patient loader calls.</p>
+<p>Свидетельство: <code>CP06/evidence/DAT-014</code>; command/result/hash либо manual review record.</p>
+<p><strong>DAT-015 — Определять forecast crop без future observation arrays.</strong></p>
+<p>Checkpoint: CP09. Приоритет: MUST. Проверка: integration.</p>
+<p>Приемка AT-DAT-015: Spy тест обнаруживает ноль чтений future ADC/ROI при crop/init/fit.</p>
+<p>Свидетельство: <code>CP09/evidence/DAT-015</code>; command/result/hash либо manual review record.</p>
+<h3>DOM Доменные контракты</h3>
+<p><strong>DOM-001 — Создавать серверный immutable snapshot научного сценария.</strong></p>
+<p>Checkpoint: CP04. Приоритет: MUST. Проверка: integration.</p>
+<p>Приемка AT-DOM-001: Изменение draft после POST не меняет существующий RunPlan.</p>
+<p>Свидетельство: <code>CP04/evidence/DOM-001</code>; command/result/hash либо manual review record.</p>
+<p><strong>DOM-002 — Присваивать новую версию при scientific edit.</strong></p>
+<p>Checkpoint: CP04. Приоритет: MUST. Проверка: unit.</p>
+<p>Приемка AT-DOM-002: Старый ScenarioVersion byte-identical после редактирования.</p>
+<p>Свидетельство: <code>CP04/evidence/DOM-002</code>; command/result/hash либо manual review record.</p>
+<p><strong>DOM-003 — Вычислять canonical scientific hash независимо от display name.</strong></p>
+<p>Checkpoint: CP04. Приоритет: MUST. Проверка: unit.</p>
+<p>Приемка AT-DOM-003: Изменение name сохраняет scientific hash.</p>
+<p>Свидетельство: <code>CP04/evidence/DOM-003</code>; command/result/hash либо manual review record.</p>
+<p><strong>DOM-004 — Менять scientific hash при изменении dose или timing.</strong></p>
+<p>Checkpoint: CP04. Приоритет: MUST. Проверка: unit.</p>
+<p>Приемка AT-DOM-004: Mutation fixture получает другой hash.</p>
+<p>Свидетельство: <code>CP04/evidence/DOM-004</code>; command/result/hash либо manual review record.</p>
+<p><strong>DOM-005 — Учитывать input geometry digest в научной идентичности.</strong></p>
+<p>Checkpoint: CP04. Приоритет: MUST. Проверка: unit.</p>
+<p>Приемка AT-DOM-005: Иной affine меняет scientific hash при том же array shape.</p>
+<p>Свидетельство: <code>CP04/evidence/DOM-005</code>; command/result/hash либо manual review record.</p>
+<p><strong>DOM-006 — Учитывать численно значимые engine и solver versions.</strong></p>
+<p>Checkpoint: CP04. Приоритет: MUST. Проверка: unit.</p>
+<p>Приемка AT-DOM-006: Иная numerical version исключает exact cache reuse.</p>
+<p>Свидетельство: <code>CP04/evidence/DOM-006</code>; command/result/hash либо manual review record.</p>
+<p><strong>DOM-007 — Разделять scientific hash и execution/output identity.</strong></p>
+<p>Checkpoint: CP04. Приоритет: MUST. Проверка: unit.</p>
+<p>Приемка AT-DOM-007: Изменение retention policy отражается в execution identity.</p>
+<p>Свидетельство: <code>CP04/evidence/DOM-007</code>; command/result/hash либо manual review record.</p>
+<p><strong>DOM-008 — Отклонять NaN и Inf во всех научных numeric inputs.</strong></p>
+<p>Checkpoint: CP04. Приоритет: MUST. Проверка: unit.</p>
+<p>Приемка AT-DOM-008: Schema test покрывает parameters, times и doses.</p>
+<p>Свидетельство: <code>CP04/evidence/DOM-008</code>; command/result/hash либо manual review record.</p>
+<p><strong>DOM-009 — Запрещать запись NaN и Inf как валидного результата.</strong></p>
+<p>Checkpoint: CP04. Приоритет: MUST. Проверка: unit.</p>
+<p>Приемка AT-DOM-009: Writer завершает проверку ошибкой и не публикует result.</p>
+<p>Свидетельство: <code>CP04/evidence/DOM-009</code>; command/result/hash либо manual review record.</p>
+<p><strong>DOM-010 — Сохранять event units отдельно от отображаемой подписи.</strong></p>
+<p>Checkpoint: CP04. Приоритет: MUST. Проверка: unit.</p>
+<p>Приемка AT-DOM-010: Unit mapping test обнаруживает несовместимую CT/RT единицу.</p>
+<p>Свидетельство: <code>CP04/evidence/DOM-010</code>; command/result/hash либо manual review record.</p>
+<p><strong>DOM-011 — Различать solver step и output sampling.</strong></p>
+<p>Checkpoint: CP04. Приоритет: MUST. Проверка: unit.</p>
+<p>Приемка AT-DOM-011: Изменение frame interval не изменяет заданный solver dt.</p>
+<p>Свидетельство: <code>CP04/evidence/DOM-011</code>; command/result/hash либо manual review record.</p>
+<p><strong>DOM-012 — Сохранять события RT и CT в одно время.</strong></p>
+<p>Checkpoint: CP04. Приоритет: MUST. Проверка: unit.</p>
+<p>Приемка AT-DOM-012: Validator не удаляет cross-modality simultaneous events.</p>
+<p>Свидетельство: <code>CP04/evidence/DOM-012</code>; command/result/hash либо manual review record.</p>
+<p><strong>DOM-013 — Отклонять unsupported combination до постановки в очередь.</strong></p>
+<p>Checkpoint: CP04. Приоритет: MUST. Проверка: integration.</p>
+<p>Приемка AT-DOM-013: API возвращает field error и не создает RunAttempt.</p>
+<p>Свидетельство: <code>CP04/evidence/DOM-013</code>; command/result/hash либо manual review record.</p>
+<p><strong>DOM-014 — Хранить UTC timestamps и отдельную научную ось времени.</strong></p>
+<p>Checkpoint: CP04. Приоритет: MUST. Проверка: unit.</p>
+<p>Приемка AT-DOM-014: Serialization round-trip сохраняет origin и days_from_origin.</p>
+<p>Свидетельство: <code>CP04/evidence/DOM-014</code>; command/result/hash либо manual review record.</p>
+<h3>JOB Очередь и выполнение</h3>
+<p><strong>JOB-001 — Возвращать run_id до выполнения тяжелого solver.</strong></p>
+<p>Checkpoint: CP05. Приоритет: MUST. Проверка: integration.</p>
+<p>Приемка AT-JOB-001: Controlled slow worker не задерживает POST до завершения.</p>
+<p>Свидетельство: <code>CP05/evidence/JOB-001</code>; command/result/hash либо manual review record.</p>
+<p><strong>JOB-002 — Ограничивать default concurrency одним worker.</strong></p>
+<p>Checkpoint: CP05. Приоритет: MUST. Проверка: integration.</p>
+<p>Приемка AT-JOB-002: Три queued задачи никогда не создают два active workers.</p>
+<p>Свидетельство: <code>CP05/evidence/JOB-002</code>; command/result/hash либо manual review record.</p>
+<p><strong>JOB-003 — Захватывать queued attempt атомарно.</strong></p>
+<p>Checkpoint: CP05. Приоритет: MUST. Проверка: integration.</p>
+<p>Приемка AT-JOB-003: Два supervisors получают только один valid claim на одну задачу.</p>
+<p>Свидетельство: <code>CP05/evidence/JOB-003</code>; command/result/hash либо manual review record.</p>
+<p><strong>JOB-004 — Требовать ownership token для worker state updates.</strong></p>
+<p>Checkpoint: CP05. Приоритет: MUST. Проверка: integration.</p>
+<p>Приемка AT-JOB-004: Update с чужим token не изменяет статус.</p>
+<p>Свидетельство: <code>CP05/evidence/JOB-004</code>; command/result/hash либо manual review record.</p>
+<p><strong>JOB-005 — Сохранять terminal state при позднем heartbeat.</strong></p>
+<p>Checkpoint: CP05. Приоритет: MUST. Проверка: integration.</p>
+<p>Приемка AT-JOB-005: Поздний running update после cancelled отклоняется.</p>
+<p>Свидетельство: <code>CP05/evidence/JOB-005</code>; command/result/hash либо manual review record.</p>
+<p><strong>JOB-006 — Возвращать прежний run по одинаковому idempotency key.</strong></p>
+<p>Checkpoint: CP05. Приоритет: MUST. Проверка: integration.</p>
+<p>Приемка AT-JOB-006: Два concurrent POST создают один attempt.</p>
+<p>Свидетельство: <code>CP05/evidence/JOB-006</code>; command/result/hash либо manual review record.</p>
+<p><strong>JOB-007 — Отклонять новый payload со старым idempotency key.</strong></p>
+<p>Checkpoint: CP05. Приоритет: MUST. Проверка: integration.</p>
+<p>Приемка AT-JOB-007: API возвращает 409 и сохраняет первый plan.</p>
+<p>Свидетельство: <code>CP05/evidence/JOB-007</code>; command/result/hash либо manual review record.</p>
+<p><strong>JOB-008 — Отменять queued задачу без запуска worker.</strong></p>
+<p>Checkpoint: CP05. Приоритет: MUST. Проверка: integration.</p>
+<p>Приемка AT-JOB-008: Контролируемый worker для отмененной queued задачи не вызывается.</p>
+<p>Свидетельство: <code>CP05/evidence/JOB-008</code>; command/result/hash либо manual review record.</p>
+<p><strong>JOB-009 — Отменять running задачу через cancel_requested.</strong></p>
+<p>Checkpoint: CP05. Приоритет: MUST. Проверка: integration.</p>
+<p>Приемка AT-JOB-009: В event log присутствует корректный переход к cancelled.</p>
+<p>Свидетельство: <code>CP05/evidence/JOB-009</code>; command/result/hash либо manual review record.</p>
+<p><strong>JOB-010 — Ограничивать termination деревом процессов данного запуска.</strong></p>
+<p>Checkpoint: CP05. Приоритет: MUST. Проверка: integration.</p>
+<p>Приемка AT-JOB-010: Unrelated sentinel process остается жив после cancel.</p>
+<p>Свидетельство: <code>CP05/evidence/JOB-010</code>; command/result/hash либо manual review record.</p>
+<p><strong>JOB-011 — Завершать timeout отдельной диагностируемой причиной.</strong></p>
+<p>Checkpoint: CP05. Приоритет: MUST. Проверка: integration.</p>
+<p>Приемка AT-JOB-011: Slow worker получает timed_out с сохраненным elapsed time.</p>
+<p>Свидетельство: <code>CP05/evidence/JOB-011</code>; command/result/hash либо manual review record.</p>
+<p><strong>JOB-012 — Обнаруживать stale lease после restart.</strong></p>
+<p>Checkpoint: CP05. Приоритет: MUST. Проверка: integration.</p>
+<p>Приемка AT-JOB-012: Задача не остается running без живого владельца.</p>
+<p>Свидетельство: <code>CP05/evidence/JOB-012</code>; command/result/hash либо manual review record.</p>
+<p><strong>JOB-013 — Не восстанавливать ownership только по совпавшему PID.</strong></p>
+<p>Checkpoint: CP05. Приоритет: MUST. Проверка: integration.</p>
+<p>Приемка AT-JOB-013: Reused PID без token не признается принадлежащим run.</p>
+<p>Свидетельство: <code>CP05/evidence/JOB-013</code>; command/result/hash либо manual review record.</p>
+<p><strong>JOB-014 — Создавать новый attempt при retry.</strong></p>
+<p>Checkpoint: CP05. Приоритет: MUST. Проверка: integration.</p>
+<p>Приемка AT-JOB-014: Старый failed attempt и error log остаются доступны.</p>
+<p>Свидетельство: <code>CP05/evidence/JOB-014</code>; command/result/hash либо manual review record.</p>
+<p><strong>JOB-015 — Публиковать succeeded после artifact validation.</strong></p>
+<p>Checkpoint: CP05. Приоритет: MUST. Проверка: integration.</p>
+<p>Приемка AT-JOB-015: Поврежденный output worker не приводит к succeeded.</p>
+<p>Свидетельство: <code>CP05/evidence/JOB-015</code>; command/result/hash либо manual review record.</p>
+<p><strong>JOB-016 — Сохранять этапы и подтвержденные счетчики прогресса.</strong></p>
+<p>Checkpoint: CP05. Приоритет: MUST. Проверка: integration.</p>
+<p>Приемка AT-JOB-016: Unknown total отображается как indeterminate, не fake percentage.</p>
+<p>Свидетельство: <code>CP05/evidence/JOB-016</code>; command/result/hash либо manual review record.</p>
+<p><strong>JOB-017 — Продолжать supervisor heartbeat во время долгого solver step.</strong></p>
+<p>Checkpoint: CP05. Приоритет: MUST. Проверка: integration.</p>
+<p>Приемка AT-JOB-017: Длительный controlled solve не объявляется stale при живом supervisor.</p>
+<p>Свидетельство: <code>CP05/evidence/JOB-017</code>; command/result/hash либо manual review record.</p>
+<p><strong>JOB-018 — Использовать один executor для runs и study children.</strong></p>
+<p>Checkpoint: CP08. Приоритет: MUST. Проверка: integration.</p>
+<p>Приемка AT-JOB-018: Concurrency limit соблюдается при одновременных run и cohort.</p>
+<p>Свидетельство: <code>CP08/evidence/JOB-018</code>; command/result/hash либо manual review record.</p>
+<p><strong>JOB-019 — Переиспользовать завершенные child tasks по проверенному identity.</strong></p>
+<p>Checkpoint: CP08. Приоритет: MUST. Проверка: integration.</p>
+<p>Приемка AT-JOB-019: Retry study не пересчитывает verified completed rows без явного rerun.</p>
+<p>Свидетельство: <code>CP08/evidence/JOB-019</code>; command/result/hash либо manual review record.</p>
+<p><strong>JOB-020 — Сохранять соответствие child result строке sample matrix.</strong></p>
+<p>Checkpoint: CP08. Приоритет: MUST. Проверка: integration.</p>
+<p>Приемка AT-JOB-020: Изменение порядка completion не меняет порядок outcomes.</p>
+<p>Свидетельство: <code>CP08/evidence/JOB-020</code>; command/result/hash либо manual review record.</p>
+<h3>STO Хранение и экспорт</h3>
+<p><strong>STO-001 — Применять versioned database migrations.</strong></p>
+<p>Checkpoint: CP04. Приоритет: MUST. Проверка: integration.</p>
+<p>Приемка AT-STO-001: Новая установка и upgrade fixture дают одинаковую schema version.</p>
+<p>Свидетельство: <code>CP04/evidence/STO-001</code>; command/result/hash либо manual review record.</p>
+<p><strong>STO-002 — Включать foreign key checks в SQLite connections.</strong></p>
+<p>Checkpoint: CP04. Приоритет: MUST. Проверка: integration.</p>
+<p>Приемка AT-STO-002: Удаление referenced immutable entity отклоняется.</p>
+<p>Свидетельство: <code>CP04/evidence/STO-002</code>; command/result/hash либо manual review record.</p>
+<p><strong>STO-003 — Публиковать result directory атомарно.</strong></p>
+<p>Checkpoint: CP04. Приоритет: MUST. Проверка: integration.</p>
+<p>Приемка AT-STO-003: Crash до rename не дает читателю complete result.</p>
+<p>Свидетельство: <code>CP04/evidence/STO-003</code>; command/result/hash либо manual review record.</p>
+<p><strong>STO-004 — Проверять payload hashes при загрузке артефакта.</strong></p>
+<p>Checkpoint: CP04. Приоритет: MUST. Проверка: integration.</p>
+<p>Приемка AT-STO-004: Corrupted frame не обслуживается как verified field.</p>
+<p>Свидетельство: <code>CP04/evidence/STO-004</code>; command/result/hash либо manual review record.</p>
+<p><strong>STO-005 — Сверять completeness и expected frames при cache hit.</strong></p>
+<p>Checkpoint: CP04. Приоритет: MUST. Проверка: integration.</p>
+<p>Приемка AT-STO-005: Неполный result не переиспользуется.</p>
+<p>Свидетельство: <code>CP04/evidence/STO-005</code>; command/result/hash либо manual review record.</p>
+<p><strong>STO-006 — Обнаруживать orphan temporary files при startup.</strong></p>
+<p>Checkpoint: CP04. Приоритет: MUST. Проверка: integration.</p>
+<p>Приемка AT-STO-006: Reconciliation report перечисляет temp без auto-success.</p>
+<p>Свидетельство: <code>CP04/evidence/STO-006</code>; command/result/hash либо manual review record.</p>
+<p><strong>STO-007 — Запрещать выход artifact path за LAB_ROOT.</strong></p>
+<p>Checkpoint: CP04. Приоритет: MUST. Проверка: integration.</p>
+<p>Приемка AT-STO-007: Traversal и junction fixture отклоняются до file operation.</p>
+<p>Свидетельство: <code>CP04/evidence/STO-007</code>; command/result/hash либо manual review record.</p>
+<p><strong>STO-008 — Считать runtime output quota до запуска.</strong></p>
+<p>Checkpoint: CP07. Приоритет: MUST. Проверка: integration.</p>
+<p>Приемка AT-STO-008: Plan выше 1 GiB per-run default rejected с budget reason.</p>
+<p>Свидетельство: <code>CP07/evidence/STO-008</code>; command/result/hash либо manual review record.</p>
+<p><strong>STO-009 — Сохранять reserve свободного места во время записи.</strong></p>
+<p>Checkpoint: CP07. Приоритет: MUST. Проверка: integration.</p>
+<p>Приемка AT-STO-009: Low-disk fixture завершает run с disk_limit без удаления старых файлов.</p>
+<p>Свидетельство: <code>CP07/evidence/STO-009</code>; command/result/hash либо manual review record.</p>
+<p><strong>STO-010 — Хранить scalar series независимо от dense frames.</strong></p>
+<p>Checkpoint: CP07. Приоритет: MUST. Проверка: integration.</p>
+<p>Приемка AT-STO-010: Удаление разрешенных frames не удаляет metrics.csv.</p>
+<p>Свидетельство: <code>CP07/evidence/STO-010</code>; command/result/hash либо manual review record.</p>
+<p><strong>STO-011 — Защищать publication-pinned artifacts от cleanup.</strong></p>
+<p>Checkpoint: CP07. Приоритет: MUST. Проверка: integration.</p>
+<p>Приемка AT-STO-011: Cleanup выбранного pinned result rejected.</p>
+<p>Свидетельство: <code>CP07/evidence/STO-011</code>; command/result/hash либо manual review record.</p>
+<p><strong>STO-012 — Защищать active-run files от cleanup.</strong></p>
+<p>Checkpoint: CP07. Приоритет: MUST. Проверка: integration.</p>
+<p>Приемка AT-STO-012: Cleanup active attempt rejected при существующей lease.</p>
+<p>Свидетельство: <code>CP07/evidence/STO-012</code>; command/result/hash либо manual review record.</p>
+<p><strong>STO-013 — Предварительно показывать точный состав cleanup.</strong></p>
+<p>Checkpoint: CP07. Приоритет: MUST. Проверка: integration.</p>
+<p>Приемка AT-STO-013: Preview token соответствует списку и размерам удаляемых files.</p>
+<p>Свидетельство: <code>CP07/evidence/STO-013</code>; command/result/hash либо manual review record.</p>
+<p><strong>STO-014 — Удалять только проверенные элементы cleanup selection.</strong></p>
+<p>Checkpoint: CP07. Приоритет: MUST. Проверка: integration.</p>
+<p>Приемка AT-STO-014: Измененный selection token требует нового preview.</p>
+<p>Свидетельство: <code>CP07/evidence/STO-014</code>; command/result/hash либо manual review record.</p>
+<p><strong>STO-015 — Отмечать недоступность удаленных кадров в manifest metadata.</strong></p>
+<p>Checkpoint: CP07. Приоритет: MUST. Проверка: integration.</p>
+<p>Приемка AT-STO-015: UI не предлагает загрузить удаленный frame как available.</p>
+<p>Свидетельство: <code>CP07/evidence/STO-015</code>; command/result/hash либо manual review record.</p>
+<p><strong>STO-016 — Создавать consistent backup SQLite через backup mechanism.</strong></p>
+<p>Checkpoint: CP07. Приоритет: MUST. Проверка: integration.</p>
+<p>Приемка AT-STO-016: Restore test восстанавливает committed rows при active WAL.</p>
+<p>Свидетельство: <code>CP07/evidence/STO-016</code>; command/result/hash либо manual review record.</p>
+<p><strong>STO-017 — Исключать restricted upstream assets из compact export.</strong></p>
+<p>Checkpoint: CP07. Приоритет: MUST. Проверка: integration.</p>
+<p>Приемка AT-STO-017: Archive inspection не содержит source/volumes с запрещенной передачей.</p>
+<p>Свидетельство: <code>CP07/evidence/STO-017</code>; command/result/hash либо manual review record.</p>
+<p><strong>STO-018 — Проверять import size и пути до распаковки.</strong></p>
+<p>Checkpoint: CP07. Приоритет: MUST. Проверка: integration.</p>
+<p>Приемка AT-STO-018: Zip traversal и decompression limit fixture rejected.</p>
+<p>Свидетельство: <code>CP07/evidence/STO-018</code>; command/result/hash либо manual review record.</p>
+<p><strong>STO-019 — Импортировать пакеты как данные без исполнения кода.</strong></p>
+<p>Checkpoint: CP07. Приоритет: MUST. Проверка: integration.</p>
+<p>Приемка AT-STO-019: Payload с script/pickle не исполняется и rejected по schema.</p>
+<p>Свидетельство: <code>CP07/evidence/STO-019</code>; command/result/hash либо manual review record.</p>
+<p><strong>STO-020 — Выполнять replay в новом workspace по export plan.</strong></p>
+<p>Checkpoint: CP07. Приоритет: MUST. Проверка: engine.</p>
+<p>Приемка AT-STO-020: Replay report содержит сравнение endpoints и hashes allowed inputs.</p>
+<p>Свидетельство: <code>CP07/evidence/STO-020</code>; command/result/hash либо manual review record.</p>
+<h3>API API</h3>
+<p><strong>API-001 — Публиковать отдельные lab capabilities.</strong></p>
+<p>Checkpoint: CP04. Приоритет: MUST. Проверка: integration.</p>
+<p>Приемка AT-API-001: CFB unavailable не делает lab unavailable при готовом author case.</p>
+<p>Свидетельство: <code>CP04/evidence/API-001</code>; command/result/hash либо manual review record.</p>
+<p><strong>API-002 — Не запускать вычисления в GET endpoints.</strong></p>
+<p>Checkpoint: CP04. Приоритет: MUST. Проверка: integration.</p>
+<p>Приемка AT-API-002: GET suite не вызывает worker/download/calibration.</p>
+<p>Свидетельство: <code>CP04/evidence/API-002</code>; command/result/hash либо manual review record.</p>
+<p><strong>API-003 — Возвращать field_errors для невалидного сценария.</strong></p>
+<p>Checkpoint: CP04. Приоритет: MUST. Проверка: integration.</p>
+<p>Приемка AT-API-003: 422 body указывает точное поле и понятную русскую причину.</p>
+<p>Свидетельство: <code>CP04/evidence/API-003</code>; command/result/hash либо manual review record.</p>
+<p><strong>API-004 — Возвращать 404 для неизвестного UUID.</strong></p>
+<p>Checkpoint: CP04. Приоритет: MUST. Проверка: integration.</p>
+<p>Приемка AT-API-004: Ответ не раскрывает traceback или произвольный file path.</p>
+<p>Свидетельство: <code>CP04/evidence/API-004</code>; command/result/hash либо manual review record.</p>
+<p><strong>API-005 — Возвращать 409 для несовместимого сравнения.</strong></p>
+<p>Checkpoint: CP04. Приоритет: MUST. Проверка: integration.</p>
+<p>Приемка AT-API-005: Ответ содержит mismatch fields.</p>
+<p>Свидетельство: <code>CP04/evidence/API-005</code>; command/result/hash либо manual review record.</p>
+<p><strong>API-006 — Ограничивать pagination списков.</strong></p>
+<p>Checkpoint: CP04. Приоритет: MUST. Проверка: integration.</p>
+<p>Приемка AT-API-006: Limit выше server maximum rejected либо явно capped по контракту.</p>
+<p>Свидетельство: <code>CP04/evidence/API-006</code>; command/result/hash либо manual review record.</p>
+<p><strong>API-007 — Согласовать OpenAPI и TypeScript enums.</strong></p>
+<p>Checkpoint: CP04. Приоритет: MUST. Проверка: integration.</p>
+<p>Приемка AT-API-007: Contract test обнаруживает неизвестный terminal status.</p>
+<p>Свидетельство: <code>CP04/evidence/API-007</code>; command/result/hash либо manual review record.</p>
+<p><strong>API-008 — Сохранять request_id в ошибке и диагностическом журнале.</strong></p>
+<p>Checkpoint: CP05. Приоритет: MUST. Проверка: integration.</p>
+<p>Приемка AT-API-008: ID связывает response и server log entry.</p>
+<p>Свидетельство: <code>CP05/evidence/API-008</code>; command/result/hash либо manual review record.</p>
+<p><strong>API-009 — Передавать только запрошенный slice/frame descriptor.</strong></p>
+<p>Checkpoint: CP06. Приоритет: MUST. Проверка: integration.</p>
+<p>Приемка AT-API-009: Один запрос 2D не передает всю 4D trajectory.</p>
+<p>Свидетельство: <code>CP06/evidence/API-009</code>; command/result/hash либо manual review record.</p>
+<p><strong>API-010 — Проверять bounds slice и frame index.</strong></p>
+<p>Checkpoint: CP06. Приоритет: MUST. Проверка: integration.</p>
+<p>Приемка AT-API-010: Out-of-range request возвращает 422 без тяжелой обработки.</p>
+<p>Свидетельство: <code>CP06/evidence/API-010</code>; command/result/hash либо manual review record.</p>
+<p><strong>API-011 — Помечать время и geometry каждого view response.</strong></p>
+<p>Checkpoint: CP06. Приоритет: MUST. Проверка: integration.</p>
+<p>Приемка AT-API-011: Response metadata связывает изображение с run/frame.</p>
+<p>Свидетельство: <code>CP06/evidence/API-011</code>; command/result/hash либо manual review record.</p>
+<p><strong>API-012 — Упаковывать большой export фоновой задачей.</strong></p>
+<p>Checkpoint: CP07. Приоритет: MUST. Проверка: integration.</p>
+<p>Приемка AT-API-012: Download GET не пересобирает archive.</p>
+<p>Свидетельство: <code>CP07/evidence/API-012</code>; command/result/hash либо manual review record.</p>
+<h3>UI Интерфейс</h3>
+<p><strong>UI-001 — Открывать лабораторию независимо от selectedPatientId.</strong></p>
+<p>Checkpoint: CP06. Приоритет: MUST. Проверка: browser.</p>
+<p>Приемка AT-UI-001: No-CFB browser startup показывает lab catalog.</p>
+<p>Свидетельство: <code>CP06/evidence/UI-001</code>; command/result/hash либо manual review record.</p>
+<p><strong>UI-002 — Скрывать еще не реализованные navigation actions.</strong></p>
+<p>Checkpoint: CP06. Приоритет: MUST. Проверка: browser.</p>
+<p>Приемка AT-UI-002: До capability нет активной кнопки с пустым обработчиком.</p>
+<p>Свидетельство: <code>CP06/evidence/UI-002</code>; command/result/hash либо manual review record.</p>
+<p><strong>UI-003 — Показывать synthetic label на карточке и result page.</strong></p>
+<p>Checkpoint: CP06. Приоритет: MUST. Проверка: browser.</p>
+<p>Приемка AT-UI-003: Label виден без открытия technical diagnostics.</p>
+<p>Свидетельство: <code>CP06/evidence/UI-003</code>; command/result/hash либо manual review record.</p>
+<p><strong>UI-004 — Показывать источник и цитирование case.</strong></p>
+<p>Checkpoint: CP06. Приоритет: MUST. Проверка: browser.</p>
+<p>Приемка AT-UI-004: Case details содержит доступный source link.</p>
+<p>Свидетельство: <code>CP06/evidence/UI-004</code>; command/result/hash либо manual review record.</p>
+<p><strong>UI-005 — Объяснять missing case data конкретным действием.</strong></p>
+<p>Checkpoint: CP06. Приоритет: MUST. Проверка: browser.</p>
+<p>Приемка AT-UI-005: Empty state содержит preparation command и размер/оценку.</p>
+<p>Свидетельство: <code>CP06/evidence/UI-005</code>; command/result/hash либо manual review record.</p>
+<p><strong>UI-006 — Делать baseline read-only.</strong></p>
+<p>Checkpoint: CP06. Приоритет: MUST. Проверка: browser.</p>
+<p>Приемка AT-UI-006: Изменение baseline открывает копию с новым identity.</p>
+<p>Свидетельство: <code>CP06/evidence/UI-006</code>; command/result/hash либо manual review record.</p>
+<p><strong>UI-007 — Сохранять точный numeric input помимо slider.</strong></p>
+<p>Checkpoint: CP06. Приоритет: MUST. Проверка: browser.</p>
+<p>Приемка AT-UI-007: Ввод scientific notation round-trip сохраняет значение.</p>
+<p>Свидетельство: <code>CP06/evidence/UI-007</code>; command/result/hash либо manual review record.</p>
+<p><strong>UI-008 — Показывать единицу у каждого numeric parameter.</strong></p>
+<p>Checkpoint: CP06. Приоритет: MUST. Проверка: browser.</p>
+<p>Приемка AT-UI-008: Editor labels содержат descriptor unit.</p>
+<p>Свидетельство: <code>CP06/evidence/UI-008</code>; command/result/hash либо manual review record.</p>
+<p><strong>UI-009 — Показывать источник default parameter.</strong></p>
+<p>Checkpoint: CP06. Приоритет: MUST. Проверка: browser.</p>
+<p>Приемка AT-UI-009: Author, assumed и fitted различаются в editor info.</p>
+<p>Свидетельство: <code>CP06/evidence/UI-009</code>; command/result/hash либо manual review record.</p>
+<p><strong>UI-010 — Обрабатывать десятичную запятую явно.</strong></p>
+<p>Checkpoint: CP06. Приоритет: MUST. Проверка: browser.</p>
+<p>Приемка AT-UI-010: Ввод 0,01 либо корректно нормализован, либо объяснимо rejected.</p>
+<p>Свидетельство: <code>CP06/evidence/UI-010</code>; command/result/hash либо manual review record.</p>
+<p><strong>UI-011 — Показывать validation error рядом с полем.</strong></p>
+<p>Checkpoint: CP06. Приоритет: MUST. Проверка: browser.</p>
+<p>Приемка AT-UI-011: Invalid value не приводит к общей бессодержательной ошибке.</p>
+<p>Свидетельство: <code>CP06/evidence/UI-011</code>; command/result/hash либо manual review record.</p>
+<p><strong>UI-012 — Предотвращать запуск invalid scenario.</strong></p>
+<p>Checkpoint: CP06. Приоритет: MUST. Проверка: browser.</p>
+<p>Приемка AT-UI-012: Кнопка недоступна до успешной server validation.</p>
+<p>Свидетельство: <code>CP06/evidence/UI-012</code>; command/result/hash либо manual review record.</p>
+<p><strong>UI-013 — Показывать scientific diff перед запуском.</strong></p>
+<p>Checkpoint: CP06. Приоритет: MUST. Проверка: browser.</p>
+<p>Приемка AT-UI-013: Измененная доза или параметр видны в preview.</p>
+<p>Свидетельство: <code>CP06/evidence/UI-013</code>; command/result/hash либо manual review record.</p>
+<p><strong>UI-014 — Разделять интеграционный шаг и время сохранения кадров.</strong></p>
+<p>Checkpoint: CP06. Приоритет: MUST. Проверка: browser.</p>
+<p>Приемка AT-UI-014: Два controls имеют разные подписи и independent values.</p>
+<p>Свидетельство: <code>CP06/evidence/UI-014</code>; command/result/hash либо manual review record.</p>
+<p><strong>UI-015 — Редактировать treatment events таблично.</strong></p>
+<p>Checkpoint: CP06. Приоритет: MUST. Проверка: browser.</p>
+<p>Приемка AT-UI-015: Add/delete изменяют только выбранную draft row.</p>
+<p>Свидетельство: <code>CP06/evidence/UI-015</code>; command/result/hash либо manual review record.</p>
+<p><strong>UI-016 — Сохранять draft при ошибке сети.</strong></p>
+<p>Checkpoint: CP06. Приоритет: MUST. Проверка: browser.</p>
+<p>Приемка AT-UI-016: После failed submit значения остаются в редакторе.</p>
+<p>Свидетельство: <code>CP06/evidence/UI-016</code>; command/result/hash либо manual review record.</p>
+<p><strong>UI-017 — Обозначать несохраненный draft при уходе.</strong></p>
+<p>Checkpoint: CP06. Приоритет: MUST. Проверка: browser.</p>
+<p>Приемка AT-UI-017: Navigation предоставляет возможность вернуться без потери ввода.</p>
+<p>Свидетельство: <code>CP06/evidence/UI-017</code>; command/result/hash либо manual review record.</p>
+<p><strong>UI-018 — Блокировать повторный submit до ответа.</strong></p>
+<p>Checkpoint: CP06. Приоритет: MUST. Проверка: browser.</p>
+<p>Приемка AT-UI-018: Double click не создает два видимых независимых запуска.</p>
+<p>Свидетельство: <code>CP06/evidence/UI-018</code>; command/result/hash либо manual review record.</p>
+<p><strong>UI-019 — Показывать truthful state при неизвестном прогрессе.</strong></p>
+<p>Checkpoint: CP06. Приоритет: MUST. Проверка: browser.</p>
+<p>Приемка AT-UI-019: Unknown denominator дает spinner и phase без процентов.</p>
+<p>Свидетельство: <code>CP06/evidence/UI-019</code>; command/result/hash либо manual review record.</p>
+<p><strong>UI-020 — Показывать elapsed time отдельно от ETA.</strong></p>
+<p>Checkpoint: CP06. Приоритет: MUST. Проверка: browser.</p>
+<p>Приемка AT-UI-020: ETA отсутствует без measured cost profile.</p>
+<p>Свидетельство: <code>CP06/evidence/UI-020</code>; command/result/hash либо manual review record.</p>
+<p><strong>UI-021 — Обновлять status без ручного reload.</strong></p>
+<p>Checkpoint: CP06. Приоритет: MUST. Проверка: browser.</p>
+<p>Приемка AT-UI-021: Polling отображает terminal state и прекращается после завершения.</p>
+<p>Свидетельство: <code>CP06/evidence/UI-021</code>; command/result/hash либо manual review record.</p>
+<p><strong>UI-022 — Показывать actionable failed/interrupted state.</strong></p>
+<p>Checkpoint: CP06. Приоритет: MUST. Проверка: browser.</p>
+<p>Приемка AT-UI-022: Result page содержит reason и допустимый retry action.</p>
+<p>Свидетельство: <code>CP06/evidence/UI-022</code>; command/result/hash либо manual review record.</p>
+<p><strong>UI-023 — Отображать partial outputs с отдельным статусом.</strong></p>
+<p>Checkpoint: CP06. Приоритет: MUST. Проверка: browser.</p>
+<p>Приемка AT-UI-023: Partial не имеет подписи complete result.</p>
+<p>Свидетельство: <code>CP06/evidence/UI-023</code>; command/result/hash либо manual review record.</p>
+<p><strong>UI-024 — Выбирать только фактически сохраненные frame times.</strong></p>
+<p>Checkpoint: CP06. Приоритет: MUST. Проверка: browser.</p>
+<p>Приемка AT-UI-024: Slider labels совпадают с frames endpoint.</p>
+<p>Свидетельство: <code>CP06/evidence/UI-024</code>; command/result/hash либо manual review record.</p>
+<p><strong>UI-025 — Синхронизировать график и пространственные views по frame.</strong></p>
+<p>Checkpoint: CP06. Приоритет: MUST. Проверка: browser.</p>
+<p>Приемка AT-UI-025: Выбранный time одинаков в graph marker, slice metadata и 3D metadata.</p>
+<p>Свидетельство: <code>CP06/evidence/UI-025</code>; command/result/hash либо manual review record.</p>
+<p><strong>UI-026 — Игнорировать устаревшие frame responses.</strong></p>
+<p>Checkpoint: CP06. Приоритет: MUST. Проверка: browser.</p>
+<p>Приемка AT-UI-026: Быстрое переключение оставляет последний выбранный frame.</p>
+<p>Свидетельство: <code>CP06/evidence/UI-026</code>; command/result/hash либо manual review record.</p>
+<p><strong>UI-027 — Не подписывать старое изображение новым временем при loading.</strong></p>
+<p>Checkpoint: CP06. Приоритет: MUST. Проверка: browser.</p>
+<p>Приемка AT-UI-027: Во время pending response виден loading с прежним frame identity.</p>
+<p>Свидетельство: <code>CP06/evidence/UI-027</code>; command/result/hash либо manual review record.</p>
+<p><strong>UI-028 — Проигрывать только сохраненную trajectory.</strong></p>
+<p>Checkpoint: CP06. Приоритет: MUST. Проверка: browser.</p>
+<p>Приемка AT-UI-028: Play меняет saved index без fake solver progress.</p>
+<p>Свидетельство: <code>CP06/evidence/UI-028</code>; command/result/hash либо manual review record.</p>
+<p><strong>UI-029 — Предоставлять управление slice с клавиатуры.</strong></p>
+<p>Checkpoint: CP06. Приоритет: MUST. Проверка: browser.</p>
+<p>Приемка AT-UI-029: Arrow keys меняют разрешенный slice index.</p>
+<p>Свидетельство: <code>CP06/evidence/UI-029</code>; command/result/hash либо manual review record.</p>
+<p><strong>UI-030 — Отображать physical location и plane.</strong></p>
+<p>Checkpoint: CP06. Приоритет: MUST. Проверка: browser.</p>
+<p>Приемка AT-UI-030: Plane name и координата получены из geometry.</p>
+<p>Свидетельство: <code>CP06/evidence/UI-030</code>; command/result/hash либо manual review record.</p>
+<p><strong>UI-031 — Разделять MRI window и density color scale.</strong></p>
+<p>Checkpoint: CP06. Приоритет: MUST. Проверка: browser.</p>
+<p>Приемка AT-UI-031: Изменение MRI window не меняет scientific threshold.</p>
+<p>Свидетельство: <code>CP06/evidence/UI-031</code>; command/result/hash либо manual review record.</p>
+<p><strong>UI-032 — Показывать L/R только после orientation validation.</strong></p>
+<p>Checkpoint: CP06. Приоритет: MUST. Проверка: browser.</p>
+<p>Приемка AT-UI-032: Fixture с неподтвержденной orientation не показывает произвольные L/R.</p>
+<p>Свидетельство: <code>CP06/evidence/UI-032</code>; command/result/hash либо manual review record.</p>
+<p><strong>UI-033 — Оставлять график и 2D доступными при WebGL failure.</strong></p>
+<p>Checkpoint: CP06. Приоритет: MUST. Проверка: browser.</p>
+<p>Приемка AT-UI-033: Ошибка 3D не блокирует прочие вкладки.</p>
+<p>Свидетельство: <code>CP06/evidence/UI-033</code>; command/result/hash либо manual review record.</p>
+<p><strong>UI-034 — Объяснять отсутствие isosurface при threshold.</strong></p>
+<p>Checkpoint: CP06. Приоритет: MUST. Проверка: browser.</p>
+<p>Приемка AT-UI-034: Пустой mesh дает текст без общей ошибки run.</p>
+<p>Свидетельство: <code>CP06/evidence/UI-034</code>; command/result/hash либо manual review record.</p>
+<p><strong>UI-035 — Предоставлять reset camera.</strong></p>
+<p>Checkpoint: CP06. Приоритет: MUST. Проверка: browser.</p>
+<p>Приемка AT-UI-035: Кнопка возвращает воспроизводимый initial view.</p>
+<p>Свидетельство: <code>CP06/evidence/UI-035</code>; command/result/hash либо manual review record.</p>
+<p><strong>UI-036 — Использовать общую density scale в paired view по умолчанию.</strong></p>
+<p>Checkpoint: CP07. Приоритет: MUST. Проверка: browser.</p>
+<p>Приемка AT-UI-036: Одинаковая density имеет одинаковый цвет в обеих панелях.</p>
+<p>Свидетельство: <code>CP07/evidence/UI-036</code>; command/result/hash либо manual review record.</p>
+<p><strong>UI-037 — Показывать различия параметров paired scenarios.</strong></p>
+<p>Checkpoint: CP07. Приоритет: MUST. Проверка: browser.</p>
+<p>Приемка AT-UI-037: Diff table перечисляет все scientific mismatches.</p>
+<p>Свидетельство: <code>CP07/evidence/UI-037</code>; command/result/hash либо manual review record.</p>
+<p><strong>UI-038 — Обозначать политику несовпадающих времен.</strong></p>
+<p>Checkpoint: CP07. Приоритет: MUST. Проверка: browser.</p>
+<p>Приемка AT-UI-038: Nearest/interpolated scalar value подписан явно.</p>
+<p>Свидетельство: <code>CP07/evidence/UI-038</code>; command/result/hash либо manual review record.</p>
+<p><strong>UI-039 — Показывать unresolved вместо принудительного победителя.</strong></p>
+<p>Checkpoint: CP07. Приоритет: MUST. Проверка: browser.</p>
+<p>Приемка AT-UI-039: Delta внутри epsilon не получает positive winner badge.</p>
+<p>Свидетельство: <code>CP07/evidence/UI-039</code>; command/result/hash либо manual review record.</p>
+<p><strong>UI-040 — Показывать расчетный характер preference.</strong></p>
+<p>Checkpoint: CP07. Приоритет: MUST. Проверка: browser.</p>
+<p>Приемка AT-UI-040: Result text не содержит клинического назначения лечения.</p>
+<p>Свидетельство: <code>CP07/evidence/UI-040</code>; command/result/hash либо manual review record.</p>
+<p><strong>UI-041 — Показывать размер и тип export до скачивания.</strong></p>
+<p>Checkpoint: CP07. Приоритет: MUST. Проверка: browser.</p>
+<p>Приемка AT-UI-041: Compact/full options имеют состав и asset restrictions.</p>
+<p>Свидетельство: <code>CP07/evidence/UI-041</code>; command/result/hash либо manual review record.</p>
+<p><strong>UI-042 — Показывать storage usage по категориям.</strong></p>
+<p>Checkpoint: CP07. Приоритет: MUST. Проверка: browser.</p>
+<p>Приемка AT-UI-042: Overview разделяет raw data, outputs, cache и environment estimate.</p>
+<p>Свидетельство: <code>CP07/evidence/UI-042</code>; command/result/hash либо manual review record.</p>
+<p><strong>UI-043 — Подтверждать cleanup после dependency preview.</strong></p>
+<p>Checkpoint: CP07. Приоритет: MUST. Проверка: browser.</p>
+<p>Приемка AT-UI-043: Удаление требует выбора конкретного набора artifacts.</p>
+<p>Свидетельство: <code>CP07/evidence/UI-043</code>; command/result/hash либо manual review record.</p>
+<p><strong>UI-044 — Проводить study setup через последовательный wizard.</strong></p>
+<p>Checkpoint: CP08. Приоритет: MUST. Проверка: browser.</p>
+<p>Приемка AT-UI-044: Пропуск обязательного endpoint/seed не позволяет freeze.</p>
+<p>Свидетельство: <code>CP08/evidence/UI-044</code>; command/result/hash либо manual review record.</p>
+<p><strong>UI-045 — Показывать число evaluations до запуска study.</strong></p>
+<p>Checkpoint: CP08. Приоритет: MUST. Проверка: browser.</p>
+<p>Приемка AT-UI-045: Число совпадает с замороженной execution matrix.</p>
+<p>Свидетельство: <code>CP08/evidence/UI-045</code>; command/result/hash либо manual review record.</p>
+<p><strong>UI-046 — Оставлять frozen protocol read-only.</strong></p>
+<p>Checkpoint: CP08. Приоритет: MUST. Проверка: browser.</p>
+<p>Приемка AT-UI-046: Изменение settings создает новый draft version.</p>
+<p>Свидетельство: <code>CP08/evidence/UI-046</code>; command/result/hash либо manual review record.</p>
+<p><strong>UI-047 — Показывать requested/completed/failed/paired counts.</strong></p>
+<p>Checkpoint: CP08. Приоритет: MUST. Проверка: browser.</p>
+<p>Приемка AT-UI-047: Counts сверяются с child table, failures не скрыты.</p>
+<p>Свидетельство: <code>CP08/evidence/UI-047</code>; command/result/hash либо manual review record.</p>
+<p><strong>UI-048 — Отличать viewport filter от primary scientific summary.</strong></p>
+<p>Checkpoint: CP08. Приоритет: MUST. Проверка: browser.</p>
+<p>Приемка AT-UI-048: Фильтр плохих rows не меняет frozen primary aggregate.</p>
+<p>Свидетельство: <code>CP08/evidence/UI-048</code>; command/result/hash либо manual review record.</p>
+<p><strong>UI-049 — Отображать assumptions распределения виртуальных subjects.</strong></p>
+<p>Checkpoint: CP08. Приоритет: MUST. Проверка: browser.</p>
+<p>Приемка AT-UI-049: Cohort page не называет uniform samples реальной популяцией.</p>
+<p>Свидетельство: <code>CP08/evidence/UI-049</code>; command/result/hash либо manual review record.</p>
+<p><strong>UI-050 — Показывать метод и диапазоны sensitivity chart.</strong></p>
+<p>Checkpoint: CP08. Приоритет: MUST. Проверка: browser.</p>
+<p>Приемка AT-UI-050: Chart subtitle содержит endpoint, parameter ranges и sample count.</p>
+<p>Свидетельство: <code>CP08/evidence/UI-050</code>; command/result/hash либо manual review record.</p>
+<p><strong>UI-051 — Иметь labels и видимый focus для interactive controls.</strong></p>
+<p>Checkpoint: CP06. Приоритет: MUST. Проверка: browser.</p>
+<p>Приемка AT-UI-051: Keyboard smoke проходит основной путь без мыши.</p>
+<p>Свидетельство: <code>CP06/evidence/UI-051</code>; command/result/hash либо manual review record.</p>
+<p><strong>UI-052 — Передавать статус текстом помимо цвета.</strong></p>
+<p>Checkpoint: CP06. Приоритет: MUST. Проверка: browser.</p>
+<p>Приемка AT-UI-052: Color-disabled screenshot сохраняет смысл queued/failed/succeeded.</p>
+<p>Свидетельство: <code>CP06/evidence/UI-052</code>; command/result/hash либо manual review record.</p>
+<p><strong>UI-053 — Сохранять основной путь на 1366×768.</strong></p>
+<p>Checkpoint: CP06. Приоритет: MUST. Проверка: browser.</p>
+<p>Приемка AT-UI-053: Основные actions видны, body не требует горизонтального scroll.</p>
+<p>Свидетельство: <code>CP06/evidence/UI-053</code>; command/result/hash либо manual review record.</p>
+<p><strong>UI-054 — Обрабатывать unavailable и error отдельно.</strong></p>
+<p>Checkpoint: CP06. Приоритет: MUST. Проверка: browser.</p>
+<p>Приемка AT-UI-054: Missing engine и network failure имеют разные сообщения.</p>
+<p>Свидетельство: <code>CP06/evidence/UI-054</code>; command/result/hash либо manual review record.</p>
+<h3>NUM Численная корректность</h3>
+<p><strong>NUM-001 — Пройти fidelity TCC на всех контрольных временах.</strong></p>
+<p>Checkpoint: CP03. Приоритет: MUST. Проверка: engine.</p>
+<p>Приемка AT-NUM-001: Max relative TCC error ≤1e−3 по declared near-zero policy.</p>
+<p>Свидетельство: <code>CP03/evidence/NUM-001</code>; command/result/hash либо manual review record.</p>
+<p><strong>NUM-002 — Пройти fidelity normalized fields.</strong></p>
+<p>Checkpoint: CP03. Приоритет: MUST. Проверка: engine.</p>
+<p>Приемка AT-NUM-002: RMSE/carrying-capacity scale ≤1e−4 на каждом контрольном кадре.</p>
+<p>Свидетельство: <code>CP03/evidence/NUM-002</code>; command/result/hash либо manual review record.</p>
+<p><strong>NUM-003 — Проверить logistic ODE против аналитического решения.</strong></p>
+<p>Checkpoint: CP03. Приоритет: MUST. Проверка: numerical.</p>
+<p>Приемка AT-NUM-003: Уменьшение dt дает ожидаемую convergence и recorded error.</p>
+<p>Свидетельство: <code>CP03/evidence/NUM-003</code>; command/result/hash либо manual review record.</p>
+<p><strong>NUM-004 — Проверить mass balance чистой no-flux диффузии.</strong></p>
+<p>Checkpoint: CP03. Приоритет: MUST. Проверка: numerical.</p>
+<p>Приемка AT-NUM-004: Mass error укладывается в dtype-specific declared tolerance.</p>
+<p>Свидетельство: <code>CP03/evidence/NUM-004</code>; command/result/hash либо manual review record.</p>
+<p><strong>NUM-005 — Применять fraction на границе один раз.</strong></p>
+<p>Checkpoint: CP03. Приоритет: MUST. Проверка: numerical.</p>
+<p>Приемка AT-NUM-005: Сегментированный и цельный расчет имеют одинаковый event count.</p>
+<p>Свидетельство: <code>CP03/evidence/NUM-005</code>; command/result/hash либо manual review record.</p>
+<p><strong>NUM-006 — Сопоставить RT/CT semantics с pinned upstream.</strong></p>
+<p>Checkpoint: CP03. Приоритет: MUST. Проверка: engine.</p>
+<p>Приемка AT-NUM-006: Same-time events дают совпадающий direct/adapter result.</p>
+<p>Свидетельство: <code>CP03/evidence/NUM-006</code>; command/result/hash либо manual review record.</p>
+<p><strong>NUM-007 — Измерить time convergence на dt, dt/2 и dt/4.</strong></p>
+<p>Checkpoint: CP03. Приоритет: MUST. Проверка: numerical.</p>
+<p>Приемка AT-NUM-007: Report содержит endpoint differences на одном physical case.</p>
+<p>Свидетельство: <code>CP03/evidence/NUM-007</code>; command/result/hash либо manual review record.</p>
+<p><strong>NUM-008 — Измерить spatial convergence при сопоставимой initialization.</strong></p>
+<p>Checkpoint: CP03. Приоритет: MUST. Проверка: numerical.</p>
+<p>Приемка AT-NUM-008: Report содержит initial physical mass и endpoint errors для двух grids.</p>
+<p>Свидетельство: <code>CP03/evidence/NUM-008</code>; command/result/hash либо manual review record.</p>
+<p><strong>NUM-009 — Отделить scalar sampling error от integration error.</strong></p>
+<p>Checkpoint: CP03. Приоритет: MUST. Проверка: numerical.</p>
+<p>Приемка AT-NUM-009: Изменение scalar interval сравнивается при fixed solver dt.</p>
+<p>Свидетельство: <code>CP03/evidence/NUM-009</code>; command/result/hash либо manual review record.</p>
+<p><strong>NUM-010 — Не менять frozen legacy equations ради lab fidelity.</strong></p>
+<p>Checkpoint: CP03. Приоритет: MUST. Проверка: manual.</p>
+<p>Приемка AT-NUM-010: Diff protected model files проверен; любое изменение обособлено и обосновано.</p>
+<p>Свидетельство: <code>CP03/evidence/NUM-010</code>; command/result/hash либо manual review record.</p>
+<p><strong>NUM-011 — Зафиксировать ranking epsilon до evaluation.</strong></p>
+<p>Checkpoint: CP09. Приоритет: MUST. Проверка: science.</p>
+<p>Приемка AT-NUM-011: Frozen protocol содержит abs/rel/numerical components и scale.</p>
+<p>Свидетельство: <code>CP09/evidence/NUM-011</code>; command/result/hash либо manual review record.</p>
+<p><strong>NUM-012 — Отмечать сравнение внутри numerical resolution как unresolved.</strong></p>
+<p>Checkpoint: CP09. Приоритет: MUST. Проверка: unit.</p>
+<p>Приемка AT-NUM-012: Synthetic near-tie fixture не порождает ложного уверенного ranking.</p>
+<p>Свидетельство: <code>CP09/evidence/NUM-012</code>; command/result/hash либо manual review record.</p>
+<h3>ANA Анализ</h3>
+<p><strong>ANA-001 — Проверять одинаковое initial state при ordinary paired comparison.</strong></p>
+<p>Checkpoint: CP07. Приоритет: MUST. Проверка: unit.</p>
+<p>Приемка AT-ANA-001: Разные initial_state hashes отклоняются как incompatible.</p>
+<p>Свидетельство: <code>CP07/evidence/ANA-001</code>; command/result/hash либо manual review record.</p>
+<p><strong>ANA-002 — Рассчитывать paired delta с документированным знаком.</strong></p>
+<p>Checkpoint: CP07. Приоритет: MUST. Проверка: unit.</p>
+<p>Приемка AT-ANA-002: Lower-is-better fixture дает delta_AB=J_A−J_B.</p>
+<p>Свидетельство: <code>CP07/evidence/ANA-002</code>; command/result/hash либо manual review record.</p>
+<p><strong>ANA-003 — Считать AUC по фактическим scalar times.</strong></p>
+<p>Checkpoint: CP07. Приоритет: MUST. Проверка: unit.</p>
+<p>Приемка AT-ANA-003: Nonuniform analytic trajectory совпадает с trapezoid reference.</p>
+<p>Свидетельство: <code>CP07/evidence/ANA-003</code>; command/result/hash либо manual review record.</p>
+<p><strong>ANA-004 — Считать spatial integral в физических единицах.</strong></p>
+<p>Checkpoint: CP07. Приоритет: MUST. Проверка: unit.</p>
+<p>Приемка AT-ANA-004: Affine-volume fixture совпадает с determinant-based reference.</p>
+<p>Свидетельство: <code>CP07/evidence/ANA-004</code>; command/result/hash либо manual review record.</p>
+<p><strong>ANA-005 — Обрабатывать нулевой denominator как undefined.</strong></p>
+<p>Checkpoint: CP07. Приоритет: MUST. Проверка: unit.</p>
+<p>Приемка AT-ANA-005: API возвращает reason вместо 0/NaN/Inf.</p>
+<p>Свидетельство: <code>CP07/evidence/ANA-005</code>; command/result/hash либо manual review record.</p>
+<p><strong>ANA-006 — Считать local central differences для interior factors.</strong></p>
+<p>Checkpoint: CP08. Приоритет: MUST. Проверка: numerical.</p>
+<p>Приемка AT-ANA-006: Analytic smooth fixture совпадает в declared tolerance.</p>
+<p>Свидетельство: <code>CP08/evidence/ANA-006</code>; command/result/hash либо manual review record.</p>
+<p><strong>ANA-007 — Повторять local sensitivity на h/2.</strong></p>
+<p>Checkpoint: CP08. Приоритет: MUST. Проверка: numerical.</p>
+<p>Приемка AT-ANA-007: Report содержит step-sensitivity/error estimate.</p>
+<p>Свидетельство: <code>CP08/evidence/ANA-007</code>; command/result/hash либо manual review record.</p>
+<p><strong>ANA-008 — Применять объявленную one-sided formula на boundary.</strong></p>
+<p>Checkpoint: CP08. Приоритет: MUST. Проверка: numerical.</p>
+<p>Приемка AT-ANA-008: Boundary fixture не создает invalid negative parameter.</p>
+<p>Свидетельство: <code>CP08/evidence/ANA-008</code>; command/result/hash либо manual review record.</p>
+<p><strong>ANA-009 — Выбирать корректное нормирование при zero nominal.</strong></p>
+<p>Checkpoint: CP08. Приоритет: MUST. Проверка: unit.</p>
+<p>Приемка AT-ANA-009: Normalized sensitivity использует declared scale без деления на ноль.</p>
+<p>Свидетельство: <code>CP08/evidence/ANA-009</code>; command/result/hash либо manual review record.</p>
+<p><strong>ANA-010 — Показывать негладкость threshold endpoint.</strong></p>
+<p>Checkpoint: CP08. Приоритет: MUST. Проверка: numerical.</p>
+<p>Приемка AT-ANA-010: Step-dependent fixture получает warning вместо ложного zero influence.</p>
+<p>Свидетельство: <code>CP08/evidence/ANA-010</code>; command/result/hash либо manual review record.</p>
+<p><strong>ANA-011 — Сохранять Morris sample matrix до выполнения.</strong></p>
+<p>Checkpoint: CP08. Приоритет: MUST. Проверка: integration.</p>
+<p>Приемка AT-ANA-011: Digest matrix существует до первого child solve.</p>
+<p>Свидетельство: <code>CP08/evidence/ANA-011</code>; command/result/hash либо manual review record.</p>
+<p><strong>ANA-012 — Воспроизводить Morris design по seed и pinned sampler.</strong></p>
+<p>Checkpoint: CP08. Приоритет: MUST. Проверка: unit.</p>
+<p>Приемка AT-ANA-012: Повтор дает ту же matrix в зарегистрированном environment.</p>
+<p>Свидетельство: <code>CP08/evidence/ANA-012</code>; command/result/hash либо manual review record.</p>
+<p><strong>ANA-013 — Проверять r(k+1) evaluations в independent Morris design.</strong></p>
+<p>Checkpoint: CP08. Приоритет: MUST. Проверка: unit.</p>
+<p>Приемка AT-ANA-013: Plan preview совпадает с matrix rows до reuse.</p>
+<p>Свидетельство: <code>CP08/evidence/ANA-013</code>; command/result/hash либо manual review record.</p>
+<p><strong>ANA-014 — Возвращать mu, mu_star и sigma с методическими labels.</strong></p>
+<p>Checkpoint: CP08. Приоритет: MUST. Проверка: unit.</p>
+<p>Приемка AT-ANA-014: Result schema не называет их Sobol indices или identifiability.</p>
+<p>Свидетельство: <code>CP08/evidence/ANA-014</code>; command/result/hash либо manual review record.</p>
+<p><strong>ANA-015 — Не подавать discrete schedules как continuous factors.</strong></p>
+<p>Checkpoint: CP08. Приоритет: MUST. Проверка: unit.</p>
+<p>Приемка AT-ANA-015: Morris validation отклоняет unsupported discrete factor.</p>
+<p>Свидетельство: <code>CP08/evidence/ANA-015</code>; command/result/hash либо manual review record.</p>
+<p><strong>ANA-016 — Сохранять immutable subject table виртуальной когорты.</strong></p>
+<p>Checkpoint: CP08. Приоритет: MUST. Проверка: unit.</p>
+<p>Приемка AT-ANA-016: Seeded LHS repeat дает исходный table hash.</p>
+<p>Свидетельство: <code>CP08/evidence/ANA-016</code>; command/result/hash либо manual review record.</p>
+<p><strong>ANA-017 — Использовать одинаковые subject parameters во всех scenarios.</strong></p>
+<p>Checkpoint: CP08. Приоритет: MUST. Проверка: integration.</p>
+<p>Приемка AT-ANA-017: Pair matrix имеет общую subject row для каждого comparator.</p>
+<p>Свидетельство: <code>CP08/evidence/ANA-017</code>; command/result/hash либо manual review record.</p>
+<p><strong>ANA-018 — Учитывать неполные пары в denominators.</strong></p>
+<p>Checkpoint: CP08. Приоритет: MUST. Проверка: unit.</p>
+<p>Приемка AT-ANA-018: Failure fixture показывает planned N и меньший complete-pair N.</p>
+<p>Свидетельство: <code>CP08/evidence/ANA-018</code>; command/result/hash либо manual review record.</p>
+<p><strong>ANA-019 — Различать geometry count и parameter realization count.</strong></p>
+<p>Checkpoint: CP08. Приоритет: MUST. Проверка: unit.</p>
+<p>Приемка AT-ANA-019: Report содержит оба значения и не называет N samples пациентами.</p>
+<p>Свидетельство: <code>CP08/evidence/ANA-019</code>; command/result/hash либо manual review record.</p>
+<p><strong>ANA-020 — Рассчитать forecast normalized density RMSE на future frames.</strong></p>
+<p>Checkpoint: CP10. Приоритет: MUST. Проверка: unit.</p>
+<p>Приемка AT-ANA-020: Analytic fixture подтверждает формулу и единый carrying-capacity scale.</p>
+<p>Свидетельство: <code>CP10/evidence/ANA-020</code>; command/result/hash либо manual review record.</p>
+<h3>SCI Научный протокол</h3>
+<p><strong>SCI-001 — Зафиксировать question и primary endpoint статьи A.</strong></p>
+<p>Checkpoint: CP09. Приоритет: MUST. Проверка: science.</p>
+<p>Приемка AT-SCI-001: Protocol S-A содержит hypothesis/measurements и benchmark matrix.</p>
+<p>Свидетельство: <code>CP09/evidence/SCI-001</code>; command/result/hash либо manual review record.</p>
+<p><strong>SCI-002 — Зафиксировать question и primary statistic статьи B.</strong></p>
+<p>Checkpoint: CP09. Приоритет: MUST. Проверка: science.</p>
+<p>Приемка AT-SCI-002: Protocol S-B содержит однозначный estimand и undefined policy.</p>
+<p>Свидетельство: <code>CP09/evidence/SCI-002</code>; command/result/hash либо manual review record.</p>
+<p><strong>SCI-003 — Зафиксировать schedules до основной серии.</strong></p>
+<p>Checkpoint: CP09. Приоритет: MUST. Проверка: science.</p>
+<p>Приемка AT-SCI-003: Protocol hash включает baseline и два comparator event tables.</p>
+<p>Свидетельство: <code>CP09/evidence/SCI-003</code>; command/result/hash либо manual review record.</p>
+<p><strong>SCI-004 — Обосновать ranges каждого factor.</strong></p>
+<p>Checkpoint: CP09. Приоритет: MUST. Проверка: science.</p>
+<p>Приемка AT-SCI-004: Для bounds указан primary source или explicit assumption.</p>
+<p>Свидетельство: <code>CP09/evidence/SCI-004</code>; command/result/hash либо manual review record.</p>
+<p><strong>SCI-005 — Разделить pilot, development и evaluation seeds.</strong></p>
+<p>Checkpoint: CP09. Приоритет: MUST. Проверка: science.</p>
+<p>Приемка AT-SCI-005: Freeze включает 1105, 2205 и 3305 либо обоснованную новую версию до запуска.</p>
+<p>Свидетельство: <code>CP09/evidence/SCI-005</code>; command/result/hash либо manual review record.</p>
+<p><strong>SCI-006 — Выбрать design по measured feasibility rule.</strong></p>
+<p>Checkpoint: CP09. Приоритет: MUST. Проверка: science.</p>
+<p>Приемка AT-SCI-006: Budget worksheet содержит solves, upper cost estimate и 30% reserve.</p>
+<p>Свидетельство: <code>CP09/evidence/SCI-006</code>; command/result/hash либо manual review record.</p>
+<p><strong>SCI-007 — Зафиксировать failure/missing-data policy до evaluation.</strong></p>
+<p>Checkpoint: CP09. Приоритет: MUST. Проверка: science.</p>
+<p>Приемка AT-SCI-007: Протокол определяет retry, denominators и допустимость conclusion.</p>
+<p>Свидетельство: <code>CP09/evidence/SCI-007</code>; command/result/hash либо manual review record.</p>
+<p><strong>SCI-008 — Зафиксировать output retention для всей серии.</strong></p>
+<p>Checkpoint: CP09. Приоритет: MUST. Проверка: science.</p>
+<p>Приемка AT-SCI-008: Full-field subjects выбраны до outcomes; остальные scalar policy.</p>
+<p>Свидетельство: <code>CP09/evidence/SCI-008</code>; command/result/hash либо manual review record.</p>
+<p><strong>SCI-009 — Фиксировать protocol hash до первого evaluation solve.</strong></p>
+<p>Checkpoint: CP09. Приоритет: MUST. Проверка: integration.</p>
+<p>Приемка AT-SCI-009: Timestamp и hash существуют в execution receipt до результата.</p>
+<p>Свидетельство: <code>CP09/evidence/SCI-009</code>; command/result/hash либо manual review record.</p>
+<p><strong>SCI-010 — Сохранять все запланированные evaluation rows.</strong></p>
+<p>Checkpoint: CP10. Приоритет: MUST. Проверка: science.</p>
+<p>Приемка AT-SCI-010: Outcomes содержит failed/cancelled rows с reason без замены subject.</p>
+<p>Свидетельство: <code>CP10/evidence/SCI-010</code>; command/result/hash либо manual review record.</p>
+<p><strong>SCI-011 — Не использовать evaluation outputs для tuning.</strong></p>
+<p>Checkpoint: CP10. Приоритет: MUST. Проверка: manual.</p>
+<p>Приемка AT-SCI-011: Изменение candidates требует нового protocol_id и отдельного result set.</p>
+<p>Свидетельство: <code>CP10/evidence/SCI-011</code>; command/result/hash либо manual review record.</p>
+<p><strong>SCI-012 — Вычислять rank reversal с учетом epsilon.</strong></p>
+<p>Checkpoint: CP10. Приоритет: MUST. Проверка: unit.</p>
+<p>Приемка AT-SCI-012: Analytic paired fixture покрывает nominal tie, reversal и unresolved.</p>
+<p>Свидетельство: <code>CP10/evidence/SCI-012</code>; command/result/hash либо manual review record.</p>
+<p><strong>SCI-013 — Различать model uncertainty и Monte Carlo uncertainty.</strong></p>
+<p>Checkpoint: CP10. Приоритет: MUST. Проверка: science.</p>
+<p>Приемка AT-SCI-013: Report labels обозначают sampling design и estimand intervals.</p>
+<p>Свидетельство: <code>CP10/evidence/SCI-013</code>; command/result/hash либо manual review record.</p>
+<p><strong>SCI-014 — Сохранять отрицательные результаты исследования.</strong></p>
+<p>Checkpoint: CP10. Приоритет: MUST. Проверка: science.</p>
+<p>Приемка AT-SCI-014: Вывод no established effect доступен при нулевом reversal без подбора нового endpoint.</p>
+<p>Свидетельство: <code>CP10/evidence/SCI-014</code>; command/result/hash либо manual review record.</p>
+<p><strong>SCI-015 — Не называть synthetic evaluation clinical validation.</strong></p>
+<p>Checkpoint: CP10. Приоритет: MUST. Проверка: manual.</p>
+<p>Приемка AT-SCI-015: Generated report содержит context of use и data kind.</p>
+<p>Свидетельство: <code>CP10/evidence/SCI-015</code>; command/result/hash либо manual review record.</p>
+<p><strong>SCI-016 — Разделять CT background и изменяемые RT candidates.</strong></p>
+<p>Checkpoint: CP10. Приоритет: MUST. Проверка: science.</p>
+<p>Приемка AT-SCI-016: Scenario diff подтверждает одинаковые CT inputs в первой RT study.</p>
+<p>Свидетельство: <code>CP10/evidence/SCI-016</code>; command/result/hash либо manual review record.</p>
+<p><strong>SCI-017 — Учитывать равенство dose constraints при treatment comparison.</strong></p>
+<p>Checkpoint: CP10. Приоритет: MUST. Проверка: science.</p>
+<p>Приемка AT-SCI-017: Total RT dose и fraction count сопоставляются до результатов.</p>
+<p>Свидетельство: <code>CP10/evidence/SCI-017</code>; command/result/hash либо manual review record.</p>
+<p><strong>SCI-018 — Зафиксировать synthetic forecast cutoff на пятом author visit.</strong></p>
+<p>Checkpoint: CP09. Приоритет: MUST. Проверка: science.</p>
+<p>Приемка AT-SCI-018: Frozen forecast protocol перечисляет первые пять fit visits и future evaluation visits.</p>
+<p>Свидетельство: <code>CP09/evidence/SCI-018</code>; command/result/hash либо manual review record.</p>
+<p><strong>SCI-019 — Сохранить synthetic forecast fields до чтения future targets.</strong></p>
+<p>Checkpoint: CP10. Приоритет: MUST. Проверка: science.</p>
+<p>Приемка AT-SCI-019: Prediction seal timestamp и execution log предшествуют evaluator decoding.</p>
+<p>Свидетельство: <code>CP10/evidence/SCI-019</code>; command/result/hash либо manual review record.</p>
+<p><strong>SCI-020 — Сравнить forecast с persistence последнего доступного состояния.</strong></p>
+<p>Checkpoint: CP10. Приоритет: MUST. Проверка: science.</p>
+<p>Приемка AT-SCI-020: Отчет содержит одни future targets для model и persistence.</p>
+<p>Свидетельство: <code>CP10/evidence/SCI-020</code>; command/result/hash либо manual review record.</p>
+<p><strong>SCI-021 — Сохранить author fixed-parameter comparator в forecast demo.</strong></p>
+<p>Checkpoint: CP10. Приоритет: MUST. Проверка: science.</p>
+<p>Приемка AT-SCI-021: Comparator использует тот же cutoff/horizon без fit по future visits.</p>
+<p>Свидетельство: <code>CP10/evidence/SCI-021</code>; command/result/hash либо manual review record.</p>
+<h3>NFR Нефункциональные свойства</h3>
+<p><strong>NFR-001 — Использовать localhost binding по умолчанию.</strong></p>
+<p>Checkpoint: CP04. Приоритет: MUST. Проверка: integration.</p>
+<p>Приемка AT-NFR-001: Remote interface не включен default config.</p>
+<p>Свидетельство: <code>CP04/evidence/NFR-001</code>; command/result/hash либо manual review record.</p>
+<p><strong>NFR-002 — Ограничивать CORS configured local origins.</strong></p>
+<p>Checkpoint: CP04. Приоритет: MUST. Проверка: integration.</p>
+<p>Приемка AT-NFR-002: Unlisted origin не получает permissive response.</p>
+<p>Свидетельство: <code>CP04/evidence/NFR-002</code>; command/result/hash либо manual review record.</p>
+<p><strong>NFR-003 — Не принимать произвольный код из API payload.</strong></p>
+<p>Checkpoint: CP04. Приоритет: MUST. Проверка: integration.</p>
+<p>Приемка AT-NFR-003: Executable/module/pickle inputs rejected.</p>
+<p>Свидетельство: <code>CP04/evidence/NFR-003</code>; command/result/hash либо manual review record.</p>
+<p><strong>NFR-004 — Соблюдать статусный API latency во время solve.</strong></p>
+<p>Checkpoint: CP05. Приоритет: MUST. Проверка: integration.</p>
+<p>Приемка AT-NFR-004: На fixture p95 ≤1 s по 30 запросам после warmup.</p>
+<p>Свидетельство: <code>CP05/evidence/NFR-004</code>; command/result/hash либо manual review record.</p>
+<p><strong>NFR-005 — Соблюдать lightweight API latency без solve.</strong></p>
+<p>Checkpoint: CP04. Приоритет: MUST. Проверка: integration.</p>
+<p>Приемка AT-NFR-005: На fixture p95 ≤500 ms с hardware receipt.</p>
+<p>Свидетельство: <code>CP04/evidence/NFR-005</code>; command/result/hash либо manual review record.</p>
+<p><strong>NFR-006 — Подтверждать cancel в UI быстро.</strong></p>
+<p>Checkpoint: CP05. Приоритет: MUST. Проверка: browser.</p>
+<p>Приемка AT-NFR-006: После успешного POST visible cancel_requested ≤1 s.</p>
+<p>Свидетельство: <code>CP05/evidence/NFR-006</code>; command/result/hash либо manual review record.</p>
+<p><strong>NFR-007 — Ограничивать прекращение собственного worker по времени.</strong></p>
+<p>Checkpoint: CP05. Приоритет: MUST. Проверка: integration.</p>
+<p>Приемка AT-NFR-007: Controlled worker stopped ≤10 s после cancel при declared mechanism.</p>
+<p>Свидетельство: <code>CP05/evidence/NFR-007</code>; command/result/hash либо manual review record.</p>
+<p><strong>NFR-008 — Учитывать default runtime storage limit 8 GiB.</strong></p>
+<p>Checkpoint: CP07. Приоритет: MUST. Проверка: integration.</p>
+<p>Приемка AT-NFR-008: Quota test считает tmp и exports вместе с outputs.</p>
+<p>Свидетельство: <code>CP07/evidence/NFR-008</code>; command/result/hash либо manual review record.</p>
+<p><strong>NFR-009 — Ограничивать default dense frames числом 21.</strong></p>
+<p>Checkpoint: CP07. Приоритет: MUST. Проверка: unit.</p>
+<p>Приемка AT-NFR-009: Plan с большим числом требует explicit allowed config change.</p>
+<p>Свидетельство: <code>CP07/evidence/NFR-009</code>; command/result/hash либо manual review record.</p>
+<p><strong>NFR-010 — Ограничивать submit числом 256 queued children.</strong></p>
+<p>Checkpoint: CP08. Приоритет: MUST. Проверка: integration.</p>
+<p>Приемка AT-NFR-010: Oversized batch rejected до создания частичной очереди.</p>
+<p>Свидетельство: <code>CP08/evidence/NFR-010</code>; command/result/hash либо manual review record.</p>
+<p><strong>NFR-011 — Фиксировать точные app и engine environments отдельно.</strong></p>
+<p>Checkpoint: CP12. Приоритет: MUST. Проверка: manual.</p>
+<p>Приемка AT-NFR-011: Release содержит lock/constraints и environment manifests.</p>
+<p>Свидетельство: <code>CP12/evidence/NFR-011</code>; command/result/hash либо manual review record.</p>
+<p><strong>NFR-012 — Обновить cache version при численно значимом изменении.</strong></p>
+<p>Checkpoint: CP12. Приоритет: MUST. Проверка: unit.</p>
+<p>Приемка AT-NFR-012: Regression fixture старого cache не переиспользуется новым solver contract.</p>
+<p>Свидетельство: <code>CP12/evidence/NFR-012</code>; command/result/hash либо manual review record.</p>
+<h3>TST Проверки</h3>
+<p><strong>TST-001 — Хранить реальный engine fidelity test отдельно от fast CI.</strong></p>
+<p>Checkpoint: CP03. Приоритет: MUST. Проверка: manual.</p>
+<p>Приемка AT-TST-001: Smoke job документирует необходимые assets и не скачивает полную коллекцию.</p>
+<p>Свидетельство: <code>CP03/evidence/TST-001</code>; command/result/hash либо manual review record.</p>
+<p><strong>TST-002 — Проверять crash/retry через controlled worker.</strong></p>
+<p>Checkpoint: CP05. Приоритет: MUST. Проверка: integration.</p>
+<p>Приемка AT-TST-002: Failure matrix покрывает fail, timeout, cancel и interrupted.</p>
+<p>Свидетельство: <code>CP05/evidence/TST-002</code>; command/result/hash либо manual review record.</p>
+<p><strong>TST-003 — Проверить browser path через реальный backend.</strong></p>
+<p>Checkpoint: CP06. Приоритет: MUST. Проверка: browser.</p>
+<p>Приемка AT-TST-003: Smoke проходит edit→run→saved frame без подмены API static JSON.</p>
+<p>Свидетельство: <code>CP06/evidence/TST-003</code>; command/result/hash либо manual review record.</p>
+<p><strong>TST-004 — Проверить export/replay вне исходного workspace.</strong></p>
+<p>Checkpoint: CP07. Приоритет: MUST. Проверка: engine.</p>
+<p>Приемка AT-TST-004: Fresh-directory receipt содержит matched results и input preparation instructions.</p>
+<p>Свидетельство: <code>CP07/evidence/TST-004</code>; command/result/hash либо manual review record.</p>
+<p><strong>TST-005 — Воспроизводить analysis из сохраненных outcomes.</strong></p>
+<p>Checkpoint: CP10. Приоритет: MUST. Проверка: science.</p>
+<p>Приемка AT-TST-005: Один analysis command дает те же tables и figures по immutable inputs.</p>
+<p>Свидетельство: <code>CP10/evidence/TST-005</code>; command/result/hash либо manual review record.</p>
+<p><strong>TST-006 — Пройти полную Python suite на итоговом commit.</strong></p>
+<p>Checkpoint: CP12. Приоритет: MUST. Проверка: integration.</p>
+<p>Приемка AT-TST-006: Release receipt содержит command, environment, count и exit code 0.</p>
+<p>Свидетельство: <code>CP12/evidence/TST-006</code>; command/result/hash либо manual review record.</p>
+<p><strong>TST-007 — Пройти frontend lint и build на итоговом commit.</strong></p>
+<p>Checkpoint: CP12. Приоритет: MUST. Проверка: integration.</p>
+<p>Приемка AT-TST-007: Release receipt содержит оба exit code 0.</p>
+<p>Свидетельство: <code>CP12/evidence/TST-007</code>; command/result/hash либо manual review record.</p>
+<p><strong>TST-008 — Подтвердить GitHub CI для точного итогового commit.</strong></p>
+<p>Checkpoint: CP12. Приоритет: MUST. Проверка: manual.</p>
+<p>Приемка AT-TST-008: Ссылка на run совпадает с release SHA, не с предыдущим green run.</p>
+<p>Свидетельство: <code>CP12/evidence/TST-008</code>; command/result/hash либо manual review record.</p>
+<p><strong>TST-009 — Проверить no-CFB путь в чистом workspace.</strong></p>
+<p>Checkpoint: CP12. Приоритет: MUST. Проверка: browser.</p>
+<p>Приемка AT-TST-009: Release smoke не использует старые patient caches или atlas.</p>
+<p>Свидетельство: <code>CP12/evidence/TST-009</code>; command/result/hash либо manual review record.</p>
+<p><strong>TST-010 — Закрыть каждый MUST evidence ссылкой.</strong></p>
+<p>Checkpoint: CP12. Приоритет: MUST. Проверка: manual.</p>
+<p>Приемка AT-TST-010: Acceptance matrix не содержит pass без artifact/test receipt.</p>
+<p>Свидетельство: <code>CP12/evidence/TST-010</code>; command/result/hash либо manual review record.</p>
+<h3>PUB Публикационные материалы</h3>
+<p><strong>PUB-001 — Подготовить методы и результаты статьи A по фактическим измерениям.</strong></p>
+<p>Checkpoint: CP11. Приоритет: MUST. Проверка: manual.</p>
+<p>Приемка AT-PUB-001: Каждая quantitative claim связана с immutable benchmark artifact.</p>
+<p>Свидетельство: <code>CP11/evidence/PUB-001</code>; command/result/hash либо manual review record.</p>
+<p><strong>PUB-002 — Подготовить методы и результаты статьи B по frozen protocol.</strong></p>
+<p>Checkpoint: CP11. Приоритет: MUST. Проверка: manual.</p>
+<p>Приемка AT-PUB-002: Primary statistic и failures совпадают с S-B, включая negative outcomes.</p>
+<p>Свидетельство: <code>CP11/evidence/PUB-002</code>; command/result/hash либо manual review record.</p>
+<p><strong>PUB-003 — Сгенерировать publication figures из analysis script.</strong></p>
+<p>Checkpoint: CP11. Приоритет: MUST. Проверка: science.</p>
+<p>Приемка AT-PUB-003: Figure provenance содержит source table hash и rendering settings.</p>
+<p>Свидетельство: <code>CP11/evidence/PUB-003</code>; command/result/hash либо manual review record.</p>
+<p><strong>PUB-004 — Разделить опубликованные аналоги и собственный вклад.</strong></p>
+<p>Checkpoint: CP11. Приоритет: MUST. Проверка: manual.</p>
+<p>Приемка AT-PUB-004: Related work не приписывает TumorTwin features автору проекта.</p>
+<p>Свидетельство: <code>CP11/evidence/PUB-004</code>; command/result/hash либо manual review record.</p>
+<p><strong>PUB-005 — Раскрыть AI assistance и проверки корректности по правилам выбранного журнала.</strong></p>
+<p>Checkpoint: CP11. Приоритет: MUST. Проверка: manual.</p>
+<p>Приемка AT-PUB-005: AUTHORSHIP_AND_AI.md содержит реальные роли и verification, без фиктивных авторов.</p>
+<p>Свидетельство: <code>CP11/evidence/PUB-005</code>; command/result/hash либо manual review record.</p>
+<p><strong>PUB-006 — Указать ограничения моделей и данных в обеих статьях.</strong></p>
+<p>Checkpoint: CP11. Приоритет: MUST. Проверка: manual.</p>
+<p>Приемка AT-PUB-006: Limitations перечисляет synthetic geometry, assumptions и отсутствие clinical proof.</p>
+<p>Свидетельство: <code>CP11/evidence/PUB-006</code>; command/result/hash либо manual review record.</p>
+<p><strong>PUB-007 — Подготовить quickstart для нового исследователя.</strong></p>
+<p>Checkpoint: CP12. Приоритет: MUST. Проверка: manual.</p>
+<p>Приемка AT-PUB-007: Fresh user может подготовить case и повторить baseline по инструкции.</p>
+<p>Свидетельство: <code>CP12/evidence/PUB-007</code>; command/result/hash либо manual review record.</p>
+<p><strong>PUB-008 — Подготовить changelog и known limitations release.</strong></p>
+<p>Checkpoint: CP12. Приоритет: MUST. Проверка: manual.</p>
+<p>Приемка AT-PUB-008: Документы различают implemented, measured, unverified и LATER.</p>
+<p>Свидетельство: <code>CP12/evidence/PUB-008</code>; command/result/hash либо manual review record.</p>
+<p><strong>PUB-009 — Подготовить compact reproduction archive без запрещенных assets.</strong></p>
+<p>Checkpoint: CP12. Приоритет: MUST. Проверка: integration.</p>
+<p>Приемка AT-PUB-009: Архив содержит manifests, scripts/config refs, metrics и hashes.</p>
+<p>Свидетельство: <code>CP12/evidence/PUB-009</code>; command/result/hash либо manual review record.</p>
+<p><strong>PUB-010 — Сохранить статус исследования отдельно от статуса ПО.</strong></p>
+<p>Checkpoint: CP12. Приоритет: MUST. Проверка: manual.</p>
+<p>Приемка AT-PUB-010: Если study incomplete, project не помечен fully complete.</p>
+<p>Свидетельство: <code>CP12/evidence/PUB-010</code>; command/result/hash либо manual review record.</p>
+<p><strong>PUB-011 — Указать synthetic longitudinal forecasting limitations.</strong></p>
+<p>Checkpoint: CP11. Приоритет: MUST. Проверка: manual.</p>
+<p>Приемка AT-PUB-011: Результат не называется проверкой прогноза на реальных пациентах.</p>
+<p>Свидетельство: <code>CP11/evidence/PUB-011</code>; command/result/hash либо manual review record.</p>
+<h2 id="section-27">27. Сводная прослеживаемость</h2>
+<table>
+<thead>
+<tr>
+<th>Checkpoint</th>
+<th style="text-align:right">MUST требований</th>
+<th>Граница приемки</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>CP00</td>
+<td style="text-align:right">8</td>
+<td>Все назначенные IDs и evidence выхода раздела 17</td>
+</tr>
+<tr>
+<td>CP01</td>
+<td style="text-align:right">8</td>
+<td>Все назначенные IDs и evidence выхода раздела 17</td>
+</tr>
+<tr>
+<td>CP02</td>
+<td style="text-align:right">18</td>
+<td>Все назначенные IDs и evidence выхода раздела 17</td>
+</tr>
+<tr>
+<td>CP03</td>
+<td style="text-align:right">20</td>
+<td>Все назначенные IDs и evidence выхода раздела 17</td>
+</tr>
+<tr>
+<td>CP04</td>
+<td style="text-align:right">32</td>
+<td>Все назначенные IDs и evidence выхода раздела 17</td>
+</tr>
+<tr>
+<td>CP05</td>
+<td style="text-align:right">23</td>
+<td>Все назначенные IDs и evidence выхода раздела 17</td>
+</tr>
+<tr>
+<td>CP06</td>
+<td style="text-align:right">45</td>
+<td>Все назначенные IDs и evidence выхода раздела 17</td>
+</tr>
+<tr>
+<td>CP07</td>
+<td style="text-align:right">30</td>
+<td>Все назначенные IDs и evidence выхода раздела 17</td>
+</tr>
+<tr>
+<td>CP08</td>
+<td style="text-align:right">25</td>
+<td>Все назначенные IDs и evidence выхода раздела 17</td>
+</tr>
+<tr>
+<td>CP09</td>
+<td style="text-align:right">14</td>
+<td>Все назначенные IDs и evidence выхода раздела 17</td>
+</tr>
+<tr>
+<td>CP10</td>
+<td style="text-align:right">13</td>
+<td>Все назначенные IDs и evidence выхода раздела 17</td>
+</tr>
+<tr>
+<td>CP11</td>
+<td style="text-align:right">7</td>
+<td>Все назначенные IDs и evidence выхода раздела 17</td>
+</tr>
+<tr>
+<td>CP12</td>
+<td style="text-align:right">13</td>
+<td>Все назначенные IDs и evidence выхода раздела 17</td>
+</tr>
+</tbody>
+</table>
+<p>CSV <a href="02_REQUIREMENTS.csv">02_REQUIREMENTS.csv</a> содержит тот же реестр; <a href="07_ACCEPTANCE_TRACKER.csv">07_ACCEPTANCE_TRACKER.csv</a> — начальный журнал статусов. После реализации статусы изменяются только в tracker/progress и evidence; нормативный текст требования не переписывается ради результата.</p>
+<h2 id="section-28">28. Указатель источников</h2>
+<p>Полные библиографические сведения, уровень доступа и ограничения анализа: <a href="03_RESEARCH_BASIS.md">03_RESEARCH_BASIS.md</a>.</p>
+<ul>
+<li><a href="https://link.springer.com/article/10.1186/s12911-026-03520-2">S01</a></li>
+<li><a href="https://oncologymodelinggroup.github.io/TumorTwin/tutorials/HGG_Demo/">S02</a></li>
+<li><a href="https://github.com/OncologyModelingGroup/TumorTwin/blob/bedf90a6d47ba48cf5cdb25901967d84730061d1/LICENSE.md">S03</a></li>
+<li><a href="https://www.frontiersin.org/journals/artificial-intelligence/articles/10.3389/frai.2023.1222612/full">S04</a></li>
+<li><a href="https://arxiv.org/abs/2505.08927">S05</a></li>
+<li><a href="https://ohsu.elsevierpure.com/en/publications/mri-based-bayesian-personalization-of-a-tumor-growth-model/">S06</a></li>
+<li><a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC3784027/">S07</a></li>
+<li><a href="https://ascopubs.org/doi/abs/10.1200/JCO.23.01059">S08</a></li>
+<li><a href="https://www.cancerimagingarchive.net/collection/cfb-gbm/">S09</a></li>
+<li><a href="https://salib.readthedocs.io/en/stable/api/SALib.sample.morris.html">S10</a></li>
+<li><a href="https://www.sqlite.org/wal.html">S11</a></li>
+<li><a href="https://joss.readthedocs.io/en/latest/review_criteria.html">S12</a></li>
+</ul>
+<footer>Версия для чтения. Нормативный источник: 01_TECHNICAL_SPEC.md. Локальный файл, внешние ресурсы не загружаются.</footer></main></body></html>
