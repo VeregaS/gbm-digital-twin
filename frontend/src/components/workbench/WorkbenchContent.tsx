@@ -7,7 +7,7 @@ import type {
   PatientSummary,
 } from "../../api/types";
 
-import MedicalViewerPanel from "../MedicalViewerPanel";
+import MedicalViewerPanel from "../viewer/MedicalViewerPanel";
 
 import type {
   WorkbenchSection,

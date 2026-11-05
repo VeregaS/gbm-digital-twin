@@ -3,8 +3,8 @@ import {
   useState,
 } from "react";
 
-import "./App.css";
-import "./ux-russian.css";
+import "./styles/App.css";
+import "./styles/ux-russian.css";
 
 import {
   fetchHealth,

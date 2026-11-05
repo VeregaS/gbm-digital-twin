@@ -1,4 +1,5 @@
 import {
+  lazy,
   useEffect,
   useRef,
   useState,
@@ -27,7 +28,9 @@ import type {
   ViewerVolumeMetadata,
 } from "../../api/types";
 
-import TwinThreeDViewer from "./TwinThreeDViewer";
+import DeferredViewer from "../viewer/DeferredViewer";
+
+const TwinThreeDViewer = lazy(() => import("../viewer/TwinThreeDViewer"));
 
 
 type CompareMode =
@@ -691,9 +694,11 @@ function TwinCompareTab({
         <div
           className="twin-3d-frame"
         >
-          <TwinThreeDViewer
-            patientId={patientId}
-          />
+          <DeferredViewer>
+            <TwinThreeDViewer
+              patientId={patientId}
+            />
+          </DeferredViewer>
         </div>
       )}
     </div>

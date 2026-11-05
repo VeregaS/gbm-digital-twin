@@ -20,12 +20,12 @@ import {
 
 import {
   fetchViewer3DScene,
-} from "../api/client";
+} from "../../api/client";
 
 import type {
   SurfaceMesh,
   Viewer3DScene,
-} from "../api/types";
+} from "../../api/types";
 
 
 type ThreeDViewerProps = {

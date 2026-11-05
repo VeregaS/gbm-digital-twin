@@ -8,11 +8,11 @@ import {
 import type {
   Capabilities,
   FeatureCapability,
-} from "../api/capabilities";
+} from "../../api/capabilities";
 
 import type {
   WorkbenchSection,
-} from "./layout/navigation";
+} from "./navigation";
 
 
 type FunctionalNavigationProps = {

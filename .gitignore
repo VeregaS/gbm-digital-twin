@@ -36,3 +36,8 @@ frontend/dist/
 .idea/
 .vscode/
 .DS_Store
+
+# Browser and build diagnostics
+frontend/playwright-report/
+frontend/test-results/
+*.tsbuildinfo

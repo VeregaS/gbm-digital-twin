@@ -5,13 +5,13 @@ import {
 
 import {
   viewerSliceUrl,
-} from "../api/client";
+} from "../../api/client";
 
 import type {
   ViewerPlane,
   ViewerPlaneMetadata,
   ViewerVolumeMetadata,
-} from "../api/types";
+} from "../../api/types";
 
 
 type TriPlanarViewerProps = {

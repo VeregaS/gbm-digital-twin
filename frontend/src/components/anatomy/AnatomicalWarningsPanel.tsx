@@ -13,12 +13,12 @@ import {
 import {
   fetchAnatomicalRisk,
   prepareAnatomicalRisk,
-} from "../api/client";
+} from "../../api/client";
 
 import type {
   AnatomicalRiskReport,
   AnatomicalWarning,
-} from "../api/types";
+} from "../../api/types";
 
 
 type AnatomicalWarningsPanelProps = {

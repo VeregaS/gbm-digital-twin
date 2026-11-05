@@ -4,6 +4,7 @@ import {
 } from "lucide-react";
 
 import {
+  lazy,
   useEffect,
   useMemo,
   useState,
@@ -12,19 +13,20 @@ import {
 import {
   fetchViewerMetadata,
   viewerSliceUrl,
-} from "../api/client";
+} from "../../api/client";
 
 import type {
   PatientSummary,
   ViewerPlane,
   ViewerPlaneMetadata,
   ViewerVolumeMetadata,
-} from "../api/types";
+} from "../../api/types";
 
-import AnatomicalWarningsPanel from "./AnatomicalWarningsPanel";
-import ThreeDViewer from "./ThreeDViewer";
+import AnatomicalWarningsPanel from "../anatomy/AnatomicalWarningsPanel";
+import DeferredViewer from "./DeferredViewer";
 import TriPlanarViewer from "./TriPlanarViewer";
 
+const ThreeDViewer = lazy(() => import("./ThreeDViewer"));
 
 type MedicalViewerPanelProps = {
   patient: PatientSummary | null;
@@ -469,10 +471,12 @@ function MedicalViewerPanel({
         />
       ) : mode === "3d" ? (
         <div className="medical-viewer-stage">
-          <ThreeDViewer
-            patientId={patient.patient_id}
-            timepointName={timepointName}
-          />
+          <DeferredViewer>
+            <ThreeDViewer
+              patientId={patient.patient_id}
+              timepointName={timepointName}
+            />
+          </DeferredViewer>
         </div>
       ) : (
         <SinglePlaneMode

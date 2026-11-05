@@ -10,7 +10,7 @@ import type {
   Capabilities,
 } from "../../api/capabilities";
 
-import FunctionalNavigation from "../FunctionalNavigation";
+import FunctionalNavigation from "./FunctionalNavigation";
 
 import type {
   WorkbenchSection,
